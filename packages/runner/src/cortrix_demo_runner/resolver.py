@@ -57,7 +57,18 @@ def apply_lifecycle_resolver(
     expected_document = resolver.get("expected_document_id")
     expected_field = resolver.get("expected_field")
     selected_content = selected.get("content")
-    passed = selected["document_id"] == expected_document and isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content
+    assertions = {
+        "selected_expected_document": selected["document_id"] == expected_document,
+        "selected_content_contains_expected_field": isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content,
+        "retrieval_top1_was_superseded": candidates[0]["lifecycle_status"] == "superseded",
+        "resolver_changed_final_document": candidates[0]["document_id"] != selected["document_id"],
+    }
+    passed = all(assertions.values())
+    reason = (
+        "The higher-ranked document is superseded, so the application selects the highest-ranked candidate whose lifecycle status is current."
+        if assertions["resolver_changed_final_document"]
+        else "The highest-ranked document is already current, so the lifecycle resolver does not change the selected document."
+    )
     return {
         "schema_version": 1,
         "policy_owner": resolver.get("owner"),
@@ -68,13 +79,8 @@ def apply_lifecycle_resolver(
             "selected_document_id": selected["document_id"],
             "selected_version": selected["version"],
             "selected_field": expected_field,
-            "reason": "The higher-ranked document is superseded, so the application selects the highest-ranked candidate whose lifecycle status is current.",
+            "reason": reason,
         },
-        "assertions": {
-            "selected_expected_document": selected["document_id"] == expected_document,
-            "selected_content_contains_expected_field": isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content,
-            "retrieval_top1_was_superseded": candidates[0]["lifecycle_status"] == "superseded",
-            "resolver_changed_final_document": candidates[0]["document_id"] != selected["document_id"],
-        },
+        "assertions": assertions,
         "pass": passed,
     }

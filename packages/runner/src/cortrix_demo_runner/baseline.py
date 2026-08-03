@@ -142,8 +142,7 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
         "exact_cosine_without_ann": True,
         "lifecycle_not_used_in_ranking": True,
     }
-    if not all(assertions.values()):
-        raise DemoContractError("Run A deterministic assertions failed")
+    passed = all(assertions.values())
     result = {
         "schema_version": 1,
         "environment": {"postgresql_version": rows[0][0], "pgvector_version": rows[0][1]},
@@ -153,8 +152,10 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
         "ranking": ranking,
         "top1": ranking[0]["document_id"],
         "assertions": assertions,
-        "pass": True,
+        "pass": passed,
         "claim_boundary": "Capability baseline only; not a PostgreSQL or pgvector failure and not a performance benchmark.",
     }
     write_json(output, result)
+    if not passed:
+        raise DemoContractError("Run A deterministic assertions failed")
     return result

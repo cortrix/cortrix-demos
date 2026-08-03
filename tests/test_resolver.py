@@ -42,6 +42,19 @@ class ResolverTests(unittest.TestCase):
         with self.assertRaisesRegex(DemoContractError, "durable child identity"):
             apply_lifecycle_resolver({"results": [{"child_id": "unknown"}]}, FIXTURES, IDENTITY_MAP)
 
+    def test_resolver_rejects_a_story_where_the_current_document_is_already_top1(self) -> None:
+        response = {
+            "results": [
+                {"child_id": "child-new", "score": 0.99, "content": "Use buyer_account_id."},
+                {"child_id": "child-old", "score": 0.91, "content": "Use buyer_id."},
+            ]
+        }
+        result = apply_lifecycle_resolver(response, FIXTURES, IDENTITY_MAP)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["assertions"]["retrieval_top1_was_superseded"])
+        self.assertFalse(result["assertions"]["resolver_changed_final_document"])
+        self.assertIn("already current", result["decision"]["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()
