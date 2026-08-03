@@ -49,7 +49,7 @@ def command_resolve(args: argparse.Namespace) -> None:
 
 
 def command_run_full_stack(args: argparse.Namespace) -> None:
-    result = execute_with_retry(args.root.resolve(), args.cortrix_source.resolve(), args.pricing_snapshot.resolve())
+    result = execute_with_retry(args.root.resolve(), args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), args.reviewed_attempt_limit)
     print(json.dumps({"status": result["state"], "run_id": result["run_id"], "external_calls": True, "human_review_required": True}, indent=2))
 
 
@@ -104,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--scenario", default=SCENARIO_ID)
     live.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     live.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
+    live.add_argument("--reviewed-attempt-limit", type=int, choices=[2, 3], default=2, help="Use 3 only after explicit Human Review authorizes one additional attempt.")
     live.set_defaults(handler=command_run_full_stack)
 
     accepted = subparsers.add_parser("stage-accepted")

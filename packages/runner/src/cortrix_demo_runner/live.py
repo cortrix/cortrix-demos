@@ -29,14 +29,21 @@ def attempt_ledger(root: Path) -> dict[str, Any]:
     return {"schema_version": 1, "full_stack_attempts": []}
 
 
-def reserve_attempt(root: Path, run_id: str) -> int:
+def validate_reviewed_attempt_limit(limit: int) -> int:
+    if limit not in {2, 3}:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2 or 3")
+    return limit
+
+
+def reserve_attempt(root: Path, run_id: str, reviewed_attempt_limit: int = 2) -> int:
     path = root / ".runs" / "attempt-ledger.json"
     ledger = attempt_ledger(root)
     attempts = ledger.get("full_stack_attempts")
     if not isinstance(attempts, list):
         raise DemoContractError("Full Stack attempt ledger is malformed")
-    if len(attempts) >= 2:
-        raise DemoContractError("The two-attempt Full Stack limit has been reached")
+    limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
+    if len(attempts) >= limit:
+        raise DemoContractError(f"The reviewed {limit}-attempt Full Stack limit has been reached")
     number = len(attempts) + 1
     attempts.append({"attempt": number, "run_id": run_id, "state": "reserved", "reserved_at": dt.datetime.now(dt.timezone.utc).isoformat()})
     write_json(path, ledger, mode=0o600)
@@ -91,12 +98,13 @@ def pricing_cost(pricing: dict[str, Any], input_tokens: int, output_tokens: int)
     return round((input_tokens * float(input_price) + output_tokens * float(output_price)) / 1_000_000, 8)
 
 
-def require_budget_bound(profile: dict[str, Any], pricing: dict[str, Any]) -> float:
+def require_budget_bound(profile: dict[str, Any], pricing: dict[str, Any], reviewed_attempt_limit: int | None = None) -> float:
     guard = profile.get("budget_guard")
     if not isinstance(guard, dict):
         raise DemoContractError("Full Stack profile has no budget guard")
     per_attempt_bound = pricing_cost(pricing, int(guard["maximum_input_tokens"]), int(guard["maximum_output_tokens"]))
-    bound = round(per_attempt_bound * int(profile["max_full_stack_attempts"]), 8)
+    attempt_limit = int(profile["max_full_stack_attempts"]) if reviewed_attempt_limit is None else validate_reviewed_attempt_limit(reviewed_attempt_limit)
+    bound = round(per_attempt_bound * attempt_limit, 8)
     if bound > float(profile["budget_usd"]):
         raise DemoContractError(f"Pricing snapshot makes the Full Stack token bound exceed USD {profile['budget_usd']:.2f}")
     return bound
@@ -321,17 +329,18 @@ def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_ma
     }
 
 
-def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> dict[str, Any]:
+def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
     fixture_root = scenario_root(root) / "fixtures"
     fixture_manifest_path = fixture_root / "manifest.json"
     manifest = read_json(fixture_manifest_path)
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
-    preflight = full_stack_preflight(source, pricing_path)
+    reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
+    preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit)
     pricing = read_json(pricing_path)
-    bound = require_budget_bound(profile, pricing)
+    bound = require_budget_bound(profile, pricing, reviewed_attempt_limit)
     verify_fixture_hashes(fixture_root, manifest)
     demo_checkout = verify_demo_checkout(root)
-    attempt = reserve_attempt(root, run_id)
+    attempt = reserve_attempt(root, run_id, reviewed_attempt_limit)
     run_dir = root / ".runs" / run_id
     receipt_path = run_dir / "cleanup-receipt.json"
     record_state(run_dir, "created")
@@ -434,15 +443,16 @@ def sanitized_error(exc: Exception) -> str:
     return message.replace(str(ROOT), "[repository]")
 
 
-def execute_with_retry(root: Path, source: Path, pricing_path: Path) -> dict[str, Any]:
+def execute_with_retry(root: Path, source: Path, pricing_path: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
+    reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     first_id = new_run_id()
     try:
-        return execute_once(root, source, pricing_path, first_id)
+        return execute_once(root, source, pricing_path, first_id, reviewed_attempt_limit)
     except (DemoContractError, subprocess.CalledProcessError, urllib.error.URLError) as first_error:
         category = failure_category(first_error)
         if category not in {"http_429", "http_5xx", "timeout"}:
             raise
-        if len(attempt_ledger(root)["full_stack_attempts"]) >= 2:
+        if len(attempt_ledger(root)["full_stack_attempts"]) >= reviewed_attempt_limit:
             raise
         retry_id = new_run_id() + "-retry"
-        return execute_once(root, source, pricing_path, retry_id)
+        return execute_once(root, source, pricing_path, retry_id, reviewed_attempt_limit)

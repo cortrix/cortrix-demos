@@ -55,7 +55,9 @@ def verify_runtime() -> dict[str, str]:
     return {"docker": docker.stdout.strip(), "docker_compose": compose.stdout.strip()}
 
 
-def full_stack_preflight(source: Path, pricing_snapshot: Path) -> dict[str, Any]:
+def full_stack_preflight(source: Path, pricing_snapshot: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
+    if reviewed_attempt_limit not in {2, 3}:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2 or 3")
     require_api_key()
     return {
         "secret_present": True,
@@ -64,7 +66,7 @@ def full_stack_preflight(source: Path, pricing_snapshot: Path) -> dict[str, Any]
         "runtime": verify_runtime(),
         "pricing": verify_pricing_snapshot(pricing_snapshot),
         "budget_usd": 1.0,
-        "max_full_stack_attempts": 2,
+        "max_full_stack_attempts": reviewed_attempt_limit,
         "local_generative_llm": False,
     }
 

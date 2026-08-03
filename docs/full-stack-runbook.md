@@ -42,6 +42,8 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
+The default reviewed attempt limit is two. If both attempts were consumed by documented runner defects, a Human Review may authorize exactly one additional attempt without increasing the USD 1.00 budget. Run that exception with `./democtl run-full-stack --root . --reviewed-attempt-limit 3`. The runner accepts no limit above three, preserves the first two ledger entries, applies a three-attempt cumulative budget bound, and never starts a fourth attempt.
+
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 
 ## 4. Inspect the candidate

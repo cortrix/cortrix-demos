@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import http.client
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, require_budget_bound
+from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
 from cortrix_demo_runner.runtime import request
 
 
@@ -26,6 +28,26 @@ class LiveContractTests(unittest.TestCase):
         profile = {"budget_usd": 1.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 1_000_000, "maximum_output_tokens": 1_000_000}}
         with self.assertRaisesRegex(DemoContractError, "exceed USD 1.00"):
             require_budget_bound(profile, PRICING)
+
+    def test_reviewed_third_attempt_uses_three_attempt_budget_bound(self) -> None:
+        profile = {"budget_usd": 1.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 200_000, "maximum_output_tokens": 50_000}}
+        pricing = {"prices_per_million_tokens": {"input_cache_miss": 0.14, "output": 0.28}}
+        self.assertEqual(0.126, require_budget_bound(profile, pricing, reviewed_attempt_limit=3))
+
+    def test_only_one_reviewed_additional_attempt_can_be_reserved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reserve_attempt(root, "attempt-1")
+            update_attempt(root, "attempt-1", "rejected", "timeout")
+            reserve_attempt(root, "attempt-2")
+            update_attempt(root, "attempt-2", "rejected", "timeout")
+            self.assertEqual(3, reserve_attempt(root, "attempt-3", reviewed_attempt_limit=3))
+            with self.assertRaisesRegex(DemoContractError, "reviewed 3-attempt"):
+                reserve_attempt(root, "attempt-4", reviewed_attempt_limit=3)
+
+    def test_reviewed_attempt_limit_cannot_exceed_three(self) -> None:
+        with self.assertRaisesRegex(DemoContractError, "must be 2 or 3"):
+            validate_reviewed_attempt_limit(4)
 
     def test_only_named_transient_categories_are_retryable(self) -> None:
         self.assertEqual("http_429", failure_category(DemoContractError("request failed. transient_category=http_429")))
