@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "scenario": "order-api-field-migration",
+  "scenario_metadata": "../../scenarios/order-api-field-migration/web/scenario.json",
+  "accepted_pointer": "../../scenarios/order-api-field-migration/evidence/accepted-run.json"
+}

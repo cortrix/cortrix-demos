@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Cortrix Demo Evidence</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="../../README.md">Cortrix Demos</a>
+      <span class="eyebrow">Accepted evidence viewer</span>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="scenario-title">
+        <p class="kicker" id="scenario-id">Loading scenario</p>
+        <h1 id="scenario-title">Loading evidence</h1>
+        <p class="lede" id="scenario-summary">The viewer is checking the accepted-run contract.</p>
+        <div class="status-panel" id="status-panel" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="status-text">Checking</span>
+        </div>
+      </section>
+
+      <section class="evidence-grid" id="evidence-grid" hidden>
+        <article class="card">
+          <p class="label">Retrieval top result</p>
+          <h2 id="retrieval-title"></h2>
+          <dl id="retrieval-details"></dl>
+        </article>
+        <article class="card emphasis">
+          <p class="label">Application decision</p>
+          <h2 id="decision-title"></h2>
+          <p id="decision-reason"></p>
+          <dl id="decision-details"></dl>
+        </article>
+        <article class="card wide">
+          <p class="label">Evidence identity</p>
+          <h2>Reproducible run</h2>
+          <dl id="run-details"></dl>
+        </article>
+      </section>
+
+      <section class="boundary" id="boundary" hidden>
+        <h2>Claim boundary</h2>
+        <p id="claim-boundary"></p>
+      </section>
+
+      <section class="failure" id="failure" hidden>
+        <h2>No accepted result is available</h2>
+        <p id="failure-message"></p>
+        <p>Run the Full Stack profile and accept its local evidence before using this viewer for a screenshot.</p>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

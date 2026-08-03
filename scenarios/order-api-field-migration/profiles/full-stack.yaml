@@ -1,0 +1,31 @@
+schema_version: 1
+profile: full-stack
+external_calls: true
+manual_only: true
+budget_usd: 1.00
+max_full_stack_attempts: 2
+contract_smokes_per_attempt: 1
+candidate_runs_per_attempt: 1
+retryable_failures:
+  - http_429
+  - http_5xx
+  - timeout
+provider: deepseek
+model: deepseek-v4-flash
+base_url: https://api.deepseek.com/v1
+local_generative_llm: false
+budget_guard:
+  maximum_input_tokens: 200000
+  maximum_output_tokens: 50000
+  require_bound_at_or_below_budget: true
+required_paths:
+  - bge_m3_embedding
+  - bm25_recall
+  - contextualized_recall
+  - hype_recall
+  - rrf_fusion
+  - bge_cross_encoder_rerank
+  - deepseek_ingestion
+  - deepseek_query_fusion
+  - deepseek_listwise_rerank
+  - application_lifecycle_resolver

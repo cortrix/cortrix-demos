@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "locale": "en-US",
+  "fallback": "en-US",
+  "messages": {
+    "scenario.title": "Order API Field Migration",
+    "scenario.subtitle": "When the most similar guide is outdated",
+    "state.noAcceptedRun": "No accepted run is available yet.",
+    "runA.title": "Run A: similarity only",
+    "runB.title": "Run B: evidence plus an application policy",
+    "resolver.title": "Application lifecycle decision",
+    "boundary": "Cortrix supplies evidence. The application owns the lifecycle decision."
+  }
+}

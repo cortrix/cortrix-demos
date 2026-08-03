@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cortrix-demos"
+version = "0.0.0"
+description = "Reproducible, evidence-backed demos for Cortrix."
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+cortrix-demo = "cortrix_demo_runner.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "packages/runner/src"}
+
+[tool.setuptools.packages.find]
+where = ["packages/runner/src"]

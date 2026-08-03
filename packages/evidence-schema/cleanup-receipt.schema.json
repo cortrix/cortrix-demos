@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cortrix Demo Cleanup Receipt",
+  "type": "object",
+  "required": ["schema_version", "run_id", "namespaces_removed", "containers_removed", "ports_released", "runtime_secret_removed", "model_cache_preserved"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string"},
+    "namespaces_removed": {"type": "boolean"},
+    "containers_removed": {"type": "boolean"},
+    "ports_released": {"type": "boolean"},
+    "runtime_secret_removed": {"type": "boolean"},
+    "model_cache_preserved": {"type": "boolean"}
+  }
+}

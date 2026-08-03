@@ -1,0 +1,14 @@
+.DS_Store
+.runtime/
+.runs/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+screenshots-draft/
+*.log
+*.env
+dist/
+build/

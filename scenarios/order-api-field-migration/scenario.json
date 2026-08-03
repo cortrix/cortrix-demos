@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "order-api-field-migration",
+  "display_name": "Order API Field Migration",
+  "title": "Order API Field Migration: When the Most Similar Guide Is Outdated",
+  "scenario_version": "1.0.0",
+  "synthetic_data": true,
+  "requires": {
+    "cortrix_release": "v1.0.0-rc.1",
+    "cortrix_release_commit": "e159974f936bd987d5718195d54cd70ff3acc2e5",
+    "cortrix_source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+  },
+  "profiles": ["full-stack", "replay"],
+  "fixtures": {"manifest": "fixtures/manifest.json"},
+  "assertions": "expected/assertions.json",
+  "locales": {"default": "en-US", "available": ["en-US"]},
+  "evidence_schema": 1
+}

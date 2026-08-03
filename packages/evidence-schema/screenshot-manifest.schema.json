@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cortrix Demo Screenshot Manifest",
+  "type": "object",
+  "required": ["schema_version", "run_id", "accepted_commit", "screenshots"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string"},
+    "accepted_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "screenshots": {
+      "type": "array",
+      "items": {"type": "object", "required": ["file", "route", "evidence_path", "sha256", "width", "height", "captured_at"]}
+    }
+  }
+}

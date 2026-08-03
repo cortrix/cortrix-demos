@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source": "Cortrix deploy/model-manifest.tsv at the validated source revision",
+  "assets": [
+    {
+      "component": "embedding_model",
+      "model": "BAAI/bge-m3",
+      "container_path": "/data/models/bge-m3/model.onnx",
+      "size_bytes": 568479395,
+      "sha256": "2237f770aad5c71bbc1fc2d361a57f9a37400574cc9eff32626f0cdb49234730"
+    },
+    {
+      "component": "embedding_tokenizer",
+      "model": "BAAI/bge-m3",
+      "container_path": "/data/models/bge-m3/tokenizer.json",
+      "size_bytes": 17082799,
+      "sha256": "249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4"
+    },
+    {
+      "component": "reranker_model",
+      "model": "BAAI/bge-reranker-v2-m3",
+      "container_path": "/data/models/bge-reranker-v2-m3/model.onnx",
+      "size_bytes": 570727094,
+      "sha256": "912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d"
+    },
+    {
+      "component": "reranker_tokenizer",
+      "model": "BAAI/bge-reranker-v2-m3",
+      "container_path": "/data/models/bge-reranker-v2-m3/tokenizer.json",
+      "size_bytes": 17082900,
+      "sha256": "8bf8afbfd11306bd872018c53bfdf2e160a56f8edbcf49933324404791c148d3"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "profile": "replay",
+  "external_calls": false,
+  "accepted_evidence_only": true,
+  "read_only": true
+}

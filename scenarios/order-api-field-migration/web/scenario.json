@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-api-field-migration",
+  "default_locale": "en-US",
+  "available_locales": ["en-US"]
+}
