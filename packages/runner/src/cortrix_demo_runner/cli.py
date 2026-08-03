@@ -14,7 +14,7 @@ from .live import execute_with_retry
 from .preflight import full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .safety import require_safe
-from .scenario import SCENARIO_ID, scenario_root, validate_scenario
+from .scenario import SCENARIO_ID, load_assertion_contract, scenario_root, validate_scenario
 
 
 def command_validate(args: argparse.Namespace) -> None:
@@ -41,7 +41,8 @@ def command_preflight(args: argparse.Namespace) -> None:
 def command_resolve(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     fixtures = read_json(scenario_root(root, args.scenario) / "fixtures" / "manifest.json")
-    result = apply_lifecycle_resolver(read_json(args.response), fixtures, read_json(args.identity_map))
+    frozen_assertions = load_assertion_contract(root, args.scenario)["frozen"]
+    result = apply_lifecycle_resolver(read_json(args.response), fixtures, read_json(args.identity_map), frozen_assertions)
     if not result["pass"]:
         raise DemoContractError("Application lifecycle resolver assertions failed")
     write_json(args.output, result)

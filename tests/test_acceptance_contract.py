@@ -28,10 +28,12 @@ class AcceptanceContractTests(unittest.TestCase):
         return {
             "schema_version": 1,
             "scenario_id": SCENARIO_ID,
+            "scenario_version": "1.1.0",
             "assertions": {name: True for name in ("run_a", "run_b", "required_paths", "resolver", "cleanup", "budget", "model_checksums", "all_passed")},
             "required_paths": {name: True for name in REQUIRED_PATH_NAMES},
             "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": "sha256:" + "1" * 64, "demo_commit": "a" * 40},
             "fixture_manifest_sha256": "2" * 64,
+            "assertion_contract_sha256": "3" * 64,
             "provider_identity": {"provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1", "local_generative_llm": False},
             "cleanup": {"namespaces_removed": True, "containers_removed": True, "ports_released": True, "runtime_secret_removed": True},
             "cost": {"budget_usd": 1.0, "within_budget_contract": True, "public_cost_claim_allowed": False, "usage_visibility": "partial", "model": "deepseek-v4-flash", "observable_input_tokens": 1, "observable_output_tokens": 1, "observable_call_count_minimum": 5, "pricing_snapshot": {"official_url": "https://api-docs.deepseek.com/quick_start/pricing", "observed_at": "2026-08-03T12:00:00Z", "model": "deepseek-v4-flash", "currency": "USD"}},
@@ -52,10 +54,10 @@ class AcceptanceContractTests(unittest.TestCase):
                 for name in (
                     "selected_expected_document",
                     "selected_content_contains_expected_field",
-                    "bge_rerank_leader_was_superseded",
+                    "bge_rerank_leader_matches_contract",
                     "bge_rerank_leader_was_strict",
-                    "final_top1_is_current",
-                    "policy_preserved_final_top1",
+                    "final_top1_matches_contract",
+                    "policy_action_matches_contract",
                 )
             },
             "layers": {
@@ -64,6 +66,19 @@ class AcceptanceContractTests(unittest.TestCase):
                 "application_lifecycle_policy": {"action": "preserved_final_top1"},
             },
             "decision": {"selected_document_id": "order-api-release-v2.0", "selected_field": "buyer_account_id"},
+        }
+
+    def frozen_assertions(self) -> dict[str, object]:
+        return {
+            "run_a_dense_cosine_top_document_id": "order-api-release-v2.0",
+            "run_a_dense_cosine_top_document_status": "current",
+            "run_b_bge_rerank_leader_document_id": "order-api-guide-v1.0",
+            "run_b_bge_rerank_leader_status": "superseded",
+            "run_b_final_top_document_id": "order-api-release-v2.0",
+            "run_b_final_top_document_status": "current",
+            "resolver_selected_document_id": "order-api-release-v2.0",
+            "resolver_selected_field": "buyer_account_id",
+            "resolver_action": "preserved_final_top1",
         }
 
     def test_frozen_run_id_accepts_initial_and_retry_attempts(self) -> None:
@@ -110,8 +125,9 @@ class AcceptanceContractTests(unittest.TestCase):
         self.assertIn('manifest.state !== "accepted"', viewer)
         self.assertIn("manifest.target_identity?.source_revision", viewer)
         self.assertIn("manifest.provider_identity?.model", viewer)
-        self.assertIn("bge_rerank_leader_was_superseded", viewer)
+        self.assertIn("bge_rerank_leader_matches_contract", viewer)
         self.assertIn("deepseek_listwise_final", viewer)
+        self.assertIn("manifest.scenario_version", viewer)
         self.assertNotIn("manifest.status", viewer)
 
     def test_manifest_contract_requires_the_exact_frozen_paths(self) -> None:
@@ -121,12 +137,21 @@ class AcceptanceContractTests(unittest.TestCase):
         with self.assertRaises(DemoContractError):
             validate_manifest_contract(manifest)
 
+    def test_manifest_contract_requires_scenario_and_assertion_contract_identity(self) -> None:
+        for key in ("scenario_version", "assertion_contract_sha256"):
+            manifest = self.accepted_contract_manifest()
+            del manifest[key]
+            with self.subTest(key=key), self.assertRaisesRegex(DemoContractError, "scenario version or assertion contract"):
+                validate_manifest_contract(manifest)
+
     def test_evidence_schemas_preserve_acceptance_and_screenshot_gates(self) -> None:
         root = Path(__file__).resolve().parents[1]
         run_schema = json.loads((root / "packages" / "evidence-schema" / "run-manifest.schema.json").read_text(encoding="utf-8"))
         screenshot_schema = json.loads((root / "packages" / "evidence-schema" / "screenshot-manifest.schema.json").read_text(encoding="utf-8"))
         self.assertIn("acceptance", run_schema["properties"])
         self.assertIn("required_paths", run_schema["required"])
+        self.assertIn("scenario_version", run_schema["required"])
+        self.assertIn("assertion_contract_sha256", run_schema["required"])
         self.assertEqual(1, screenshot_schema["properties"]["screenshots"]["minItems"])
         self.assertFalse(screenshot_schema["additionalProperties"])
 
@@ -134,9 +159,33 @@ class AcceptanceContractTests(unittest.TestCase):
         run_id = "order-api-field-migration-20260803T120000Z"
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "demo"
-            fixture = root / "scenarios" / SCENARIO_ID / "fixtures" / "manifest.json"
+            scenario_root = root / "scenarios" / SCENARIO_ID
+            fixture = scenario_root / "fixtures" / "manifest.json"
             fixture.parent.mkdir(parents=True)
-            write_json(fixture, {"schema_version": 1, "query": {}, "documents": []})
+            frozen = self.frozen_assertions()
+            assertion_contract = scenario_root / "expected" / "assertions.json"
+            write_json(
+                scenario_root / "scenario.json",
+                {
+                    "id": SCENARIO_ID,
+                    "scenario_version": "1.1.0",
+                    "requires": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION},
+                    "assertions": "expected/assertions.json",
+                },
+            )
+            write_json(assertion_contract, {"schema_version": 1, "scenario_id": SCENARIO_ID, "frozen": frozen})
+            write_json(
+                fixture,
+                {
+                    "schema_version": 1,
+                    "query": {},
+                    "documents": [
+                        {"document_id": "order-api-guide-v1.0", "status": "superseded"},
+                        {"document_id": "order-api-release-v2.0", "status": "current"},
+                    ],
+                    "resolver": {"expected_document_id": "order-api-release-v2.0", "expected_field": "buyer_account_id"},
+                },
+            )
             (root / ".gitignore").write_text(".runs/\n", encoding="utf-8")
             for command in (
                 ["git", "init", "-b", "main"],
@@ -156,9 +205,11 @@ class AcceptanceContractTests(unittest.TestCase):
                 "schema_version": 1,
                 "run_id": run_id,
                 "scenario_id": SCENARIO_ID,
+                "scenario_version": "1.1.0",
                 "state": "candidate",
                 "target_identity": target,
                 "fixture_manifest_sha256": sha256_file(fixture),
+                "assertion_contract_sha256": sha256_file(assertion_contract),
                 "provider_identity": provider,
                 "required_paths": {name: True for name in REQUIRED_PATH_NAMES},
                 "cleanup": cleanup,
@@ -184,13 +235,20 @@ class AcceptanceContractTests(unittest.TestCase):
             }
             files = {
                 "run-manifest.json": manifest,
-                "source-manifest.json": {"run_id": run_id, "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
+                "source-manifest.json": {"run_id": run_id, "scenario_version": "1.1.0", "assertion_contract_sha256": sha256_file(assertion_contract), "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
                 "runtime.json": {"run_id": run_id, "llm": {**provider, "secret_persisted_in_evidence": False}},
                 "contract-smoke.json": {"provider": "deepseek", "model": "deepseek-v4-flash", "call_count": 1, "usage": {"prompt_tokens": 1, "completion_tokens": 1}, "response_content_recorded": False},
                 "model-checksums.json": {"all_match": True},
                 "cleanup-receipt.json": {"run_id": run_id, **cleanup},
                 "state-history.json": {"run_id": run_id, "transitions": [{"state": "created"}, {"state": "running"}, {"state": "candidate"}]},
-                "run-a/pgvector-result.json": {"run_id": run_id, "pass": True},
+                "run-a/pgvector-result.json": {
+                    "schema_version": 1,
+                    "run_id": run_id,
+                    "pass": True,
+                    "top1": "order-api-release-v2.0",
+                    "assertions": {name: True for name in ("expected_dense_document_is_top1", "expected_bge_leader_document_is_present", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking")},
+                    "ranking": [{"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"}],
+                },
                 "run-b/summary.json": {"run_id": run_id, "pass": True},
                 "run-b/resolver-01.json": self.layered_resolver(run_id),
                 "run-b/resolver-02.json": self.layered_resolver(run_id),

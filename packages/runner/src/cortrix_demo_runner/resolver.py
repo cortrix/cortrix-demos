@@ -10,6 +10,7 @@ def apply_lifecycle_resolver(
     response: dict[str, Any],
     fixture_manifest: dict[str, Any],
     identity_map: dict[str, dict[str, str]],
+    frozen_assertions: dict[str, Any],
 ) -> dict[str, Any]:
     results = response.get("results")
     if not isinstance(results, list) or not results:
@@ -68,16 +69,19 @@ def apply_lifecycle_resolver(
     resolver = fixture_manifest.get("resolver")
     if not isinstance(resolver, dict):
         raise DemoContractError("Fixture resolver contract is missing")
-    expected_document = resolver.get("expected_document_id")
-    expected_field = resolver.get("expected_field")
+    expected_document = frozen_assertions.get("resolver_selected_document_id")
+    expected_field = frozen_assertions.get("resolver_selected_field")
+    if resolver.get("expected_document_id") != expected_document or resolver.get("expected_field") != expected_field:
+        raise DemoContractError("Fixture resolver and frozen assertion contract do not match")
     selected_content = selected.get("content")
+    policy_action = "preserved_final_top1" if final_top["document_id"] == selected["document_id"] else "changed_final_top1"
     assertions = {
         "selected_expected_document": selected["document_id"] == expected_document,
         "selected_content_contains_expected_field": isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content,
-        "bge_rerank_leader_was_superseded": bge_leader["lifecycle_status"] == "superseded",
+        "bge_rerank_leader_matches_contract": bge_leader["document_id"] == frozen_assertions.get("run_b_bge_rerank_leader_document_id") and bge_leader["lifecycle_status"] == frozen_assertions.get("run_b_bge_rerank_leader_status"),
         "bge_rerank_leader_was_strict": float(bge_leader["rerank_score"]) > float(bge_runner_up["rerank_score"]),
-        "final_top1_is_current": final_top["lifecycle_status"] == "current",
-        "policy_preserved_final_top1": final_top["document_id"] == selected["document_id"],
+        "final_top1_matches_contract": final_top["document_id"] == frozen_assertions.get("run_b_final_top_document_id") and final_top["lifecycle_status"] == frozen_assertions.get("run_b_final_top_document_status"),
+        "policy_action_matches_contract": policy_action == frozen_assertions.get("resolver_action"),
     }
     passed = all(assertions.values())
     reason = (
@@ -114,7 +118,7 @@ def apply_lifecycle_resolver(
             },
             "application_lifecycle_policy": {
                 "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
-                "action": "preserved_final_top1" if final_top["document_id"] == selected["document_id"] else "changed_final_top1",
+                "action": policy_action,
             },
         },
         "decision": {

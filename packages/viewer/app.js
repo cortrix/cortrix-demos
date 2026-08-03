@@ -23,12 +23,15 @@ function rejectViewer(message) {
   byId("failure").hidden = false;
 }
 
-function requireAccepted(pointer, manifest, resolver) {
+function requireAccepted(pointer, manifest, resolver, scenario) {
   if (pointer.status !== "accepted" || manifest.state !== "accepted") {
     throw new Error("The accepted-run pointer and run manifest must both report accepted.");
   }
   if (pointer.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
     throw new Error("Evidence identity mismatch between pointer, manifest, and resolver.");
+  }
+  if (manifest.scenario_version !== scenario.scenario_version) {
+    throw new Error("The accepted run does not match the current scenario contract version.");
   }
   if (resolver.pass !== true || manifest.assertions?.all_passed !== true) {
     throw new Error("The accepted run does not contain passing resolver and run assertions.");
@@ -36,10 +39,10 @@ function requireAccepted(pointer, manifest, resolver) {
   const requiredAssertions = [
     "selected_expected_document",
     "selected_content_contains_expected_field",
-    "bge_rerank_leader_was_superseded",
+    "bge_rerank_leader_matches_contract",
     "bge_rerank_leader_was_strict",
-    "final_top1_is_current",
-    "policy_preserved_final_top1",
+    "final_top1_matches_contract",
+    "policy_action_matches_contract",
   ];
   if (resolver.schema_version !== 2 || !requiredAssertions.every((name) => resolver.assertions?.[name] === true)) {
     throw new Error("The accepted resolver does not satisfy the layered-ranking contract.");
@@ -57,7 +60,7 @@ async function render() {
     const pointer = await loadJson(config.accepted_pointer);
     const manifest = await loadJson(pointer.manifest);
     const resolver = await loadJson(pointer.resolver);
-    requireAccepted(pointer, manifest, resolver);
+    requireAccepted(pointer, manifest, resolver, scenario);
 
     const bgeLeader = resolver.layers?.bge_cross_encoder?.leader;
     const finalTop = resolver.layers?.deepseek_listwise_final?.top_result;
@@ -84,6 +87,7 @@ async function render() {
     addDefinition(byId("decision-details"), "Policy action", resolver.layers.application_lifecycle_policy.action);
 
     addDefinition(byId("run-details"), "Run ID", manifest.run_id);
+    addDefinition(byId("run-details"), "Scenario contract", manifest.scenario_version);
     addDefinition(byId("run-details"), "Cortrix release", manifest.target_identity?.release);
     addDefinition(byId("run-details"), "Source revision", manifest.target_identity?.source_revision);
     addDefinition(byId("run-details"), "Demo commit", manifest.target_identity?.demo_commit);

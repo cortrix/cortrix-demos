@@ -15,7 +15,7 @@ from .io import read_json, sha256_file, write_json
 from .preflight import full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, scenario_root
+from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root
 
 
 def new_run_id() -> str:
@@ -239,7 +239,7 @@ def query_assertions(response: dict[str, Any], before_text: str, after_text: str
     }
 
 
-def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any]) -> dict[str, Any]:
     namespace = "order-b-" + safe_run_suffix(run_id)
     before_ingest = metrics()
     tasks = ingest_documents(run_id, namespace, fixture_root, manifest)
@@ -254,7 +254,7 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     resolvers = []
     for number in (1, 2):
         payload, response, before, after = run_query(namespace, query)
-        resolver = apply_lifecycle_resolver(response, manifest, identities)
+        resolver = apply_lifecycle_resolver(response, manifest, identities, frozen_assertions)
         resolver["run_id"] = run_id
         summary = query_assertions(response, before, after, resolver)
         write_json(run_dir / "run-b" / f"query-{number:02d}.request.json", payload)
@@ -276,7 +276,7 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     return result
 
 
-def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any]) -> dict[str, Any]:
     start("embedding-only")
     suffix = safe_run_suffix(run_id)
     documents_namespace = "order-a-docs-" + suffix
@@ -290,7 +290,7 @@ def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     document_vectors.parent.mkdir(parents=True, exist_ok=True)
     export_vectors(documents_namespace, document_vectors)
     export_vectors(query_namespace, query_vectors)
-    return run_exact_cosine(document_vectors, query_vectors, fixture_root / "manifest.json", run_dir / "run-a" / "pgvector-result.json")
+    return run_exact_cosine(document_vectors, query_vectors, fixture_root / "manifest.json", frozen_assertions, run_dir / "run-a" / "pgvector-result.json")
 
 
 def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: dict[str, Any], bound: float) -> dict[str, Any]:
@@ -315,14 +315,16 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
     }
 
 
-def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_manifest: Path, demo_checkout: dict[str, str]) -> dict[str, Any]:
+def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_manifest: Path, assertion_contract: Path, scenario: dict[str, Any], demo_checkout: dict[str, str]) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "run_id": run_id,
         "attempt": attempt,
         "scenario_id": SCENARIO_ID,
+        "scenario_version": scenario["scenario_version"],
         "source": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION, "container_image": image["image"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"], "demo_branch": demo_checkout["branch"], "demo_working_tree": demo_checkout["working_tree"]},
         "fixture_manifest_sha256": sha256_file(fixture_manifest),
+        "assertion_contract_sha256": sha256_file(assertion_contract),
         "provider": {"provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1", "local_generative_llm": False},
         "private_source_paths_recorded": False,
         "secret_recorded": False,
@@ -330,6 +332,10 @@ def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_ma
 
 
 def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
+    scenario = load_scenario(root)
+    assertion_path = assertion_contract_path(root)
+    assertion_contract = load_assertion_contract(root)
+    frozen_assertions = assertion_contract["frozen"]
     fixture_root = scenario_root(root) / "fixtures"
     fixture_manifest_path = fixture_root / "manifest.json"
     manifest = read_json(fixture_manifest_path)
@@ -358,13 +364,13 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         smoke = contract_smoke()
         write_json(run_dir / "contract-smoke.json", smoke)
         phase = "run_b"
-        run_b_result = run_b(run_id, run_dir, fixture_root, manifest)
+        run_b_result = run_b(run_id, run_dir, fixture_root, manifest, frozen_assertions)
         phase = "run_a"
-        run_a_result = run_a(run_id, run_dir, fixture_root, manifest)
+        run_a_result = run_a(run_id, run_dir, fixture_root, manifest, frozen_assertions)
         phase = "runtime_identity"
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
-        source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, demo_checkout)
+        source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
         cost = cost_record(pricing, smoke, run_b_result, bound)
         write_json(run_dir / "preflight.json", preflight)
         write_json(run_dir / "runtime.json", runtime)
@@ -388,9 +394,11 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
             "schema_version": 1,
             "run_id": run_id,
             "scenario_id": SCENARIO_ID,
+            "scenario_version": scenario["scenario_version"],
             "state": state,
             "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
             "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
+            "assertion_contract_sha256": source_identity["assertion_contract_sha256"],
             "provider_identity": source_identity["provider"],
             "required_paths": required_paths,
             "run_a": {"path": "run-a/pgvector-result.json", "pass": run_a_result["pass"]},

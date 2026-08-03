@@ -14,7 +14,7 @@ from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .live import verify_demo_checkout
 from .safety import scan_text
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, scenario_root
+from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root
 
 
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -52,6 +52,7 @@ ALLOWED_CURATED_FILES = {
     "contract-smoke.json",
     "pricing-snapshot.json",
     "fixture-manifest.json",
+    "assertion-contract.json",
     "model-checksums.json",
     "assertions.json",
     "cleanup-receipt.json",
@@ -66,10 +67,10 @@ ALLOWED_CURATED_FILES = {
 LAYERED_RESOLVER_ASSERTIONS = {
     "selected_expected_document",
     "selected_content_contains_expected_field",
-    "bge_rerank_leader_was_superseded",
+    "bge_rerank_leader_matches_contract",
     "bge_rerank_leader_was_strict",
-    "final_top1_is_current",
-    "policy_preserved_final_top1",
+    "final_top1_matches_contract",
+    "policy_action_matches_contract",
 }
 
 
@@ -110,6 +111,8 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
         raise DemoContractError("Run Cortrix source or container identity is invalid")
     if not isinstance(manifest.get("fixture_manifest_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", manifest["fixture_manifest_sha256"]):
         raise DemoContractError("Run fixture manifest checksum is invalid")
+    if not isinstance(manifest.get("scenario_version"), str) or not manifest["scenario_version"] or not isinstance(manifest.get("assertion_contract_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", manifest["assertion_contract_sha256"]):
+        raise DemoContractError("Run scenario version or assertion contract identity is invalid")
     provider = manifest.get("provider_identity")
     if not isinstance(provider, dict) or provider.get("provider") != "deepseek" or provider.get("model") != "deepseek-v4-flash" or provider.get("base_url") != "https://api.deepseek.com/v1" or provider.get("local_generative_llm") is not False:
         raise DemoContractError("Run provider identity is not accepted")
@@ -149,7 +152,7 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
     return demo_commit
 
 
-def validate_layered_resolver_contract(resolver: dict[str, Any]) -> None:
+def validate_layered_resolver_contract(resolver: dict[str, Any], frozen_assertions: dict[str, Any]) -> None:
     assertions = resolver.get("assertions")
     layers = resolver.get("layers")
     if resolver.get("schema_version") != 2 or resolver.get("pass") is not True or not isinstance(assertions, dict) or not all(assertions.get(name) is True for name in LAYERED_RESOLVER_ASSERTIONS):
@@ -161,19 +164,34 @@ def validate_layered_resolver_contract(resolver: dict[str, Any]) -> None:
     policy = layers.get("application_lifecycle_policy")
     leader = bge.get("leader") if isinstance(bge, dict) else None
     top_result = final.get("top_result") if isinstance(final, dict) else None
-    if not isinstance(leader, dict) or leader.get("document_id") != "order-api-guide-v1.0" or leader.get("lifecycle_status") != "superseded":
-        raise DemoContractError("Resolver BGE layer does not identify the superseded guide")
-    if not isinstance(top_result, dict) or top_result.get("document_id") != "order-api-release-v2.0" or top_result.get("lifecycle_status") != "current":
-        raise DemoContractError("Resolver final layer does not identify the current release")
-    if not isinstance(policy, dict) or policy.get("action") != "preserved_final_top1":
-        raise DemoContractError("Resolver lifecycle policy did not preserve the final top result")
+    if not isinstance(leader, dict) or leader.get("document_id") != frozen_assertions.get("run_b_bge_rerank_leader_document_id") or leader.get("lifecycle_status") != frozen_assertions.get("run_b_bge_rerank_leader_status"):
+        raise DemoContractError("Resolver BGE layer does not match the frozen assertion contract")
+    if not isinstance(top_result, dict) or top_result.get("document_id") != frozen_assertions.get("run_b_final_top_document_id") or top_result.get("lifecycle_status") != frozen_assertions.get("run_b_final_top_document_status"):
+        raise DemoContractError("Resolver final layer does not match the frozen assertion contract")
+    if not isinstance(policy, dict) or policy.get("action") != frozen_assertions.get("resolver_action"):
+        raise DemoContractError("Resolver lifecycle action does not match the frozen assertion contract")
     decision = resolver.get("decision")
-    if not isinstance(decision, dict) or decision.get("selected_document_id") != "order-api-release-v2.0" or decision.get("selected_field") != "buyer_account_id":
+    if not isinstance(decision, dict) or decision.get("selected_document_id") != frozen_assertions.get("resolver_selected_document_id") or decision.get("selected_field") != frozen_assertions.get("resolver_selected_field"):
         raise DemoContractError("Resolver decision does not match the frozen current-document contract")
+
+
+def validate_run_a_contract(run_a: dict[str, Any], frozen_assertions: dict[str, Any]) -> None:
+    assertions = run_a.get("assertions")
+    required = {"expected_dense_document_is_top1", "expected_bge_leader_document_is_present", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking"}
+    if run_a.get("schema_version") != 1 or run_a.get("pass") is not True or not isinstance(assertions, dict) or not all(assertions.get(name) is True for name in required):
+        raise DemoContractError("Run A does not satisfy the layered dense-baseline assertions")
+    if run_a.get("top1") != frozen_assertions.get("run_a_dense_cosine_top_document_id"):
+        raise DemoContractError("Run A top result does not match the frozen assertion contract")
+    ranking = run_a.get("ranking")
+    if not isinstance(ranking, list) or not any(isinstance(item, dict) and item.get("document_id") == frozen_assertions.get("run_b_bge_rerank_leader_document_id") and item.get("lifecycle_status") == frozen_assertions.get("run_b_bge_rerank_leader_status") for item in ranking):
+        raise DemoContractError("Run A does not contain the frozen BGE-leader document identity")
 
 
 def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_id(run_id)
+    scenario = load_scenario(root)
+    assertion_path = assertion_contract_path(root)
+    frozen_assertions = load_assertion_contract(root)["frozen"]
     source = candidate_root(root, run_id)
     for relative in REQUIRED_CANDIDATE_FILES:
         if not (source / relative).is_file():
@@ -186,6 +204,8 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     if manifest.get("screenshot_eligible") is not False or manifest.get("human_review_required") is not True:
         raise DemoContractError("Candidate manifest bypasses the human-review screenshot gate")
     demo_commit = validate_manifest_contract(manifest)
+    if manifest.get("scenario_version") != scenario.get("scenario_version") or manifest.get("assertion_contract_sha256") != sha256_file(assertion_path):
+        raise DemoContractError("Candidate scenario version or assertion contract does not match the tracked scenario")
     fixture_manifest = scenario_root(root) / "fixtures" / "manifest.json"
     if sha256_file(fixture_manifest) != manifest.get("fixture_manifest_sha256"):
         raise DemoContractError("Candidate fixture manifest checksum does not match the tracked fixture")
@@ -201,7 +221,7 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
         "demo_branch": "main",
         "demo_working_tree": "clean",
     }
-    if source_manifest.get("run_id") != run_id or any(source_identity.get(key) != value for key, value in expected_source.items()):
+    if source_manifest.get("run_id") != run_id or source_manifest.get("scenario_version") != scenario.get("scenario_version") or source_manifest.get("assertion_contract_sha256") != manifest.get("assertion_contract_sha256") or any(source_identity.get(key) != value for key, value in expected_source.items()):
         raise DemoContractError("Candidate source manifest does not match the run target identity")
     if source_manifest.get("provider") != manifest.get("provider_identity") or source_manifest.get("private_source_paths_recorded") is not False or source_manifest.get("secret_recorded") is not False:
         raise DemoContractError("Candidate source manifest provider or safety boundary is invalid")
@@ -218,8 +238,9 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     run_b = require_object(read_json(source / "run-b" / "summary.json"), "Candidate Run B summary")
     resolver_one = require_object(read_json(source / "run-b" / "resolver-01.json"), "Candidate resolver result one")
     resolver_two = require_object(read_json(source / "run-b" / "resolver-02.json"), "Candidate resolver result two")
-    validate_layered_resolver_contract(resolver_one)
-    validate_layered_resolver_contract(resolver_two)
+    validate_run_a_contract(run_a, frozen_assertions)
+    validate_layered_resolver_contract(resolver_one, frozen_assertions)
+    validate_layered_resolver_contract(resolver_two, frozen_assertions)
     if models.get("all_match") is not True or cleanup_receipt.get("run_id") != run_id or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):
         raise DemoContractError("Candidate model or cleanup evidence does not match the manifest")
     if run_a.get("pass") is not True or run_b.get("pass") is not True or any(item.get("run_id") != run_id or item.get("pass") is not True for item in (resolver_one, resolver_two)):
@@ -303,6 +324,7 @@ def stage_accepted(root: Path, run_id: str, human_review_id: str) -> dict[str, A
     write_json(staging / "target-identity.json", public_source_identity)
     write_json(staging / "pricing-snapshot.json", pricing_snapshot)
     copy_json(scenario_root(root) / "fixtures" / "manifest.json", staging / "fixture-manifest.json")
+    copy_json(assertion_contract_path(root), staging / "assertion-contract.json")
     copy_json(source / "model-checksums.json", staging / "model-checksums.json")
     copy_json(source / "runtime.json", staging / "runtime.json")
     copy_json(source / "contract-smoke.json", staging / "contract-smoke.json")
@@ -455,13 +477,16 @@ def verify_checksum_manifest(destination: Path) -> None:
 
 def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_id(run_id)
+    scenario = load_scenario(root)
+    tracked_assertion_path = assertion_contract_path(root)
+    frozen_assertions = load_assertion_contract(root)["frozen"]
     destination = accepted_root(root, run_id)
     pointer = read_json(scenario_root(root) / "evidence" / "accepted-run.json")
     manifest = read_json(destination / "run-manifest.json")
     resolver = read_json(destination / "run-b" / "resolver-01.json")
     if not all(isinstance(value, dict) for value in (pointer, manifest, resolver)):
         raise DemoContractError("Accepted pointer, manifest, and resolver must be JSON objects")
-    validate_layered_resolver_contract(resolver)
+    validate_layered_resolver_contract(resolver, frozen_assertions)
     pointer_prefix = f"../../scenarios/{SCENARIO_ID}/evidence/runs/{run_id}"
     expected_pointer = {
         "manifest": f"{pointer_prefix}/run-manifest.json",
@@ -476,6 +501,8 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     if not isinstance(assertions, dict) or assertions.get("all_passed") is not True or resolver.get("pass") is not True:
         raise DemoContractError("Accepted evidence assertions are not all passing")
     demo_commit = validate_manifest_contract(manifest)
+    if manifest.get("scenario_version") != scenario.get("scenario_version") or manifest.get("assertion_contract_sha256") != sha256_file(tracked_assertion_path):
+        raise DemoContractError("Accepted scenario version or assertion contract does not match the tracked scenario")
     target_identity = require_object(manifest.get("target_identity"), "Accepted target identity")
     acceptance = manifest.get("acceptance")
     if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or not isinstance(acceptance, dict) or acceptance.get("method") != "human_review" or acceptance.get("demo_commit") != demo_commit or acceptance.get("private_review_reference_recorded") is not False:
@@ -506,15 +533,17 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
         raise DemoContractError("Curated runtime provider or secret boundary is invalid")
     pricing = require_object(read_json(destination / "pricing-snapshot.json"), "Curated pricing snapshot")
     fixture = destination / "fixture-manifest.json"
+    curated_assertion_path = destination / "assertion-contract.json"
     models = require_object(read_json(destination / "model-checksums.json"), "Curated model checksums")
     curated_assertions = require_object(read_json(destination / "assertions.json"), "Curated assertions")
     cleanup_receipt = require_object(read_json(destination / "cleanup-receipt.json"), "Curated cleanup receipt")
     run_a = require_object(read_json(destination / "run-a" / "pgvector-result.json"), "Curated Run A result")
     run_b = require_object(read_json(destination / "run-b" / "summary.json"), "Curated Run B summary")
     resolver_two = require_object(read_json(destination / "run-b" / "resolver-02.json"), "Curated resolver result two")
-    validate_layered_resolver_contract(resolver_two)
-    if pricing != manifest["cost"]["pricing_snapshot"] or sha256_file(fixture) != manifest.get("fixture_manifest_sha256"):
-        raise DemoContractError("Curated pricing or fixture identity does not match the accepted manifest")
+    validate_run_a_contract(run_a, frozen_assertions)
+    validate_layered_resolver_contract(resolver_two, frozen_assertions)
+    if pricing != manifest["cost"]["pricing_snapshot"] or sha256_file(fixture) != manifest.get("fixture_manifest_sha256") or sha256_file(curated_assertion_path) != manifest.get("assertion_contract_sha256") or read_json(curated_assertion_path) != read_json(tracked_assertion_path):
+        raise DemoContractError("Curated pricing, fixture, or assertion contract identity does not match the accepted manifest")
     if models.get("all_match") is not True or curated_assertions != assertions or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):
         raise DemoContractError("Curated model, assertion, or cleanup evidence does not match the accepted manifest")
     if run_a.get("pass") is not True or run_b.get("pass") is not True or resolver_two.get("run_id") != run_id or resolver_two.get("pass") is not True:

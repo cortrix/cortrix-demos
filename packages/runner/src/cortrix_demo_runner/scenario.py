@@ -11,6 +11,17 @@ SCENARIO_ID = "order-api-field-migration"
 RELEASE = "v1.0.0-rc.1"
 RELEASE_COMMIT = "e159974f936bd987d5718195d54cd70ff3acc2e5"
 SOURCE_REVISION = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+REQUIRED_LAYERED_ASSERTIONS = {
+    "run_a_dense_cosine_top_document_id",
+    "run_a_dense_cosine_top_document_status",
+    "run_b_bge_rerank_leader_document_id",
+    "run_b_bge_rerank_leader_status",
+    "run_b_final_top_document_id",
+    "run_b_final_top_document_status",
+    "resolver_selected_document_id",
+    "resolver_selected_field",
+    "resolver_action",
+}
 
 
 def scenario_root(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
@@ -34,6 +45,28 @@ def load_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, 
         if requires.get(key) != value:
             raise DemoContractError(f"Scenario identity mismatch for {key}")
     return scenario
+
+
+def assertion_contract_path(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
+    root = scenario_root(repo_root, scenario_id).resolve()
+    scenario = load_scenario(repo_root, scenario_id)
+    value = scenario.get("assertions")
+    if not isinstance(value, str) or not value:
+        raise DemoContractError("Scenario assertion contract path is missing")
+    path = (root / value).resolve()
+    if root not in path.parents:
+        raise DemoContractError("Scenario assertion contract path escapes the scenario root")
+    return path
+
+
+def load_assertion_contract(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, Any]:
+    contract = read_json(assertion_contract_path(repo_root, scenario_id))
+    if contract.get("schema_version") != 1 or contract.get("scenario_id") != scenario_id:
+        raise DemoContractError("Scenario assertion contract identity is invalid")
+    frozen = contract.get("frozen")
+    if not isinstance(frozen, dict) or not REQUIRED_LAYERED_ASSERTIONS.issubset(frozen):
+        raise DemoContractError("Scenario layered-ranking assertions are incomplete")
+    return contract
 
 
 def validate_fixture_manifest(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[str]:
@@ -91,4 +124,27 @@ def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[s
     if profile.get("local_generative_llm") is not False:
         failures.append("Local generative LLM must be disabled")
     failures.extend(validate_fixture_manifest(repo_root, scenario_id))
+    try:
+        contract = load_assertion_contract(repo_root, scenario_id)
+    except (DemoContractError, OSError, ValueError) as exc:
+        failures.append(str(exc))
+        return failures
+    frozen = contract["frozen"]
+    fixture_manifest = read_json(scenario_root(repo_root, scenario_id) / "fixtures" / "manifest.json")
+    documents = fixture_manifest.get("documents")
+    by_id = {item.get("document_id"): item for item in documents if isinstance(item, dict)} if isinstance(documents, list) else {}
+    expected_documents = (
+        ("run_a_dense_cosine_top_document_id", "run_a_dense_cosine_top_document_status"),
+        ("run_b_bge_rerank_leader_document_id", "run_b_bge_rerank_leader_status"),
+        ("run_b_final_top_document_id", "run_b_final_top_document_status"),
+    )
+    for document_key, status_key in expected_documents:
+        document = by_id.get(frozen.get(document_key))
+        if not isinstance(document, dict) or document.get("status") != frozen.get(status_key):
+            failures.append(f"Layered assertion {document_key} does not match a fixture document and status")
+    resolver = fixture_manifest.get("resolver")
+    if not isinstance(resolver, dict) or resolver.get("expected_document_id") != frozen.get("resolver_selected_document_id") or resolver.get("expected_field") != frozen.get("resolver_selected_field"):
+        failures.append("Fixture resolver does not match the layered assertion contract")
+    if frozen.get("resolver_action") != "preserved_final_top1":
+        failures.append("Layered assertion resolver action must preserve the final top result")
     return failures

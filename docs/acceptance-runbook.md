@@ -12,7 +12,7 @@ Keep `main` checked out at the clean commit recorded by the candidate. Pass the 
   --human-review-id <private-output-id>
 ```
 
-The command copies only the curated manifest, target identity, sanitized runtime identity, provider contract-smoke identity and usage, pricing snapshot, fixture manifest, model checksums, Run A result, Run B summary and resolvers, assertions, cleanup receipt, and state history. It writes the accepted pointer last. Raw requests, raw responses, metrics, runtime logs, private paths, provider response content, and the private review identifier stay out of tracked evidence.
+The command copies only the curated manifest, target identity, sanitized runtime identity, provider contract-smoke identity and usage, pricing snapshot, fixture manifest, frozen assertion contract, model checksums, Run A result, Run B summary and resolvers, run assertions, cleanup receipt, and state history. It writes the accepted pointer last. Raw requests, raw responses, metrics, runtime logs, private paths, provider response content, and the private review identifier stay out of tracked evidence.
 
 ## 2. Capture the accepted viewer
 

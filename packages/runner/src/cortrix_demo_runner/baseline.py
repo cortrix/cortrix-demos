@@ -83,7 +83,7 @@ def psql(sql: str) -> str:
     return subprocess.run(command, cwd=ROOT, input=sql, text=True, capture_output=True, check=True).stdout
 
 
-def run_exact_cosine(document_vectors: Path, query_vectors: Path, fixture_manifest: Path, output: Path) -> dict[str, Any]:
+def run_exact_cosine(document_vectors: Path, query_vectors: Path, fixture_manifest: Path, frozen_assertions: dict[str, Any], output: Path) -> dict[str, Any]:
     fixtures = read_json(fixture_manifest)
     document_records = records(document_vectors)
     query_records = text_vectors(records(query_vectors), "query-anchor")
@@ -136,9 +136,13 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
         }
         for rank, row in enumerate(rows[1:], start=1)
     ]
+    expected_top_document = frozen_assertions.get("run_a_dense_cosine_top_document_id")
+    expected_top_status = frozen_assertions.get("run_a_dense_cosine_top_document_status")
+    bge_leader_document = frozen_assertions.get("run_b_bge_rerank_leader_document_id")
+    bge_leader_status = frozen_assertions.get("run_b_bge_rerank_leader_status")
     assertions = {
-        "current_release_is_top1": ranking[0]["document_id"] == "order-api-release-v2.0" and ranking[0]["lifecycle_status"] == "current",
-        "superseded_guide_is_present": any(item["document_id"] == "order-api-guide-v1.0" and item["lifecycle_status"] == "superseded" for item in ranking),
+        "expected_dense_document_is_top1": ranking[0]["document_id"] == expected_top_document and ranking[0]["lifecycle_status"] == expected_top_status,
+        "expected_bge_leader_document_is_present": any(item["document_id"] == bge_leader_document and item["lifecycle_status"] == bge_leader_status for item in ranking),
         "exact_cosine_without_ann": True,
         "lifecycle_not_used_in_ranking": True,
     }

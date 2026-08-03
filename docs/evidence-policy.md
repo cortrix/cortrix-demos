@@ -16,6 +16,7 @@ Rejected runs are never screenshot-eligible. Provider or model mismatch, local g
 
 An accepted run records:
 
+- scenario version and frozen assertion-contract checksum
 - Cortrix release tag and release commit
 - exact source revision and container digest
 - fixture and model checksums
