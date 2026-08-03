@@ -22,7 +22,8 @@ class ScenarioTests(unittest.TestCase):
         requires = scenario["requires"]
         self.assertEqual("v1.0.0-rc.1", requires["cortrix_release"])
         self.assertNotEqual(requires["cortrix_release_commit"], requires["cortrix_source_revision"])
-        self.assertEqual("1.1.0", scenario["scenario_version"])
+        self.assertEqual("1.2.0", scenario["scenario_version"])
+        self.assertEqual({"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"}, scenario["retrieval_contract"])
 
     def test_layered_ranking_assertions_match_the_reviewed_contract(self) -> None:
         assertions = load_assertion_contract(ROOT)["frozen"]
@@ -40,6 +41,23 @@ class ScenarioTests(unittest.TestCase):
             contract["frozen"]["run_b_final_top_document_id"] = "missing-document"
             write_json(path, contract)
             self.assertTrue(any("run_b_final_top_document_id" in failure for failure in validate_scenario(root)))
+
+    def test_scenario_validation_rejects_retrieval_contract_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(ROOT / "scenarios", root / "scenarios")
+            path = root / "scenarios" / "order-api-field-migration" / "scenario.json"
+            scenario = json.loads(path.read_text(encoding="utf-8"))
+            scenario["retrieval_contract"]["query_granularity"] = "both"
+            write_json(path, scenario)
+            self.assertTrue(any("chunk-only" in failure for failure in validate_scenario(root)))
+
+    def test_web_projection_matches_the_reviewed_scenario_contract(self) -> None:
+        scenario = load_scenario(ROOT)
+        projection = json.loads((ROOT / "scenarios" / "order-api-field-migration" / "web" / "scenario.json").read_text(encoding="utf-8"))
+        self.assertEqual(scenario["id"], projection["scenario_id"])
+        self.assertEqual(scenario["scenario_version"], projection["scenario_version"])
+        self.assertEqual(scenario["retrieval_contract"], projection["retrieval_contract"])
 
     def test_shared_runner_does_not_hardcode_business_document_identity(self) -> None:
         source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "packages" / "runner" / "src").rglob("*.py"))

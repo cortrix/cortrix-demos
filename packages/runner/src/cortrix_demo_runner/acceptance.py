@@ -14,7 +14,7 @@ from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .live import verify_demo_checkout
 from .safety import scan_text
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root
+from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, require_reviewed_retrieval_contract, scenario_root
 
 
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -27,6 +27,8 @@ REQUIRED_PATH_NAMES = {
     "hype_recall",
     "rrf_fusion",
     "bge_cross_encoder_rerank",
+    "f41_document_summary_ingestion",
+    "chunk_only_result_identity",
     "deepseek_ingestion",
     "deepseek_query_fusion",
     "deepseek_listwise_rerank",
@@ -142,8 +144,8 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
         if not isinstance(output, dict) or output.get("path") != path or output.get("pass") is not passed:
             raise DemoContractError(f"Run {name} output contract is invalid")
     run_b = manifest["run_b"]
-    if run_b.get("serial_query_count") != 2:
-        raise DemoContractError("Run B does not record two serial queries")
+    if run_b.get("serial_query_count") != 2 or run_b.get("query_granularity") != "chunk" or run_b.get("document_summary_role") != "ingestion_evidence_only":
+        raise DemoContractError("Run B does not record the two-query chunk-only retrieval contract")
     gaps = manifest.get("disclosed_gaps")
     if not isinstance(gaps, list) or not gaps or not all(isinstance(item, dict) and isinstance(item.get("id"), str) and isinstance(item.get("note"), str) for item in gaps):
         raise DemoContractError("Run disclosed gaps are missing or malformed")
@@ -187,9 +189,19 @@ def validate_run_a_contract(run_a: dict[str, Any], frozen_assertions: dict[str, 
         raise DemoContractError("Run A does not contain the frozen BGE-leader document identity")
 
 
+def validate_run_b_retrieval_contract(run_b: dict[str, Any]) -> None:
+    attempts = run_b.get("query_attempts")
+    if run_b.get("query_granularity") != "chunk" or run_b.get("document_summary_role") != "ingestion_evidence_only":
+        raise DemoContractError("Run B does not preserve the chunk-only retrieval contract")
+    checks = [item.get("checks") for item in attempts if isinstance(item, dict)] if isinstance(attempts, list) else []
+    if not isinstance(attempts, list) or len(attempts) != 2 or len(checks) != 2 or any(not isinstance(item, dict) or item.get("chunk_only_result_identity") is not True for item in checks):
+        raise DemoContractError("Run B does not prove two chunk-only result identity checks")
+
+
 def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_id(run_id)
     scenario = load_scenario(root)
+    require_reviewed_retrieval_contract(scenario)
     assertion_path = assertion_contract_path(root)
     frozen_assertions = load_assertion_contract(root)["frozen"]
     source = candidate_root(root, run_id)
@@ -241,6 +253,7 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_a_contract(run_a, frozen_assertions)
     validate_layered_resolver_contract(resolver_one, frozen_assertions)
     validate_layered_resolver_contract(resolver_two, frozen_assertions)
+    validate_run_b_retrieval_contract(run_b)
     if models.get("all_match") is not True or cleanup_receipt.get("run_id") != run_id or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):
         raise DemoContractError("Candidate model or cleanup evidence does not match the manifest")
     if run_a.get("pass") is not True or run_b.get("pass") is not True or any(item.get("run_id") != run_id or item.get("pass") is not True for item in (resolver_one, resolver_two)):
@@ -478,6 +491,7 @@ def verify_checksum_manifest(destination: Path) -> None:
 def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_id(run_id)
     scenario = load_scenario(root)
+    require_reviewed_retrieval_contract(scenario)
     tracked_assertion_path = assertion_contract_path(root)
     frozen_assertions = load_assertion_contract(root)["frozen"]
     destination = accepted_root(root, run_id)
@@ -542,6 +556,7 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     resolver_two = require_object(read_json(destination / "run-b" / "resolver-02.json"), "Curated resolver result two")
     validate_run_a_contract(run_a, frozen_assertions)
     validate_layered_resolver_contract(resolver_two, frozen_assertions)
+    validate_run_b_retrieval_contract(run_b)
     if pricing != manifest["cost"]["pricing_snapshot"] or sha256_file(fixture) != manifest.get("fixture_manifest_sha256") or sha256_file(curated_assertion_path) != manifest.get("assertion_contract_sha256") or read_json(curated_assertion_path) != read_json(tracked_assertion_path):
         raise DemoContractError("Curated pricing, fixture, or assertion contract identity does not match the accepted manifest")
     if models.get("all_match") is not True or curated_assertions != assertions or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):

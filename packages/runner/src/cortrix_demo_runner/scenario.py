@@ -11,6 +11,7 @@ SCENARIO_ID = "order-api-field-migration"
 RELEASE = "v1.0.0-rc.1"
 RELEASE_COMMIT = "e159974f936bd987d5718195d54cd70ff3acc2e5"
 SOURCE_REVISION = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+EXPECTED_RETRIEVAL_CONTRACT = {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"}
 REQUIRED_LAYERED_ASSERTIONS = {
     "run_a_dense_cosine_top_document_id",
     "run_a_dense_cosine_top_document_status",
@@ -21,6 +22,20 @@ REQUIRED_LAYERED_ASSERTIONS = {
     "resolver_selected_document_id",
     "resolver_selected_field",
     "resolver_action",
+}
+REQUIRED_FULL_STACK_PATHS = {
+    "bge_m3_embedding",
+    "bm25_recall",
+    "contextualized_recall",
+    "hype_recall",
+    "rrf_fusion",
+    "bge_cross_encoder_rerank",
+    "f41_document_summary_ingestion",
+    "chunk_only_result_identity",
+    "deepseek_ingestion",
+    "deepseek_query_fusion",
+    "deepseek_listwise_rerank",
+    "application_lifecycle_resolver",
 }
 
 
@@ -45,6 +60,11 @@ def load_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, 
         if requires.get(key) != value:
             raise DemoContractError(f"Scenario identity mismatch for {key}")
     return scenario
+
+
+def require_reviewed_retrieval_contract(scenario: dict[str, Any]) -> None:
+    if scenario.get("scenario_version") != "1.2.0" or scenario.get("retrieval_contract") != EXPECTED_RETRIEVAL_CONTRACT:
+        raise DemoContractError("Scenario must preserve the reviewed 1.2.0 chunk-only retrieval contract")
 
 
 def assertion_contract_path(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
@@ -113,6 +133,10 @@ def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[s
         return [str(exc)]
     if scenario.get("evidence_schema") != 1:
         failures.append("Evidence schema must be version 1")
+    try:
+        require_reviewed_retrieval_contract(scenario)
+    except DemoContractError as exc:
+        failures.append(str(exc))
     locales = scenario.get("locales")
     if locales != {"default": "en-US", "available": ["en-US"]}:
         failures.append("Official locale bundle must contain only en-US")
@@ -123,6 +147,9 @@ def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[s
         failures.append("Full Stack attempts must be capped at two")
     if profile.get("local_generative_llm") is not False:
         failures.append("Local generative LLM must be disabled")
+    required_paths = profile.get("required_paths")
+    if not isinstance(required_paths, list) or set(required_paths) != REQUIRED_FULL_STACK_PATHS or len(required_paths) != len(REQUIRED_FULL_STACK_PATHS):
+        failures.append("Full Stack profile must declare the exact reviewed required paths")
     failures.extend(validate_fixture_manifest(repo_root, scenario_id))
     try:
         contract = load_assertion_contract(repo_root, scenario_id)

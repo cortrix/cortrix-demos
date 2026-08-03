@@ -15,4 +15,6 @@ All four layers must be present and must match the frozen document identities. A
 
 Exact numeric scores, generated query variants, latency, and model wording may vary. Those variable values cannot replace the frozen layer identities.
 
+Run B uses `granularity=chunk` so every result entering the BGE layer has a durable text-child identity. F41 document summaries must still complete during ingestion, but they are intentionally excluded from this scenario's query candidate set and are not evidence for the BGE score order.
+
 Cortrix supplies the final response order, ranking scores, retrieval paths, content, and durable identity. The demo application owns lifecycle validation. The scenario demonstrates an evidence and responsibility boundary, not retrieval superiority, model superiority, or business truth from any single ranking layer.

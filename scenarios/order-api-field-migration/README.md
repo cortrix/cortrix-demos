@@ -18,6 +18,8 @@ The reviewed scenario contract distinguishes four layers:
 
 “Most similar” in the scenario title refers only to layer 2: the highest BGE cross-encoder rerank score. It does not describe the dense baseline or final response order.
 
+Run B uses `granularity=chunk` so each ranked result is backed by a durable text-child identity and a BGE cross-encoder score. F41 document summaries must still complete during ingestion, but they are intentionally excluded from this scenario's query candidate set.
+
 ## Responsibility boundary
 
 Cortrix provides the final response order, BGE rerank scores, retrieved content, retrieval paths, source and document identity, and observable evidence. The demo application independently owns lifecycle validation. No single score, rank, or LLM output is business truth.

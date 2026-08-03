@@ -28,7 +28,7 @@ class AcceptanceContractTests(unittest.TestCase):
         return {
             "schema_version": 1,
             "scenario_id": SCENARIO_ID,
-            "scenario_version": "1.1.0",
+            "scenario_version": "1.2.0",
             "assertions": {name: True for name in ("run_a", "run_b", "required_paths", "resolver", "cleanup", "budget", "model_checksums", "all_passed")},
             "required_paths": {name: True for name in REQUIRED_PATH_NAMES},
             "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": "sha256:" + "1" * 64, "demo_commit": "a" * 40},
@@ -38,7 +38,7 @@ class AcceptanceContractTests(unittest.TestCase):
             "cleanup": {"namespaces_removed": True, "containers_removed": True, "ports_released": True, "runtime_secret_removed": True},
             "cost": {"budget_usd": 5.0, "within_budget_contract": True, "public_cost_claim_allowed": False, "usage_visibility": "partial", "model": "deepseek-v4-flash", "observable_input_tokens": 1, "observable_output_tokens": 1, "observable_call_count_minimum": 5, "pricing_snapshot": {"official_url": "https://api-docs.deepseek.com/quick_start/pricing", "observed_at": "2026-08-03T12:00:00Z", "model": "deepseek-v4-flash", "currency": "USD"}},
             "run_a": {"path": "run-a/pgvector-result.json", "pass": True},
-            "run_b": {"path": "run-b/summary.json", "pass": True, "serial_query_count": 2},
+            "run_b": {"path": "run-b/summary.json", "pass": True, "serial_query_count": 2, "query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"},
             "resolver": {"path": "run-b/resolver-01.json", "pass": True},
             "disclosed_gaps": [{"id": "partial-usage", "note": "Only observable usage is recorded."}],
             "claim_boundary": "Runtime evidence for this scenario only.",
@@ -144,6 +144,12 @@ class AcceptanceContractTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaisesRegex(DemoContractError, "scenario version or assertion contract"):
                 validate_manifest_contract(manifest)
 
+    def test_manifest_contract_rejects_non_chunk_query_identity(self) -> None:
+        manifest = self.accepted_contract_manifest()
+        manifest["run_b"]["query_granularity"] = "both"
+        with self.assertRaisesRegex(DemoContractError, "chunk-only retrieval contract"):
+            validate_manifest_contract(manifest)
+
     def test_evidence_schemas_preserve_acceptance_and_screenshot_gates(self) -> None:
         root = Path(__file__).resolve().parents[1]
         run_schema = json.loads((root / "packages" / "evidence-schema" / "run-manifest.schema.json").read_text(encoding="utf-8"))
@@ -168,9 +174,10 @@ class AcceptanceContractTests(unittest.TestCase):
                 scenario_root / "scenario.json",
                 {
                     "id": SCENARIO_ID,
-                    "scenario_version": "1.1.0",
+                    "scenario_version": "1.2.0",
                     "requires": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION},
                     "assertions": "expected/assertions.json",
+                    "retrieval_contract": {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"},
                 },
             )
             write_json(assertion_contract, {"schema_version": 1, "scenario_id": SCENARIO_ID, "frozen": frozen})
@@ -205,7 +212,7 @@ class AcceptanceContractTests(unittest.TestCase):
                 "schema_version": 1,
                 "run_id": run_id,
                 "scenario_id": SCENARIO_ID,
-                "scenario_version": "1.1.0",
+                "scenario_version": "1.2.0",
                 "state": "candidate",
                 "target_identity": target,
                 "fixture_manifest_sha256": sha256_file(fixture),
@@ -216,7 +223,7 @@ class AcceptanceContractTests(unittest.TestCase):
                 "cost": {"budget_usd": 5.0, "within_budget_contract": True, "public_cost_claim_allowed": False, "usage_visibility": "partial", "model": "deepseek-v4-flash", "observable_input_tokens": 1, "observable_output_tokens": 1, "observable_call_count_minimum": 5, "pricing_snapshot": pricing},
                 "assertions": {name: True for name in ("run_a", "run_b", "required_paths", "resolver", "cleanup", "budget", "model_checksums", "all_passed")},
                 "run_a": {"path": "run-a/pgvector-result.json", "pass": True},
-                "run_b": {"path": "run-b/summary.json", "pass": True, "serial_query_count": 2},
+                "run_b": {"path": "run-b/summary.json", "pass": True, "serial_query_count": 2, "query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"},
                 "resolver": {"path": "run-b/resolver-01.json", "pass": True},
                 "screenshot_eligible": False,
                 "human_review_required": True,
@@ -235,7 +242,7 @@ class AcceptanceContractTests(unittest.TestCase):
             }
             files = {
                 "run-manifest.json": manifest,
-                "source-manifest.json": {"run_id": run_id, "scenario_version": "1.1.0", "assertion_contract_sha256": sha256_file(assertion_contract), "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
+                "source-manifest.json": {"run_id": run_id, "scenario_version": "1.2.0", "assertion_contract_sha256": sha256_file(assertion_contract), "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
                 "runtime.json": {"run_id": run_id, "llm": {**provider, "secret_persisted_in_evidence": False}},
                 "contract-smoke.json": {"provider": "deepseek", "model": "deepseek-v4-flash", "call_count": 1, "usage": {"prompt_tokens": 1, "completion_tokens": 1}, "response_content_recorded": False},
                 "model-checksums.json": {"all_match": True},
@@ -249,7 +256,16 @@ class AcceptanceContractTests(unittest.TestCase):
                     "assertions": {name: True for name in ("expected_dense_document_is_top1", "expected_bge_leader_document_is_present", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking")},
                     "ranking": [{"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"}],
                 },
-                "run-b/summary.json": {"run_id": run_id, "pass": True},
+                "run-b/summary.json": {
+                    "run_id": run_id,
+                    "pass": True,
+                    "query_granularity": "chunk",
+                    "document_summary_role": "ingestion_evidence_only",
+                    "query_attempts": [
+                        {"checks": {"chunk_only_result_identity": True}},
+                        {"checks": {"chunk_only_result_identity": True}},
+                    ],
+                },
                 "run-b/resolver-01.json": self.layered_resolver(run_id),
                 "run-b/resolver-02.json": self.layered_resolver(run_id),
             }

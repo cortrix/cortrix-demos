@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import http.client
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
+from cortrix_demo_runner.io import read_json, write_json
+from cortrix_demo_runner.live import execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
 from cortrix_demo_runner.runtime import request
 
 
@@ -18,9 +20,26 @@ PRICING = {
         "output": 1.0,
     }
 }
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class LiveContractTests(unittest.TestCase):
+    def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
+        payload = query_payload("example", "chunk")
+        self.assertEqual("chunk", payload["granularity"])
+
+    def test_execute_once_rejects_scenario_drift_before_attempt_or_external_work(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(ROOT / "scenarios", root / "scenarios")
+            path = root / "scenarios" / "order-api-field-migration" / "scenario.json"
+            scenario = read_json(path)
+            scenario["retrieval_contract"]["query_granularity"] = "both"
+            write_json(path, scenario)
+            with self.assertRaisesRegex(DemoContractError, "Scenario validation failed.*chunk-only"):
+                execute_once(root, root / "missing-source", root / "missing-pricing.json", "order-api-field-migration-20260803T120000Z")
+            self.assertFalse((root / ".runs").exists())
+
     def test_observable_cost_uses_cache_miss_input_rate(self) -> None:
         self.assertEqual(0.0025, pricing_cost(PRICING, 3000, 1000))
 

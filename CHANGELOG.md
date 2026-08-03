@@ -10,4 +10,5 @@ All notable changes to this repository will be documented here after the first a
 - Bound candidate and accepted evidence to the tracked scenario version and frozen assertion-contract checksum.
 - Added a review-gated fourth-attempt ceiling, preserved fifth-attempt denial, and raised the hard Full Stack budget to USD 5.00.
 - Persisted ignored query observations before resolver validation so rejected identity failures remain diagnosable.
+- Defined scenario contract `1.2.0` with chunk-only query identity and F41 document summaries retained as ingestion-only evidence.
 - Kept licensing, automation, hosting, releases, forks, and public visibility behind separate gates.

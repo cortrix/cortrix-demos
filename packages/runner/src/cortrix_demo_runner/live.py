@@ -15,7 +15,7 @@ from .io import read_json, sha256_file, write_json
 from .preflight import full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root
+from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root, validate_scenario
 
 
 def new_run_id() -> str:
@@ -177,7 +177,7 @@ def wait_enrichment(namespace: str, before_text: str, expected_document_count: i
     raise DemoContractError(f"Full Stack ingestion timed out. transient_category=timeout evidence={json.dumps(last, sort_keys=True)}")
 
 
-def query_payload(query: str) -> dict[str, Any]:
+def query_payload(query: str, granularity: str) -> dict[str, Any]:
     return {
         "query": query,
         "top_k": 2,
@@ -185,7 +185,7 @@ def query_payload(query: str) -> dict[str, Any]:
         "include_sources": True,
         "route": "complex",
         "crag": False,
-        "granularity": "both",
+        "granularity": granularity,
         "explain": True,
         "search_config": {"enable_vector": True, "enable_bm25": True, "enable_sql": False},
         "rag_fusion": True,
@@ -195,8 +195,8 @@ def query_payload(query: str) -> dict[str, Any]:
     }
 
 
-def run_query(namespace: str, query: str) -> tuple[dict[str, Any], dict[str, Any], str, str]:
-    payload = query_payload(query)
+def run_query(namespace: str, query: str, granularity: str) -> tuple[dict[str, Any], dict[str, Any], str, str]:
+    payload = query_payload(query, granularity)
     payload["namespaces"] = [namespace]
     before_text = metrics()
     _, response = request("POST", "/query?explain=true", payload, timeout=360)
@@ -221,7 +221,7 @@ def record_query_observation(
     (run_dir / "run-b" / f"query-{number:02d}.metrics.after.prom").write_text(after_metrics, encoding="utf-8")
 
 
-def query_assertions(response: dict[str, Any], before_text: str, after_text: str, resolver: dict[str, Any]) -> dict[str, Any]:
+def query_assertions(response: dict[str, Any], before_text: str, after_text: str, resolver: dict[str, Any], expected_granularity: str) -> dict[str, Any]:
     explain = response.get("explain")
     dependent = explain.get("llm_dependent_features") if isinstance(explain, dict) else None
     rag = dependent.get("rag_fusion") if isinstance(dependent, dict) else None
@@ -230,6 +230,7 @@ def query_assertions(response: dict[str, Any], before_text: str, after_text: str
     before = parse_metrics(before_text)
     after = parse_metrics(after_text)
     checks = {
+        "chunk_only_result_identity": isinstance(explain, dict) and explain.get("granularity") == expected_granularity == "chunk",
         "bm25_recall": isinstance(paths, dict) and float(paths.get("fts5", paths.get("bm25", 0))) > 0,
         "contextualized_recall": isinstance(paths, dict) and float(paths.get("contextualized", 0)) > 0,
         "hype_recall": isinstance(paths, dict) and float(paths.get("hype_question", 0)) > 0,
@@ -254,7 +255,7 @@ def query_assertions(response: dict[str, Any], before_text: str, after_text: str
     }
 
 
-def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any]) -> dict[str, Any]:
+def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any], retrieval_contract: dict[str, str]) -> dict[str, Any]:
     namespace = "order-b-" + safe_run_suffix(run_id)
     before_ingest = metrics()
     tasks = ingest_documents(run_id, namespace, fixture_root, manifest)
@@ -265,14 +266,15 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     identities = identity_map(ingestion["durable"])
     write_json(run_dir / "run-b" / "identity-map.json", identities)
     query = (fixture_root / manifest["query"]["path"]).read_text(encoding="utf-8").strip()
+    query_granularity = retrieval_contract["query_granularity"]
     attempts = []
     resolvers = []
     for number in (1, 2):
-        payload, response, before, after = run_query(namespace, query)
+        payload, response, before, after = run_query(namespace, query, query_granularity)
         record_query_observation(run_dir, number, payload, response, before, after)
         resolver = apply_lifecycle_resolver(response, manifest, identities, frozen_assertions)
         resolver["run_id"] = run_id
-        summary = query_assertions(response, before, after, resolver)
+        summary = query_assertions(response, before, after, resolver, query_granularity)
         write_json(run_dir / "run-b" / f"resolver-{number:02d}.json", resolver)
         attempts.append(summary)
         resolvers.append(resolver)
@@ -283,7 +285,17 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     }
     if not all(repeat.values()):
         raise DemoContractError("Two serial Full Stack queries did not preserve the accepted deterministic outputs")
-    result = {"namespace": namespace, "tasks": tasks, "ingestion": ingestion["metrics"], "query_attempts": attempts, "repeat": {**repeat, "pass": True}, "resolver": resolvers[0], "pass": True}
+    result = {
+        "namespace": namespace,
+        "tasks": tasks,
+        "ingestion": ingestion["metrics"],
+        "query_granularity": query_granularity,
+        "document_summary_role": retrieval_contract["document_summary_role"],
+        "query_attempts": attempts,
+        "repeat": {**repeat, "pass": True},
+        "resolver": resolvers[0],
+        "pass": True,
+    }
     write_json(run_dir / "run-b" / "summary.json", result)
     return result
 
@@ -344,6 +356,9 @@ def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_ma
 
 
 def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
+    scenario_failures = validate_scenario(root)
+    if scenario_failures:
+        raise DemoContractError("Scenario validation failed: " + "; ".join(scenario_failures))
     scenario = load_scenario(root)
     assertion_path = assertion_contract_path(root)
     assertion_contract = load_assertion_contract(root)
@@ -376,7 +391,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         smoke = contract_smoke()
         write_json(run_dir / "contract-smoke.json", smoke)
         phase = "run_b"
-        run_b_result = run_b(run_id, run_dir, fixture_root, manifest, frozen_assertions)
+        run_b_result = run_b(run_id, run_dir, fixture_root, manifest, frozen_assertions, scenario["retrieval_contract"])
         phase = "run_a"
         run_a_result = run_a(run_id, run_dir, fixture_root, manifest, frozen_assertions)
         phase = "runtime_identity"
@@ -395,6 +410,8 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
             "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
             "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
             "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
+            "f41_document_summary_ingestion": run_b_result["ingestion"]["completion"]["checks"]["f41_all_documents"],
+            "chunk_only_result_identity": all(item["checks"]["chunk_only_result_identity"] for item in run_b_result["query_attempts"]),
             "deepseek_ingestion": run_b_result["ingestion"]["completion"]["pass"],
             "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),
             "deepseek_listwise_rerank": all(item["checks"]["deepseek_listwise_rerank"] for item in run_b_result["query_attempts"]),
@@ -414,7 +431,13 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
             "provider_identity": source_identity["provider"],
             "required_paths": required_paths,
             "run_a": {"path": "run-a/pgvector-result.json", "pass": run_a_result["pass"]},
-            "run_b": {"path": "run-b/summary.json", "pass": run_b_result["pass"], "serial_query_count": 2},
+            "run_b": {
+                "path": "run-b/summary.json",
+                "pass": run_b_result["pass"],
+                "serial_query_count": 2,
+                "query_granularity": run_b_result["query_granularity"],
+                "document_summary_role": run_b_result["document_summary_role"],
+            },
             "resolver": {"path": "run-b/resolver-01.json", "pass": run_b_result["resolver"]["pass"]},
             "cleanup": {"path": "cleanup-receipt.json", **cleanup_result},
             "cost": cost,

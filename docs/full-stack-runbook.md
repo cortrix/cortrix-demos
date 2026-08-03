@@ -46,6 +46,8 @@ The default reviewed attempt limit is two. A Human Review may authorize an exact
 
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 
+The scenario contract sends both Run B queries with `granularity=chunk`. The response must echo that value in `explain.granularity`. F41 summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
+
 ## 4. Inspect the candidate
 
 Candidate evidence is written under ignored `.runs/<run_id>/`. A successful candidate includes Run A, Run B, two serialized query records, durable identity, resolver output, model checksums, runtime identity, a cleanup receipt, a pricing snapshot, partial usage visibility, and a candidate manifest.
