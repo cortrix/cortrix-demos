@@ -54,6 +54,32 @@ def update_attempt(root: Path, run_id: str, state: str, category: str | None = N
     write_json(path, ledger, mode=0o600)
 
 
+def verify_demo_checkout(root: Path) -> dict[str, str]:
+    branch = subprocess.run(["git", "-C", str(root), "branch", "--show-current"], check=True, capture_output=True, text=True).stdout.strip()
+    commit = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
+    status = subprocess.run(["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"], check=True, capture_output=True, text=True).stdout.strip()
+    if branch != "main":
+        raise DemoContractError("Full Stack candidate must run from the main branch")
+    if status:
+        raise DemoContractError("Full Stack candidate must run from a clean working tree")
+    if len(commit) != 40:
+        raise DemoContractError("Demo repository commit identity is invalid")
+    return {"branch": branch, "commit": commit, "working_tree": "clean"}
+
+
+def record_state(run_dir: Path, state: str, detail: str | None = None) -> None:
+    path = run_dir / "state-history.json"
+    history = read_json(path) if path.exists() else {"schema_version": 1, "run_id": run_dir.name, "transitions": []}
+    transitions = history.get("transitions")
+    if not isinstance(transitions, list):
+        raise DemoContractError("Run state history is malformed")
+    transition = {"state": state, "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    if detail:
+        transition["detail"] = detail
+    transitions.append(transition)
+    write_json(path, history, mode=0o600)
+
+
 def pricing_cost(pricing: dict[str, Any], input_tokens: int, output_tokens: int) -> float:
     prices = pricing.get("prices_per_million_tokens")
     if not isinstance(prices, dict):
@@ -253,13 +279,13 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
     }
 
 
-def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_manifest: Path) -> dict[str, Any]:
+def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_manifest: Path, demo_checkout: dict[str, str]) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "run_id": run_id,
         "attempt": attempt,
         "scenario_id": SCENARIO_ID,
-        "source": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION, "container_image": image["image"], "container_digest": image["digest"]},
+        "source": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION, "container_image": image["image"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"], "demo_branch": demo_checkout["branch"], "demo_working_tree": demo_checkout["working_tree"]},
         "fixture_manifest_sha256": sha256_file(fixture_manifest),
         "provider": {"provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1", "local_generative_llm": False},
         "private_source_paths_recorded": False,
@@ -276,9 +302,12 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
     pricing = read_json(pricing_path)
     bound = require_budget_bound(profile, pricing)
     verify_fixture_hashes(fixture_root, manifest)
+    demo_checkout = verify_demo_checkout(root)
     attempt = reserve_attempt(root, run_id)
     run_dir = root / ".runs" / run_id
     receipt_path = run_dir / "cleanup-receipt.json"
+    record_state(run_dir, "created")
+    record_state(run_dir, "running")
     image: dict[str, str] = {}
     try:
         image = ensure_image(source)
@@ -289,7 +318,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         run_a_result = run_a(run_id, run_dir, fixture_root, manifest)
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
-        source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path)
+        source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, demo_checkout)
         cost = cost_record(pricing, smoke, run_b_result, bound)
         write_json(run_dir / "preflight.json", preflight)
         write_json(run_dir / "model-checksums.json", models)
@@ -297,22 +326,40 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         write_json(run_dir / "runtime.json", runtime)
         write_json(run_dir / "source-manifest.json", source_identity)
         cleanup_result = cleanup(run_id, receipt_path)
-        assertions = {"run_a": run_a_result["pass"], "run_b": run_b_result["pass"], "resolver": run_b_result["resolver"]["pass"], "cleanup": cleanup_result["namespaces_removed"] and cleanup_result["containers_removed"] and cleanup_result["ports_released"] and cleanup_result["runtime_secret_removed"], "budget": cost["within_budget_contract"], "model_checksums": models["all_match"]}
+        required_paths = {
+            "bge_m3_embedding": models["all_match"],
+            "bm25_recall": all(item["checks"]["bm25_recall"] for item in run_b_result["query_attempts"]),
+            "contextualized_recall": all(item["checks"]["contextualized_recall"] for item in run_b_result["query_attempts"]),
+            "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
+            "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
+            "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
+            "deepseek_ingestion": run_b_result["ingestion"]["f03_llm_enriched_chunks"] >= 5 and run_b_result["ingestion"]["f35_contextualized_chunks"] >= 5 and run_b_result["ingestion"]["hype_questions"] >= 15 and run_b_result["ingestion"]["document_summaries"] >= 2,
+            "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),
+            "deepseek_listwise_rerank": all(item["checks"]["deepseek_listwise_rerank"] for item in run_b_result["query_attempts"]),
+            "application_lifecycle_resolver": run_b_result["resolver"]["pass"],
+        }
+        assertions = {"run_a": run_a_result["pass"], "run_b": run_b_result["pass"], "required_paths": all(required_paths.values()), "resolver": run_b_result["resolver"]["pass"], "cleanup": cleanup_result["namespaces_removed"] and cleanup_result["containers_removed"] and cleanup_result["ports_released"] and cleanup_result["runtime_secret_removed"], "budget": cost["within_budget_contract"], "model_checksums": models["all_match"]}
         state = "candidate" if all(assertions.values()) else "rejected"
         run_manifest = {
             "schema_version": 1,
             "run_id": run_id,
             "scenario_id": SCENARIO_ID,
             "state": state,
-            "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"]},
+            "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
             "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
             "provider_identity": source_identity["provider"],
+            "required_paths": required_paths,
             "run_a": {"path": "run-a/pgvector-result.json", "pass": run_a_result["pass"]},
             "run_b": {"path": "run-b/summary.json", "pass": run_b_result["pass"], "serial_query_count": 2},
             "resolver": {"path": "run-b/resolver-01.json", "pass": run_b_result["resolver"]["pass"]},
             "cleanup": {"path": "cleanup-receipt.json", **cleanup_result},
             "cost": cost,
             "assertions": {**assertions, "all_passed": all(assertions.values())},
+            "disclosed_gaps": [
+                {"id": "usage-visibility-partial", "blocking_public_cost_claim": True, "note": "Internal ingestion and listwise calls do not expose complete token usage; only observable usage and a conservative budget bound are recorded."},
+                {"id": "hype-provider-attribution", "blocking_runtime_acceptance": False, "note": "HyPE attribution relies on the sole configured external provider endpoint, exact runtime revision, durable HyPE blocks, and no-local-LLM contract because rc.1 durable labels are not authoritative provider identity."},
+                {"id": "result-source-identity", "blocking_runtime_acceptance": False, "note": "The application resolver uses the durable child_id to doc_id to fixture document_id map instead of trusting source_doc_id."},
+            ],
             "claim_boundary": run_b_result["resolver"]["claim_boundary"],
             "screenshot_eligible": False,
             "human_review_required": True,
@@ -320,6 +367,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         write_json(run_dir / "run-manifest.json", run_manifest)
         if state != "candidate":
             raise DemoContractError("Candidate manifest assertions failed")
+        record_state(run_dir, "candidate")
         update_attempt(root, run_id, "candidate")
         return run_manifest
     except Exception as exc:
@@ -329,6 +377,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
             except Exception:
                 pass
         category = failure_category(exc)
+        record_state(run_dir, "rejected", category)
         update_attempt(root, run_id, "rejected", category)
         write_json(run_dir / "rejection.json", {"schema_version": 1, "run_id": run_id, "state": "rejected", "failure_category": category, "message": sanitized_error(exc), "screenshot_eligible": False})
         raise

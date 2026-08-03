@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+
+SCRIPT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export PYTHONPATH="${SCRIPT_ROOT}/packages/runner/src${PYTHONPATH:+:${PYTHONPATH}}"
+exec python3.14 -m cortrix_demo_runner "$@"

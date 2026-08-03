@@ -38,7 +38,7 @@ make validate
 Run the manual Full Stack preflight:
 
 ```bash
-python3.14 -m cortrix_demo_runner preflight \
+./democtl preflight \
   --scenario order-api-field-migration \
   --profile full-stack
 ```
@@ -46,6 +46,8 @@ python3.14 -m cortrix_demo_runner preflight \
 The runner fails before any external call when the key, pinned source identity, Docker runtime, model checksums, pricing snapshot, or budget contract is missing.
 
 The complete manual procedure is in the [Full Stack runbook](docs/full-stack-runbook.md). It records a candidate, never an accepted run. Acceptance, promotion, and screenshot capture remain separate human-review steps.
+
+After a candidate passes private Human Review, follow the [acceptance and screenshot runbook](docs/acceptance-runbook.md) to stage curated evidence, capture the real viewer, verify screenshot bindings, and test a fresh clone.
 
 ## Inspect the evidence
 

@@ -3,13 +3,13 @@
   "$id": "https://cortrix.ai/schemas/demo-run-manifest-v1.json",
   "title": "Cortrix Demo Run Manifest",
   "type": "object",
-  "required": ["schema_version", "run_id", "scenario_id", "state", "target_identity", "fixture_manifest_sha256", "provider_identity", "run_a", "run_b", "resolver", "cleanup", "cost", "claim_boundary"],
+  "required": ["schema_version", "run_id", "scenario_id", "state", "target_identity", "fixture_manifest_sha256", "provider_identity", "required_paths", "run_a", "run_b", "resolver", "cleanup", "cost", "assertions", "disclosed_gaps", "claim_boundary", "screenshot_eligible", "human_review_required"],
   "properties": {
     "schema_version": {"const": 1},
     "run_id": {"type": "string", "minLength": 1},
     "scenario_id": {"const": "order-api-field-migration"},
     "state": {"enum": ["created", "running", "candidate", "accepted", "rejected"]},
-    "target_identity": {"type": "object", "required": ["release", "release_commit", "source_revision", "container_digest"], "additionalProperties": true},
+    "target_identity": {"type": "object", "required": ["release", "release_commit", "source_revision", "container_digest", "demo_commit"], "properties": {"demo_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}}, "additionalProperties": true},
     "fixture_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "provider_identity": {
       "type": "object",
@@ -21,12 +21,19 @@
         "local_generative_llm": {"const": false}
       }
     },
-    "run_a": {"type": "object"},
-    "run_b": {"type": "object"},
-    "resolver": {"type": "object"},
-    "cleanup": {"type": "object"},
-    "cost": {"type": "object"},
+    "required_paths": {"type": "object", "minProperties": 10, "additionalProperties": {"const": true}},
+    "run_a": {"type": "object", "required": ["path", "pass"]},
+    "run_b": {"type": "object", "required": ["path", "pass", "serial_query_count"], "properties": {"serial_query_count": {"const": 2}}},
+    "resolver": {"type": "object", "required": ["path", "pass"]},
+    "cleanup": {"type": "object", "required": ["namespaces_removed", "containers_removed", "ports_released", "runtime_secret_removed"]},
+    "cost": {"type": "object", "required": ["budget_usd", "observable_input_tokens", "observable_output_tokens", "observable_call_count_minimum", "usage_visibility", "public_cost_claim_allowed", "within_budget_contract"], "properties": {"budget_usd": {"const": 1.0}, "usage_visibility": {"enum": ["complete", "partial"]}, "public_cost_claim_allowed": {"const": false}, "within_budget_contract": {"const": true}}},
+    "assertions": {"type": "object", "required": ["all_passed"], "properties": {"all_passed": {"const": true}}},
+    "disclosed_gaps": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["id", "note"]}},
+    "screenshot_eligible": {"type": "boolean"},
+    "human_review_required": {"type": "boolean"},
+    "acceptance": {"type": "object", "required": ["method", "accepted_at", "demo_commit", "private_review_reference_recorded"], "properties": {"method": {"const": "human_review"}, "private_review_reference_recorded": {"const": false}}},
     "claim_boundary": {"type": "string", "minLength": 1}
   },
+  "allOf": [{"if": {"properties": {"state": {"const": "accepted"}}}, "then": {"required": ["acceptance"], "properties": {"screenshot_eligible": {"const": true}, "human_review_required": {"const": false}}}}],
   "additionalProperties": true
 }

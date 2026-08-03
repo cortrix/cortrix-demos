@@ -6,7 +6,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+from .acceptance import record_screenshot, stage_accepted, verify_accepted
 from .errors import DemoContractError
+from .fresh_clone import verify_fresh_clone
 from .io import read_json, write_json
 from .live import execute_with_retry
 from .preflight import full_stack_preflight
@@ -51,6 +53,24 @@ def command_run_full_stack(args: argparse.Namespace) -> None:
     print(json.dumps({"status": result["state"], "run_id": result["run_id"], "external_calls": True, "human_review_required": True}, indent=2))
 
 
+def command_stage_accepted(args: argparse.Namespace) -> None:
+    result = stage_accepted(args.root.resolve(), args.run_id, args.human_review_id)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_record_screenshot(args: argparse.Namespace) -> None:
+    result = record_screenshot(args.root.resolve(), args.run_id, args.file.resolve(), args.route, args.evidence_path)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_verify_accepted(args: argparse.Namespace) -> None:
+    print(json.dumps(verify_accepted(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_fresh_clone_verify(args: argparse.Namespace) -> None:
+    print(json.dumps(verify_fresh_clone(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run and validate evidence-backed Cortrix demos.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -85,6 +105,30 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     live.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
     live.set_defaults(handler=command_run_full_stack)
+
+    accepted = subparsers.add_parser("stage-accepted")
+    accepted.add_argument("--root", type=Path, default=Path.cwd())
+    accepted.add_argument("--run-id", required=True)
+    accepted.add_argument("--human-review-id", required=True)
+    accepted.set_defaults(handler=command_stage_accepted)
+
+    screenshot = subparsers.add_parser("record-screenshot")
+    screenshot.add_argument("--root", type=Path, default=Path.cwd())
+    screenshot.add_argument("--run-id", required=True)
+    screenshot.add_argument("--file", type=Path, required=True)
+    screenshot.add_argument("--route", default="/packages/viewer/index.html")
+    screenshot.add_argument("--evidence-path", default="run-manifest.json")
+    screenshot.set_defaults(handler=command_record_screenshot)
+
+    verify = subparsers.add_parser("verify-accepted")
+    verify.add_argument("--root", type=Path, default=Path.cwd())
+    verify.add_argument("--run-id", required=True)
+    verify.set_defaults(handler=command_verify_accepted)
+
+    fresh = subparsers.add_parser("fresh-clone-verify")
+    fresh.add_argument("--root", type=Path, default=Path.cwd())
+    fresh.add_argument("--run-id")
+    fresh.set_defaults(handler=command_fresh_clone_verify)
     return parser
 
 
@@ -93,6 +137,11 @@ def main() -> int:
     try:
         args.handler(args)
     except (DemoContractError, OSError, subprocess.CalledProcessError) as exc:
-        print(f"DEMO_CONTRACT_ERROR={exc}", file=sys.stderr)
+        message = str(exc)
+        paths = [Path.cwd().resolve()]
+        paths.extend(value.resolve() for value in vars(args).values() if isinstance(value, Path))
+        for path in sorted({str(path) for path in paths}, key=len, reverse=True):
+            message = message.replace(path, "[local-path]")
+        print(f"DEMO_CONTRACT_ERROR={message}", file=sys.stderr)
         return 1
     return 0

@@ -24,7 +24,7 @@ function rejectViewer(message) {
 }
 
 function requireAccepted(pointer, manifest, resolver) {
-  if (pointer.status !== "accepted" || manifest.status !== "accepted") {
+  if (pointer.status !== "accepted" || manifest.state !== "accepted") {
     throw new Error("The accepted-run pointer and run manifest must both report accepted.");
   }
   if (pointer.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
@@ -62,11 +62,12 @@ async function render() {
     addDefinition(byId("decision-details"), "Selected field", decision.selected_field);
 
     addDefinition(byId("run-details"), "Run ID", manifest.run_id);
-    addDefinition(byId("run-details"), "Cortrix release", manifest.source?.cortrix_release);
-    addDefinition(byId("run-details"), "Source revision", manifest.source?.cortrix_source_revision);
-    addDefinition(byId("run-details"), "Provider model", manifest.llm?.model);
+    addDefinition(byId("run-details"), "Cortrix release", manifest.target_identity?.release);
+    addDefinition(byId("run-details"), "Source revision", manifest.target_identity?.source_revision);
+    addDefinition(byId("run-details"), "Demo commit", manifest.target_identity?.demo_commit);
+    addDefinition(byId("run-details"), "Provider model", manifest.provider_identity?.model);
     addDefinition(byId("run-details"), "Usage visibility", manifest.cost?.usage_visibility);
-    addDefinition(byId("run-details"), "Estimated cost (USD)", manifest.cost?.estimated_total_usd);
+    addDefinition(byId("run-details"), "Observable estimated cost (USD)", manifest.cost?.estimated_observable_cost_usd);
 
     byId("claim-boundary").textContent = resolver.claim_boundary;
     byId("evidence-grid").hidden = false;

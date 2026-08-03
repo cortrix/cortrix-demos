@@ -5,11 +5,26 @@
   "required": ["schema_version", "run_id", "accepted_commit", "screenshots"],
   "properties": {
     "schema_version": {"const": 1},
-    "run_id": {"type": "string"},
+    "run_id": {"type": "string", "pattern": "^order-api-field-migration-[0-9]{8}T[0-9]{6}Z(?:-retry)?$"},
     "accepted_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "screenshots": {
       "type": "array",
-      "items": {"type": "object", "required": ["file", "route", "evidence_path", "sha256", "width", "height", "captured_at"]}
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["file", "route", "evidence_path", "sha256", "width", "height", "captured_at"],
+        "properties": {
+          "file": {"type": "string", "pattern": "^screenshots/[A-Za-z0-9][A-Za-z0-9._-]*\\.png$"},
+          "route": {"const": "/packages/viewer/index.html"},
+          "evidence_path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "width": {"type": "integer", "minimum": 800},
+          "height": {"type": "integer", "minimum": 450},
+          "captured_at": {"type": "string", "format": "date-time"}
+        },
+        "additionalProperties": false
+      }
     }
-  }
+  },
+  "additionalProperties": false
 }
