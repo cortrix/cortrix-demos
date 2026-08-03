@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import os
 from pathlib import Path
@@ -118,7 +119,7 @@ def start(profile: str, timeout_seconds: float = 1800) -> dict[str, Any]:
         except (DemoContractError, urllib.error.URLError) as exc:
             last_error = str(exc)
         time.sleep(2)
-    raise DemoContractError(f"Cortrix readiness timed out: {last_error}")
+    raise DemoContractError(f"Cortrix readiness timed out: {last_error}. transient_category=timeout")
 
 
 def request(method: str, path: str, payload: dict[str, Any] | None = None, expected: set[int] | None = None, timeout: float = 180) -> tuple[int, Any]:
@@ -134,6 +135,8 @@ def request(method: str, path: str, payload: dict[str, Any] | None = None, expec
     except urllib.error.HTTPError as exc:
         status = exc.code
         raw = exc.read().decode("utf-8")
+    except http.client.RemoteDisconnected as exc:
+        raise DemoContractError(f"{method} {path} closed the connection before an HTTP response") from exc
     except urllib.error.URLError as exc:
         if isinstance(exc.reason, TimeoutError):
             raise DemoContractError(f"{method} {path} timed out. transient_category=timeout") from exc

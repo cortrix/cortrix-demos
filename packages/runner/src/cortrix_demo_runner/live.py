@@ -309,13 +309,20 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
     record_state(run_dir, "created")
     record_state(run_dir, "running")
     image: dict[str, str] = {}
+    phase = "image_identity"
     try:
         image = ensure_image(source)
+        phase = "runtime_start"
         health = start("full-stack")
+        phase = "model_verification"
         models = verify_models()
+        phase = "provider_contract_smoke"
         smoke = contract_smoke()
+        phase = "run_b"
         run_b_result = run_b(run_id, run_dir, fixture_root, manifest)
+        phase = "run_a"
         run_a_result = run_a(run_id, run_dir, fixture_root, manifest)
+        phase = "runtime_identity"
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
         source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, demo_checkout)
@@ -379,7 +386,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         category = failure_category(exc)
         record_state(run_dir, "rejected", category)
         update_attempt(root, run_id, "rejected", category)
-        write_json(run_dir / "rejection.json", {"schema_version": 1, "run_id": run_id, "state": "rejected", "failure_category": category, "message": sanitized_error(exc), "screenshot_eligible": False})
+        write_json(run_dir / "rejection.json", {"schema_version": 1, "run_id": run_id, "state": "rejected", "phase": phase, "failure_category": category, "message": sanitized_error(exc), "screenshot_eligible": False})
         raise
 
 

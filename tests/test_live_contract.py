@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import http.client
 import unittest
+from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.live import failure_category, pricing_cost, require_budget_bound
+from cortrix_demo_runner.runtime import request
 
 
 PRICING = {
@@ -26,7 +29,13 @@ class LiveContractTests(unittest.TestCase):
 
     def test_only_named_transient_categories_are_retryable(self) -> None:
         self.assertEqual("http_429", failure_category(DemoContractError("request failed. transient_category=http_429")))
+        self.assertEqual("timeout", failure_category(DemoContractError("readiness failed. transient_category=timeout")))
         self.assertEqual("deterministic_or_contract_failure", failure_category(DemoContractError("resolver failed")))
+
+    def test_local_remote_disconnect_becomes_a_readiness_retryable_contract_error(self) -> None:
+        with patch("urllib.request.urlopen", side_effect=http.client.RemoteDisconnected("closed")):
+            with self.assertRaisesRegex(DemoContractError, "closed the connection before an HTTP response"):
+                request("GET", "/system/health/ready")
 
 
 if __name__ == "__main__":
