@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "status": "accepted",
+  "run_id": "order-api-field-migration-20260803T124237Z",
+  "demo_commit": "96334dc442dd898af9b9396f7a8372878613c5ef",
+  "manifest": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T124237Z/run-manifest.json",
+  "resolver": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T124237Z/run-b/resolver-01.json",
+  "screenshot_manifest": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T124237Z/screenshots/screenshot-manifest.json"
+}

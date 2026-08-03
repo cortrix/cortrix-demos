@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260803T124237Z",
+  "files": [
+    {
+      "path": "assertion-contract.json",
+      "sha256": "89e86c600e5b083887e3ef03c8e0ccc7593f2cd193c2d940ed51ff0546703c97"
+    },
+    {
+      "path": "assertions.json",
+      "sha256": "cef356aabb75607b144eb0204f3cc62ba7f3a02307ad10a345754726021bf2d3"
+    },
+    {
+      "path": "cleanup-receipt.json",
+      "sha256": "37f0a52e40020d5937478c31fd15d6a2a175bdd846e0b6cb117c00477aae30f0"
+    },
+    {
+      "path": "contract-smoke.json",
+      "sha256": "7678146251527f235eab9e6df24d77b6b8e4e1f7a58a114985eb65023f0c7ad4"
+    },
+    {
+      "path": "fixture-manifest.json",
+      "sha256": "04d2189ffc8647c706f5fb5e3eaa6a60659b6f98e8bf11670db108abde61b919"
+    },
+    {
+      "path": "model-checksums.json",
+      "sha256": "ba8608feb4197fab67b08ac0e306464b778d05b077305d056abaac4c036678bf"
+    },
+    {
+      "path": "pricing-snapshot.json",
+      "sha256": "b6e81ac238a4f6dd2d0b87dbd553a379dd4b68c3be8c6bc6e8ed808e780fbde7"
+    },
+    {
+      "path": "run-a/pgvector-result.json",
+      "sha256": "94967317b05130e2b9f9eccab263622595e8ed1149e6610c0025a3480084d704"
+    },
+    {
+      "path": "run-b/resolver-01.json",
+      "sha256": "626eed71c462001acf79dc7910cfd552158d735bf2b8c5f6361ce1dfe681c2c0"
+    },
+    {
+      "path": "run-b/resolver-02.json",
+      "sha256": "626eed71c462001acf79dc7910cfd552158d735bf2b8c5f6361ce1dfe681c2c0"
+    },
+    {
+      "path": "run-b/summary.json",
+      "sha256": "d4038c075810466a16c3045ce9e9b116631ed839dfc1c399e8d4adf1d2a9fbc2"
+    },
+    {
+      "path": "run-manifest.json",
+      "sha256": "261b4c21ee06ebf3f2867b5be1f631b6c794787120d072d4479b6f8c97a21c87"
+    },
+    {
+      "path": "runtime.json",
+      "sha256": "3f193f40c78ac1686b1c57f692cd1d65a1d632fd99f0428a8255a3514d75c75d"
+    },
+    {
+      "path": "screenshots/order-api-field-migration-20260803T124237Z-accepted-viewer.png",
+      "sha256": "12d0894339582d07ea48e75e1c832a8cdd6ac3627716ab9049911af8e5818f44"
+    },
+    {
+      "path": "screenshots/screenshot-manifest.json",
+      "sha256": "771b28fb7c4f3eaedde692d5196a6e7f39ccd92d08dfe0eb85f95c0fee994231"
+    },
+    {
+      "path": "state-history.json",
+      "sha256": "7558d1de98bf09d149c05cee2163e5bc7c11b0728160fd94e6415c617c718fc8"
+    },
+    {
+      "path": "target-identity.json",
+      "sha256": "32e5827af21c4f6930bb1dc36ab994d238fc75922546683e594e9b5105c52e39"
+    }
+  ]
+}

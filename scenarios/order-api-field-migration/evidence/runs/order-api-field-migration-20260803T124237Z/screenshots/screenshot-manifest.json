@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260803T124237Z",
+  "accepted_commit": "96334dc442dd898af9b9396f7a8372878613c5ef",
+  "screenshots": [
+    {
+      "file": "screenshots/order-api-field-migration-20260803T124237Z-accepted-viewer.png",
+      "route": "/packages/viewer/index.html",
+      "evidence_path": "run-b/resolver-01.json",
+      "sha256": "12d0894339582d07ea48e75e1c832a8cdd6ac3627716ab9049911af8e5818f44",
+      "width": 1440,
+      "height": 2000,
+      "captured_at": "2026-08-03T13:29:04.315209+00:00"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "policy_owner": "demo_application_policy",
+  "policy_rule": "select the highest-ranked result whose status is current",
+  "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
+  "candidates": [
+    {
+      "final_response_rank": 1,
+      "retrieval_rank": 1,
+      "child_id": "01KZ3TC6W2B10R41JBHV2FHMSN",
+      "doc_id": "01KZ3TC57Y5FFG2XQHWZB1PW1A",
+      "document_id": "order-api-release-v2.0",
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "source": "release_note",
+      "score": 0.6666666865348816,
+      "rerank_score": 0.6301689743995667,
+      "content": "# Order Creation API Release Note v2.0\nStatus: Current\nEffective date: July 1, 2026\nStarting with v2.0, the order creation API requires `buyer_account_id`. The previous `account_id` field is no longer accepted as the current request field.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"buyer_account_id\": \"acct_2048\"\n}\n```\nThis release note supersedes the field guidance in the v1.0 integration guide.",
+      "eligible_under_policy": true,
+      "bge_rerank_rank": 2
+    },
+    {
+      "final_response_rank": 2,
+      "retrieval_rank": 2,
+      "child_id": "01KZ3TBXDJHTZ99YKXPHD0MG53",
+      "doc_id": "01KZ3TBXBPW8FFAJGVYS56C0D0",
+      "document_id": "order-api-guide-v1.0",
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "source": "integration_guide",
+      "score": 0.3333333432674408,
+      "rerank_score": 0.7494604587554932,
+      "content": "# Order Creation API Integration Guide v1.0\nStatus: Superseded\nEffective date: January 1, 2025\nWhen calling the order creation API, send the customer account identifier in `account_id`.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"account_id\": \"acct_2048\"\n}\n```\nThis guide was written for v1.0 clients. It has been superseded by the v2.0 release note.",
+      "eligible_under_policy": false,
+      "bge_rerank_rank": 1
+    }
+  ],
+  "layers": {
+    "bge_cross_encoder": {
+      "meaning": "Candidate order by descending BGE cross-encoder rerank score before the final listwise order is applied.",
+      "leader": {
+        "document_id": "order-api-guide-v1.0",
+        "version": "v1.0",
+        "lifecycle_status": "superseded",
+        "final_response_rank": 2,
+        "bge_rerank_rank": 1,
+        "bge_rerank_score": 0.7494604587554932
+      }
+    },
+    "deepseek_listwise_final": {
+      "meaning": "Final result order returned by the configured Cortrix Full Stack query.",
+      "top_result": {
+        "document_id": "order-api-release-v2.0",
+        "version": "v2.0",
+        "lifecycle_status": "current",
+        "final_response_rank": 1,
+        "bge_rerank_rank": 2,
+        "bge_rerank_score": 0.6301689743995667
+      }
+    },
+    "application_lifecycle_policy": {
+      "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
+      "action": "preserved_final_top1"
+    }
+  },
+  "decision": {
+    "selected_document_id": "order-api-release-v2.0",
+    "selected_version": "v2.0",
+    "selected_field": "buyer_account_id",
+    "reason": "The highest BGE cross-encoder score belongs to order-api-guide-v1.0 (superseded). The Full Stack final response places order-api-release-v2.0 (current) first. The application lifecycle policy independently selects order-api-release-v2.0 and preserves the final top result."
+  },
+  "assertions": {
+    "selected_expected_document": true,
+    "selected_content_contains_expected_field": true,
+    "bge_rerank_leader_matches_contract": true,
+    "bge_rerank_leader_was_strict": true,
+    "final_top1_matches_contract": true,
+    "policy_action_matches_contract": true
+  },
+  "pass": true,
+  "run_id": "order-api-field-migration-20260803T124237Z"
+}

@@ -18,7 +18,7 @@ The phrase “most similar” in this scenario title refers specifically to the 
 
 Open the [evidence viewer](packages/viewer/README.md) to inspect an accepted-run replay. A replay is a frozen result, not a new live execution.
 
-No accepted English run is published in this bootstrap yet. The viewer fails closed until an accepted run is present.
+The viewer replays the [accepted English run](scenarios/order-api-field-migration/evidence/accepted-run.json). It fails closed if the accepted pointer, run manifest, layered resolver, or screenshot binding is missing or inconsistent.
 
 ## Run it locally
 

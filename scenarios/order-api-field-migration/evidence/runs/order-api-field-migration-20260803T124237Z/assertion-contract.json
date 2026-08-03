@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-api-field-migration",
+  "frozen": {
+    "run_a_dense_cosine_top_document_id": "order-api-release-v2.0",
+    "run_a_dense_cosine_top_document_status": "current",
+    "run_b_bge_rerank_leader_document_id": "order-api-guide-v1.0",
+    "run_b_bge_rerank_leader_status": "superseded",
+    "run_b_final_top_document_id": "order-api-release-v2.0",
+    "run_b_final_top_document_status": "current",
+    "resolver_selected_document_id": "order-api-release-v2.0",
+    "resolver_selected_field": "buyer_account_id",
+    "resolver_action": "preserved_final_top1",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "local_generative_llm": false,
+    "degraded": false,
+    "serial_query_count": 2,
+    "required_paths": [
+      "bge_m3_embedding",
+      "bm25_recall",
+      "contextualized_recall",
+      "hype_recall",
+      "rrf_fusion",
+      "bge_cross_encoder_rerank",
+      "deepseek_ingestion",
+      "deepseek_query_fusion",
+      "deepseek_listwise_rerank",
+      "application_lifecycle_resolver"
+    ]
+  },
+  "variable": ["llm_wording", "query_variants", "latency_ms", "ranking_scores"]
+}

@@ -1,0 +1,284 @@
+{
+  "namespace": "order-b-gration-20260803t124237z",
+  "tasks": [
+    {
+      "doc_id": "01KZ3TBXBPW8FFAJGVYS56C0D0",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T12:42:50.148Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ3TBXBPW8FFAJGVYS56C0D1",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T12:42:57.647Z"
+    },
+    {
+      "doc_id": "01KZ3TC57Y5FFG2XQHWZB1PW1A",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T12:42:59.829Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ3TC57ZE9TFZN384112GC46",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T12:43:06.822Z"
+    }
+  ],
+  "ingestion": {
+    "f03_llm_enriched_chunks": 2.0,
+    "f35_contextualized_chunks": 2.0,
+    "f35_failures": 0.0,
+    "f38_failures": 0.0,
+    "f41_document_summaries": 2.0,
+    "f41_failures": 0.0,
+    "hype_questions": 6,
+    "document_summaries": 2,
+    "enrich_state_ok": 2,
+    "completion": {
+      "expected_document_count": 2,
+      "expected_text_block_count": 2,
+      "hype_questions_per_chunk": 3,
+      "expected_hype_question_count": 6,
+      "checks": {
+        "all_documents_materialized": true,
+        "f03_all_chunks": true,
+        "f35_all_chunks": true,
+        "f38_all_chunks": true,
+        "f41_all_documents": true,
+        "enrich_state_all_chunks": true
+      },
+      "pass": true
+    }
+  },
+  "query_granularity": "chunk",
+  "document_summary_role": "ingestion_evidence_only",
+  "query_attempts": [
+    {
+      "checks": {
+        "chunk_only_result_identity": true,
+        "bm25_recall": true,
+        "contextualized_recall": true,
+        "hype_recall": true,
+        "rrf_fusion": true,
+        "bge_cross_encoder_rerank": true,
+        "deepseek_query_fusion": true,
+        "deepseek_listwise_rerank": true,
+        "application_lifecycle_resolver": true
+      },
+      "rrf_path_counts": {
+        "contextualized": 2,
+        "dense": 2,
+        "fts5": 2,
+        "hype_question": 2,
+        "sparse": 2
+      },
+      "rag_fusion": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36",
+        "llm_latency_ms": 1790,
+        "reason": "active",
+        "variant_count": 4,
+        "variants_used": [
+          "The order creation API is failing, and the code still sends account_id. What should change?",
+          "Why is the order creation API failing even though account_id is still being sent, and what modifications are needed?",
+          "What are the possible causes for the order creation API failure when account_id is included in the request?",
+          "What changes should be made to the code to ensure the order creation API succeeds without sending account_id?"
+        ]
+      },
+      "llm_listwise_rerank": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36-LR",
+        "llm_calls": 1,
+        "llm_latency_ms": 863,
+        "model": "deepseek-v4-flash",
+        "order_changed": true,
+        "reason": "active",
+        "top_n_effective": 2,
+        "votes_ok": 1
+      },
+      "result_child_ids": [
+        "01KZ3TC6W2B10R41JBHV2FHMSN",
+        "01KZ3TBXDJHTZ99YKXPHD0MG53"
+      ],
+      "rerank_scores": [
+        0.6301689743995667,
+        0.7494604587554932
+      ],
+      "rag_fusion_input_tokens": 229.0,
+      "rag_fusion_output_tokens": 96.0,
+      "pass": true
+    },
+    {
+      "checks": {
+        "chunk_only_result_identity": true,
+        "bm25_recall": true,
+        "contextualized_recall": true,
+        "hype_recall": true,
+        "rrf_fusion": true,
+        "bge_cross_encoder_rerank": true,
+        "deepseek_query_fusion": true,
+        "deepseek_listwise_rerank": true,
+        "application_lifecycle_resolver": true
+      },
+      "rrf_path_counts": {
+        "contextualized": 2,
+        "dense": 2,
+        "fts5": 2,
+        "hype_question": 2,
+        "sparse": 2
+      },
+      "rag_fusion": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36",
+        "llm_latency_ms": 1601,
+        "reason": "active",
+        "variant_count": 4,
+        "variants_used": [
+          "The order creation API is failing, and the code still sends account_id. What should change?",
+          "Why is the order creation API failing even though account_id is still being sent? What modifications are needed?",
+          "What are the common causes of order creation API failures related to account_id?",
+          "What should be changed in the code to ensure the order creation API succeeds without sending account_id?"
+        ]
+      },
+      "llm_listwise_rerank": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36-LR",
+        "llm_calls": 1,
+        "llm_latency_ms": 1041,
+        "model": "deepseek-v4-flash",
+        "order_changed": true,
+        "reason": "active",
+        "top_n_effective": 2,
+        "votes_ok": 1
+      },
+      "result_child_ids": [
+        "01KZ3TC6W2B10R41JBHV2FHMSN",
+        "01KZ3TBXDJHTZ99YKXPHD0MG53"
+      ],
+      "rerank_scores": [
+        0.6301689743995667,
+        0.7494604587554932
+      ],
+      "rag_fusion_input_tokens": 225.0,
+      "rag_fusion_output_tokens": 89.0,
+      "pass": true
+    }
+  ],
+  "repeat": {
+    "result_order_identical": true,
+    "rerank_scores_identical": true,
+    "resolver_decision_identical": true,
+    "pass": true
+  },
+  "resolver": {
+    "schema_version": 2,
+    "policy_owner": "demo_application_policy",
+    "policy_rule": "select the highest-ranked result whose status is current",
+    "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
+    "candidates": [
+      {
+        "final_response_rank": 1,
+        "retrieval_rank": 1,
+        "child_id": "01KZ3TC6W2B10R41JBHV2FHMSN",
+        "doc_id": "01KZ3TC57Y5FFG2XQHWZB1PW1A",
+        "document_id": "order-api-release-v2.0",
+        "version": "v2.0",
+        "lifecycle_status": "current",
+        "source": "release_note",
+        "score": 0.6666666865348816,
+        "rerank_score": 0.6301689743995667,
+        "content": "# Order Creation API Release Note v2.0\nStatus: Current\nEffective date: July 1, 2026\nStarting with v2.0, the order creation API requires `buyer_account_id`. The previous `account_id` field is no longer accepted as the current request field.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"buyer_account_id\": \"acct_2048\"\n}\n```\nThis release note supersedes the field guidance in the v1.0 integration guide.",
+        "eligible_under_policy": true,
+        "bge_rerank_rank": 2
+      },
+      {
+        "final_response_rank": 2,
+        "retrieval_rank": 2,
+        "child_id": "01KZ3TBXDJHTZ99YKXPHD0MG53",
+        "doc_id": "01KZ3TBXBPW8FFAJGVYS56C0D0",
+        "document_id": "order-api-guide-v1.0",
+        "version": "v1.0",
+        "lifecycle_status": "superseded",
+        "source": "integration_guide",
+        "score": 0.3333333432674408,
+        "rerank_score": 0.7494604587554932,
+        "content": "# Order Creation API Integration Guide v1.0\nStatus: Superseded\nEffective date: January 1, 2025\nWhen calling the order creation API, send the customer account identifier in `account_id`.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"account_id\": \"acct_2048\"\n}\n```\nThis guide was written for v1.0 clients. It has been superseded by the v2.0 release note.",
+        "eligible_under_policy": false,
+        "bge_rerank_rank": 1
+      }
+    ],
+    "layers": {
+      "bge_cross_encoder": {
+        "meaning": "Candidate order by descending BGE cross-encoder rerank score before the final listwise order is applied.",
+        "leader": {
+          "document_id": "order-api-guide-v1.0",
+          "version": "v1.0",
+          "lifecycle_status": "superseded",
+          "final_response_rank": 2,
+          "bge_rerank_rank": 1,
+          "bge_rerank_score": 0.7494604587554932
+        }
+      },
+      "deepseek_listwise_final": {
+        "meaning": "Final result order returned by the configured Cortrix Full Stack query.",
+        "top_result": {
+          "document_id": "order-api-release-v2.0",
+          "version": "v2.0",
+          "lifecycle_status": "current",
+          "final_response_rank": 1,
+          "bge_rerank_rank": 2,
+          "bge_rerank_score": 0.6301689743995667
+        }
+      },
+      "application_lifecycle_policy": {
+        "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
+        "action": "preserved_final_top1"
+      }
+    },
+    "decision": {
+      "selected_document_id": "order-api-release-v2.0",
+      "selected_version": "v2.0",
+      "selected_field": "buyer_account_id",
+      "reason": "The highest BGE cross-encoder score belongs to order-api-guide-v1.0 (superseded). The Full Stack final response places order-api-release-v2.0 (current) first. The application lifecycle policy independently selects order-api-release-v2.0 and preserves the final top result."
+    },
+    "assertions": {
+      "selected_expected_document": true,
+      "selected_content_contains_expected_field": true,
+      "bge_rerank_leader_matches_contract": true,
+      "bge_rerank_leader_was_strict": true,
+      "final_top1_matches_contract": true,
+      "policy_action_matches_contract": true
+    },
+    "pass": true,
+    "run_id": "order-api-field-migration-20260803T124237Z"
+  },
+  "pass": true
+}

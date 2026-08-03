@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "environment": {
+    "postgresql_version": "16.14 (Debian 16.14-1.pgdg12+1)",
+    "pgvector_version": "0.8.6"
+  },
+  "search": "exact cosine; no ANN index and no lifecycle metadata in ORDER BY",
+  "query_embedding_sha256": "96b2dc563e2a301a4d1aaa0a4fe64a4351ca8fbdee322ec8773bf6bb588a3004",
+  "inserted_block_count": 2,
+  "ranking": [
+    {
+      "rank": 1,
+      "block_id": "13242686659171645358",
+      "document_id": "order-api-release-v2.0",
+      "chunk_index": 0,
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "cosine_similarity": 0.7583649446531155
+    },
+    {
+      "rank": 2,
+      "block_id": "7422393643987928874",
+      "document_id": "order-api-guide-v1.0",
+      "chunk_index": 0,
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "cosine_similarity": 0.7513850772562954
+    }
+  ],
+  "top1": "order-api-release-v2.0",
+  "assertions": {
+    "expected_dense_document_is_top1": true,
+    "expected_bge_leader_document_is_present": true,
+    "exact_cosine_without_ann": true,
+    "lifecycle_not_used_in_ranking": true
+  },
+  "pass": true,
+  "claim_boundary": "Dense BGE-M3 exact-cosine baseline only. It is not the BGE cross-encoder layer, the Full Stack final order, a lifecycle decision, or a performance benchmark."
+}

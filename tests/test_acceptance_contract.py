@@ -115,6 +115,11 @@ class AcceptanceContractTests(unittest.TestCase):
     def test_readme_exposes_result_run_and_evidence_in_order(self) -> None:
         verify_readme("# Demo\n\n## See the result\nA\n## Run it locally\nB\n## Inspect the evidence\nC\n")
 
+    def test_repository_readme_points_to_the_accepted_run(self) -> None:
+        readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+        self.assertIn("scenarios/order-api-field-migration/evidence/accepted-run.json", readme)
+        self.assertNotIn("No accepted English run is published", readme)
+
     def test_readme_rejects_missing_or_reordered_first_run_sections(self) -> None:
         with self.assertRaises(DemoContractError):
             verify_readme("## Run it locally\n## See the result\n## Inspect the evidence\n")
@@ -193,6 +198,8 @@ class AcceptanceContractTests(unittest.TestCase):
                     "resolver": {"expected_document_id": "order-api-release-v2.0", "expected_field": "buyer_account_id"},
                 },
             )
+            assertion_contract.write_text(json.dumps(json.loads(assertion_contract.read_text(encoding="utf-8")), separators=(",", ":")) + "\n", encoding="utf-8")
+            fixture.write_text(json.dumps(json.loads(fixture.read_text(encoding="utf-8")), separators=(",", ":")) + "\n", encoding="utf-8")
             (root / ".gitignore").write_text(".runs/\n", encoding="utf-8")
             for command in (
                 ["git", "init", "-b", "main"],
@@ -273,6 +280,9 @@ class AcceptanceContractTests(unittest.TestCase):
                 write_json(candidate / relative, value)
             staged = stage_accepted(root, run_id, "OUTPUT-TEST-ACCEPTANCE")
             self.assertEqual("accepted_staged", staged["status"])
+            accepted_root = root / "scenarios" / SCENARIO_ID / "evidence" / "runs" / run_id
+            self.assertEqual(assertion_contract.read_bytes(), (accepted_root / "assertion-contract.json").read_bytes())
+            self.assertEqual(fixture.read_bytes(), (accepted_root / "fixture-manifest.json").read_bytes())
             screenshot = root / "viewer.png"
             screenshot.write_bytes(self.png_bytes())
             record_screenshot(root, run_id, screenshot, "/packages/viewer/index.html", "run-b/resolver-01.json")
