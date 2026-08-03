@@ -23,7 +23,7 @@ function rejectViewer(message) {
   byId("failure").hidden = false;
 }
 
-function requireAccepted(pointer, manifest, resolver, scenario) {
+function requireAccepted(pointer, manifest, runA, resolver, scenario) {
   if (pointer.status !== "accepted" || manifest.state !== "accepted") {
     throw new Error("The accepted-run pointer and run manifest must both report accepted.");
   }
@@ -39,13 +39,16 @@ function requireAccepted(pointer, manifest, resolver, scenario) {
   const requiredAssertions = [
     "selected_expected_document",
     "selected_content_contains_expected_field",
-    "bge_rerank_leader_matches_contract",
-    "bge_rerank_leader_was_strict",
+    "required_documents_retrieved",
+    "bge_scores_present",
     "final_top1_matches_contract",
     "policy_action_matches_contract",
   ];
   if (resolver.schema_version !== 2 || !requiredAssertions.every((name) => resolver.assertions?.[name] === true)) {
     throw new Error("The accepted resolver does not satisfy the layered-ranking contract.");
+  }
+  if (runA.pass !== true || runA.top1 !== "order-api-guide-v1.0") {
+    throw new Error("The accepted Run A result does not expose the frozen outdated top result.");
   }
 }
 
@@ -58,9 +61,24 @@ async function render() {
     byId("scenario-summary").textContent = scenario.summary;
 
     const pointer = await loadJson(config.accepted_pointer);
+    if (pointer.status !== "accepted") {
+      rejectViewer(pointer.reason ?? "No accepted run is available for the current scenario contract.");
+      return;
+    }
     const manifest = await loadJson(pointer.manifest);
+    const runA = await loadJson(pointer.run_a);
     const resolver = await loadJson(pointer.resolver);
-    requireAccepted(pointer, manifest, resolver, scenario);
+    requireAccepted(pointer, manifest, runA, resolver, scenario);
+
+    const runATop = runA.ranking?.[0];
+    if (!runATop) {
+      throw new Error("The accepted Run A result does not expose a top-ranked document.");
+    }
+    byId("run-a-title").textContent = runATop.document_id;
+    addDefinition(byId("run-a-details"), "Version", runATop.version);
+    addDefinition(byId("run-a-details"), "Lifecycle", runATop.lifecycle_status);
+    addDefinition(byId("run-a-details"), "Selected field", "account_id");
+    addDefinition(byId("run-a-details"), "Cosine similarity", runATop.cosine_similarity);
 
     const bgeLeader = resolver.layers?.bge_cross_encoder?.leader;
     const finalTop = resolver.layers?.deepseek_listwise_final?.top_result;
@@ -78,6 +96,7 @@ async function render() {
     addDefinition(byId("final-details"), "Version", finalTop.version);
     addDefinition(byId("final-details"), "Lifecycle", finalTop.lifecycle_status);
     addDefinition(byId("final-details"), "Final response rank", finalTop.final_response_rank);
+    addDefinition(byId("final-details"), "Selected field", decision.selected_field);
     addDefinition(byId("final-details"), "BGE rerank score", finalTop.bge_rerank_score);
 
     byId("decision-title").textContent = decision.selected_document_id;
@@ -96,6 +115,7 @@ async function render() {
     addDefinition(byId("run-details"), "Observable estimated cost (USD)", manifest.cost?.estimated_observable_cost_usd);
 
     byId("claim-boundary").textContent = resolver.claim_boundary;
+    byId("synthetic-disclosure").textContent = scenario.synthetic_disclosure;
     byId("evidence-grid").hidden = false;
     byId("boundary").hidden = false;
     byId("status-panel").classList.add("accepted");

@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import unittest
 
-from cortrix_demo_runner.io import write_json
+from cortrix_demo_runner.io import sha256_file, write_json
 from cortrix_demo_runner.scenario import load_assertion_contract, load_scenario, validate_scenario
 
 
@@ -22,13 +22,15 @@ class ScenarioTests(unittest.TestCase):
         requires = scenario["requires"]
         self.assertEqual("v1.0.0-rc.1", requires["cortrix_release"])
         self.assertNotEqual(requires["cortrix_release_commit"], requires["cortrix_source_revision"])
-        self.assertEqual("1.2.0", scenario["scenario_version"])
+        self.assertEqual("2.0.0", scenario["scenario_version"])
         self.assertEqual({"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"}, scenario["retrieval_contract"])
+        self.assertEqual({"sealed": True, "campaign_id": "order-api-field-migration-2.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0}, scenario["execution_contract"])
 
     def test_layered_ranking_assertions_match_the_reviewed_contract(self) -> None:
         assertions = load_assertion_contract(ROOT)["frozen"]
-        self.assertEqual("order-api-release-v2.0", assertions["run_a_dense_cosine_top_document_id"])
-        self.assertEqual("order-api-guide-v1.0", assertions["run_b_bge_rerank_leader_document_id"])
+        self.assertEqual("order-api-guide-v1.0", assertions["run_a_dense_cosine_top_document_id"])
+        self.assertEqual("order-api-release-v2.0", assertions["run_a_required_current_document_id"])
+        self.assertEqual(["order-api-guide-v1.0", "order-api-release-v2.0"], assertions["run_b_required_document_ids"])
         self.assertEqual("order-api-release-v2.0", assertions["run_b_final_top_document_id"])
         self.assertEqual("preserved_final_top1", assertions["resolver_action"])
 
@@ -50,7 +52,17 @@ class ScenarioTests(unittest.TestCase):
             scenario = json.loads(path.read_text(encoding="utf-8"))
             scenario["retrieval_contract"]["query_granularity"] = "both"
             write_json(path, scenario)
-            self.assertTrue(any("chunk-only" in failure for failure in validate_scenario(root)))
+            self.assertTrue(any("sealed chunk-only" in failure for failure in validate_scenario(root)))
+
+    def test_scenario_validation_rejects_synthetic_disclosure_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(ROOT / "scenarios", root / "scenarios")
+            path = root / "scenarios" / "order-api-field-migration" / "scenario.json"
+            scenario = json.loads(path.read_text(encoding="utf-8"))
+            scenario["construction_note"] = ""
+            write_json(path, scenario)
+            self.assertTrue(any("synthetic construction" in failure for failure in validate_scenario(root)))
 
     def test_web_projection_matches_the_reviewed_scenario_contract(self) -> None:
         scenario = load_scenario(ROOT)
@@ -58,6 +70,18 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(scenario["id"], projection["scenario_id"])
         self.assertEqual(scenario["scenario_version"], projection["scenario_version"])
         self.assertEqual(scenario["retrieval_contract"], projection["retrieval_contract"])
+
+    def test_calibration_record_binds_the_sealed_inputs(self) -> None:
+        scenario_root = ROOT / "scenarios" / "order-api-field-migration"
+        calibration = json.loads((scenario_root / "calibration" / "baseline-2.0.0.json").read_text(encoding="utf-8"))
+        identity = calibration["input_identity"]
+        self.assertEqual(0, calibration["external_calls"])
+        self.assertTrue(calibration["sealed_after_calibration"])
+        self.assertEqual(sha256_file(scenario_root / "scenario.json"), identity["scenario_sha256"])
+        self.assertEqual(sha256_file(scenario_root / "fixtures" / "manifest.json"), identity["fixture_manifest_sha256"])
+        self.assertEqual(sha256_file(scenario_root / "expected" / "assertions.json"), identity["assertion_contract_sha256"])
+        self.assertEqual(sha256_file(scenario_root / "profiles" / "full-stack.json"), identity["full_stack_profile_sha256"])
+        self.assertEqual("order-api-guide-v1.0", calibration["ranking"][0]["document_id"])
 
     def test_shared_runner_does_not_hardcode_business_document_identity(self) -> None:
         source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "packages" / "runner" / "src").rglob("*.py"))

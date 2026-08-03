@@ -42,11 +42,17 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
-The default reviewed attempt limit is two. A Human Review may authorize an exact cumulative limit of three, four, or five without changing the USD 5.00 budget. Pass that exact limit with `--reviewed-attempt-limit`; the runner preserves every existing ledger entry, applies the matching cumulative budget bound, accepts no limit above five, and never starts a sixth attempt.
+The default reviewed attempt limit is two. The sealed 2.x scenario campaign has a hard cap of four slots. An explicit review may authorize the exact four-slot campaign without changing the USD 5.00 budget:
+
+```bash
+./democtl run-full-stack --reviewed-attempt-limit 4
+```
+
+The runner preserves the legacy attempt ledger and writes 2.x slots to an isolated campaign ledger. A transient retry consumes another slot. A deterministic failure cannot rerun the same sealed scenario version, and the campaign cannot start a fifth slot.
 
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 
-The scenario contract sends both Run B queries with `granularity=chunk`. The response must echo that value in `explain.granularity`. F41 summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
+The scenario contract sends both Run B queries with `granularity=chunk` and requests four final candidates. The response must echo the granularity in `explain.granularity`, retrieve both version-conflict documents, and expose finite BGE rerank scores. F41 summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
 
 ## 4. Inspect the candidate
 

@@ -1,10 +1,8 @@
 # Order Creation API Integration Guide v1.0
 
-Status: Superseded
+Version: v1.0 historical contract
 
-Effective date: January 1, 2025
-
-When calling the order creation API, send the customer account identifier in `account_id`.
+This guide describes the former Create Order request. A client sends the buyer's account identifier in `account_id`.
 
 ```json
 {
@@ -13,4 +11,8 @@ When calling the order creation API, send the customer account identifier in `ac
 }
 ```
 
-This guide was written for v1.0 clients. It has been superseded by the v2.0 release note.
+## Troubleshooting an unknown field error
+
+If Create Order rejects the payload with `unknown field account_id`, verify that the request still includes `account_id` exactly as shown above. In the v1.0 contract, `account_id` is the request field for the customer account.
+
+This historical integration guide is retained for v1.0 clients and has been superseded for current integrations.

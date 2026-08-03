@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-api-field-migration",
+  "scenario_version": "2.0.0",
+  "phase": "local_calibration",
+  "sealed_after_calibration": true,
+  "external_calls": 0,
+  "input_identity": {
+    "scenario_sha256": "4176fb46acc35adccf5b9c70d16a8c0eef7ba33a0289f53632b65068d9118bf8",
+    "fixture_manifest_sha256": "07b32ee011b1707174d7bfd927f4924feab751dd83231ad14e08d0c7d8fdb146",
+    "assertion_contract_sha256": "6c490ec0ddc896780dcf588f3b5ef26a9c93219ac55a10ca95dc18a5dd757bda",
+    "full_stack_profile_sha256": "147c93141450627072468bf8410d2624bc06a37b31c0c967d6f7097a8b0be39a",
+    "query_embedding_sha256": "c9805b08cf8c875db32fba344b3a62c514349dbdc3e9a660eef8afee14a21c41"
+  },
+  "environment": {
+    "postgresql_version": "16.14",
+    "pgvector_version": "0.8.6",
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_dimension": 1024
+  },
+  "search": "Exact cosine without ANN or lifecycle metadata in ORDER BY",
+  "ranking": [
+    {"rank": 1, "document_id": "order-api-guide-v1.0", "chunk_index": 0, "lifecycle_status": "superseded", "cosine_similarity": 0.7531767425327823},
+    {"rank": 2, "document_id": "order-api-guide-v1.0", "chunk_index": 1, "lifecycle_status": "superseded", "cosine_similarity": 0.6072149968938516},
+    {"rank": 3, "document_id": "order-api-release-v2.0", "chunk_index": 0, "lifecycle_status": "current", "cosine_similarity": 0.5937288161355068},
+    {"rank": 4, "document_id": "order-api-cancellation-v2.0", "chunk_index": 0, "lifecycle_status": "current", "cosine_similarity": 0.5611662007073772},
+    {"rank": 5, "document_id": "order-api-list-pagination-v2.0", "chunk_index": 0, "lifecycle_status": "current", "cosine_similarity": 0.49156024800547193}
+  ],
+  "assertions": {
+    "superseded_v1_is_strict_top1": true,
+    "current_v2_is_observable": true,
+    "lifecycle_not_used_in_ranking": true,
+    "cleanup_complete": true,
+    "pass": true
+  },
+  "claim_boundary": "This is a disclosed synthetic scenario calibration record, not a benchmark result or a Full Stack candidate."
+}

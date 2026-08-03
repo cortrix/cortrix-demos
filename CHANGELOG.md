@@ -11,4 +11,6 @@ All notable changes to this repository will be documented here after the first a
 - Extended the review-gated ceiling to a fifth attempt, preserved sixth-attempt denial, and kept the hard Full Stack budget at USD 5.00.
 - Persisted ignored query observations before resolver validation so rejected identity failures remain diagnosable.
 - Defined scenario contract `1.2.0` with chunk-only query identity and F41 document summaries retained as ingestion-only evidence.
+- Defined sealed synthetic scenario contract `2.0.0` with one shared query, an intentionally unfiltered pgvector baseline, a lifecycle-aware application resolver, and an independent four-slot Full Stack campaign.
+- Added a no-external-call baseline calibration record and invalidated the current accepted-run pointer until the `2.0.0` candidate receives Human Review.
 - Kept licensing, automation, hosting, releases, forks, and public visibility behind separate gates.

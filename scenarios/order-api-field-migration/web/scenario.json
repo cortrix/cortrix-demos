@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
   "scenario_id": "order-api-field-migration",
-  "scenario_version": "1.2.0",
+  "scenario_version": "2.0.0",
   "display_name": "Order API Field Migration",
   "title": "Order API Field Migration: When the Most Similar Guide Is Outdated",
-  "summary": "The highest BGE cross-encoder score belongs to an outdated guide, while the Full Stack final order and an independent lifecycle policy select the current release note.",
+  "summary": "A dense-only baseline follows the failing v1 payload to an outdated guide. Cortrix Full Stack returns the current v2 migration bulletin, and an independent lifecycle policy validates it.",
+  "synthetic_disclosure": "Synthetic scenario designed to isolate a common API version-conflict failure mode.",
   "retrieval_contract": {
     "query_granularity": "chunk",
     "document_summary_role": "ingestion_evidence_only"

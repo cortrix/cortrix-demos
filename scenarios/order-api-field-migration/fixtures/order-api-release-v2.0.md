@@ -1,10 +1,10 @@
-# Order Creation API Release Note v2.0
+# Order API v2 Buyer Identity Migration
 
 Status: Current
 
 Effective date: July 1, 2026
 
-Starting with v2.0, the order creation API requires `buyer_account_id`. The previous `account_id` field is no longer accepted as the current request field.
+For Create Order requests under the v2 contract, set the buyer identifier in `buyer_account_id`. This field is required for all current integrations.
 
 ```json
 {
@@ -13,4 +13,4 @@ Starting with v2.0, the order creation API requires `buyer_account_id`. The prev
 }
 ```
 
-This release note supersedes the field guidance in the v1.0 integration guide.
+Requests that use the retired v1 customer-identifier key fail schema validation. This bulletin supersedes the buyer field guidance in the historical v1.0 integration guide.

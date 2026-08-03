@@ -12,11 +12,15 @@ RELEASE = "v1.0.0-rc.1"
 RELEASE_COMMIT = "e159974f936bd987d5718195d54cd70ff3acc2e5"
 SOURCE_REVISION = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
 EXPECTED_RETRIEVAL_CONTRACT = {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"}
+EXPECTED_SCENARIO_VERSION = "2.0.0"
+EXPECTED_CONSTRUCTION_NOTE = "Synthetic scenario designed to isolate a common API version-conflict failure mode."
+EXPECTED_EXECUTION_CONTRACT = {"sealed": True, "campaign_id": "order-api-field-migration-2.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0}
 REQUIRED_LAYERED_ASSERTIONS = {
     "run_a_dense_cosine_top_document_id",
     "run_a_dense_cosine_top_document_status",
-    "run_b_bge_rerank_leader_document_id",
-    "run_b_bge_rerank_leader_status",
+    "run_a_required_current_document_id",
+    "run_a_required_current_document_status",
+    "run_b_required_document_ids",
     "run_b_final_top_document_id",
     "run_b_final_top_document_status",
     "resolver_selected_document_id",
@@ -63,8 +67,12 @@ def load_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, 
 
 
 def require_reviewed_retrieval_contract(scenario: dict[str, Any]) -> None:
-    if scenario.get("scenario_version") != "1.2.0" or scenario.get("retrieval_contract") != EXPECTED_RETRIEVAL_CONTRACT:
-        raise DemoContractError("Scenario must preserve the reviewed 1.2.0 chunk-only retrieval contract")
+    if scenario.get("scenario_version") != EXPECTED_SCENARIO_VERSION or scenario.get("retrieval_contract") != EXPECTED_RETRIEVAL_CONTRACT:
+        raise DemoContractError("Scenario must preserve the reviewed 2.0.0 sealed chunk-only retrieval contract")
+    if scenario.get("synthetic_data") is not True or scenario.get("construction_note") != EXPECTED_CONSTRUCTION_NOTE:
+        raise DemoContractError("Scenario must disclose the reviewed synthetic construction boundary")
+    if scenario.get("execution_contract") != EXPECTED_EXECUTION_CONTRACT:
+        raise DemoContractError("Scenario must preserve the reviewed sealed campaign contract")
 
 
 def assertion_contract_path(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
@@ -100,8 +108,8 @@ def validate_fixture_manifest(repo_root: Path, scenario_id: str = SCENARIO_ID) -
     else:
         failures.extend(_validate_hash(root / "fixtures", query, "query"))
     documents = manifest.get("documents")
-    if not isinstance(documents, list) or len(documents) != 2:
-        failures.append("Fixture manifest must contain exactly two documents")
+    if not isinstance(documents, list) or len(documents) != 4:
+        failures.append("Fixture manifest must contain exactly four reviewed documents")
     else:
         for index, document in enumerate(documents):
             if not isinstance(document, dict):
@@ -162,13 +170,18 @@ def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[s
     by_id = {item.get("document_id"): item for item in documents if isinstance(item, dict)} if isinstance(documents, list) else {}
     expected_documents = (
         ("run_a_dense_cosine_top_document_id", "run_a_dense_cosine_top_document_status"),
-        ("run_b_bge_rerank_leader_document_id", "run_b_bge_rerank_leader_status"),
+        ("run_a_required_current_document_id", "run_a_required_current_document_status"),
         ("run_b_final_top_document_id", "run_b_final_top_document_status"),
     )
     for document_key, status_key in expected_documents:
         document = by_id.get(frozen.get(document_key))
         if not isinstance(document, dict) or document.get("status") != frozen.get(status_key):
             failures.append(f"Layered assertion {document_key} does not match a fixture document and status")
+    required_run_b_documents = frozen.get("run_b_required_document_ids")
+    if not isinstance(required_run_b_documents, list) or len(required_run_b_documents) != 2 or len(set(required_run_b_documents)) != 2 or any(document_id not in by_id for document_id in required_run_b_documents):
+        failures.append("Run B required document identities must name two distinct fixture documents")
+    if fixture_manifest.get("synthetic_data") is not True or fixture_manifest.get("construction_note") != EXPECTED_CONSTRUCTION_NOTE:
+        failures.append("Fixture manifest must disclose the reviewed synthetic construction boundary")
     resolver = fixture_manifest.get("resolver")
     if not isinstance(resolver, dict) or resolver.get("expected_document_id") != frozen.get("resolver_selected_document_id") or resolver.get("expected_field") != frozen.get("resolver_selected_field"):
         failures.append("Fixture resolver does not match the layered assertion contract")

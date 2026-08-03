@@ -2,10 +2,11 @@
   "schema_version": 1,
   "scenario_id": "order-api-field-migration",
   "frozen": {
-    "run_a_dense_cosine_top_document_id": "order-api-release-v2.0",
-    "run_a_dense_cosine_top_document_status": "current",
-    "run_b_bge_rerank_leader_document_id": "order-api-guide-v1.0",
-    "run_b_bge_rerank_leader_status": "superseded",
+    "run_a_dense_cosine_top_document_id": "order-api-guide-v1.0",
+    "run_a_dense_cosine_top_document_status": "superseded",
+    "run_a_required_current_document_id": "order-api-release-v2.0",
+    "run_a_required_current_document_status": "current",
+    "run_b_required_document_ids": ["order-api-guide-v1.0", "order-api-release-v2.0"],
     "run_b_final_top_document_id": "order-api-release-v2.0",
     "run_b_final_top_document_status": "current",
     "resolver_selected_document_id": "order-api-release-v2.0",
@@ -29,5 +30,5 @@
       "application_lifecycle_resolver"
     ]
   },
-  "variable": ["llm_wording", "query_variants", "latency_ms", "ranking_scores"]
+  "variable": ["bge_rerank_leader", "llm_wording", "query_variants", "latency_ms", "ranking_scores"]
 }

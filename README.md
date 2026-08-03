@@ -6,19 +6,19 @@ This repository is currently a private pre-publication candidate. License select
 
 ## First scenario: Order API Field Migration
 
-An outdated integration guide receives the highest BGE cross-encoder rerank score, but that score is only one layer of the Full Stack result. The demo keeps each ranking responsibility explicit:
+This constructed scenario isolates a common version-conflict failure mode. A failing payload still uses the retired `account_id` field, while the current API requires `buyer_account_id`.
 
-- Run A records a dense BGE-M3 exact-cosine baseline, where the current v2 release note ranks first.
-- Run B exposes the superseded v1 guide as the BGE cross-encoder leader, then records the current v2 release note as the final top result after DeepSeek listwise reranking.
-- The demo application independently applies the lifecycle rule and preserves the current final top result as defense in depth.
+- Run A is a BGE-M3 dense-only PostgreSQL/pgvector exact-cosine baseline without lifecycle filtering. It follows the failing payload to the superseded v1 guide and selects `account_id`.
+- Run B executes the Cortrix Context Full Stack and returns the current v2 migration bulletin with `buyer_account_id` as its final top result.
+- The demo application independently applies the lifecycle rule and validates the current Full Stack result as defense in depth.
 
-The phrase “most similar” in this scenario title refers specifically to the highest BGE cross-encoder rerank score, not the dense baseline or the final response order. Cortrix supplies ranking evidence. The application owns lifecycle validation.
+PostgreSQL and pgvector can filter on lifecycle metadata; this Run A profile intentionally does not. Cortrix supplies multi-path retrieval and ranking evidence. The application owns lifecycle validation. This is a mechanism demo, not a retrieval benchmark or a general superiority claim.
 
 ## See the result
 
-Open the [evidence viewer](packages/viewer/README.md) to inspect an accepted-run replay. A replay is a frozen result, not a new live execution.
+Open the [evidence viewer](packages/viewer/README.md) to inspect an accepted-run replay. A replay is a frozen result, not a new live execution. The sealed 2.0.0 scenario does not have an accepted run yet, so the viewer currently fails closed.
 
-The viewer replays the [accepted English run](scenarios/order-api-field-migration/evidence/accepted-run.json). It fails closed if the accepted pointer, run manifest, layered resolver, or screenshot binding is missing or inconsistent.
+The viewer reads the [accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json). It renders only when the pointer, Run A result, run manifest, layered resolver, and screenshot binding agree with the current scenario contract.
 
 ## Run it locally
 

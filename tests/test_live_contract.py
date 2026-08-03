@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.io import read_json, write_json
-from cortrix_demo_runner.live import execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
+from cortrix_demo_runner.live import attempt_ledger, execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
 from cortrix_demo_runner.runtime import request
 
 
@@ -27,6 +27,8 @@ class LiveContractTests(unittest.TestCase):
     def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
         payload = query_payload("example", "chunk")
         self.assertEqual("chunk", payload["granularity"])
+        self.assertEqual(4, payload["top_k"])
+        self.assertEqual(4, payload["llm_rerank_config"]["top_n"])
 
     def test_execute_once_rejects_scenario_drift_before_attempt_or_external_work(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -77,6 +79,17 @@ class LiveContractTests(unittest.TestCase):
     def test_reviewed_attempt_limit_cannot_exceed_five(self) -> None:
         with self.assertRaisesRegex(DemoContractError, "must be 2, 3, 4, or 5"):
             validate_reviewed_attempt_limit(6)
+
+    def test_new_campaign_ledger_is_isolated_from_the_legacy_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reserve_attempt(root, "legacy-1")
+            campaign_id = "order-api-field-migration-2.x"
+            self.assertEqual(1, reserve_attempt(root, "campaign-1", reviewed_attempt_limit=4, campaign_id=campaign_id, scenario_version="2.0.0", demo_commit="a" * 40))
+            self.assertEqual(1, len(attempt_ledger(root)["full_stack_attempts"]))
+            campaign = attempt_ledger(root, campaign_id)
+            self.assertEqual(campaign_id, campaign["campaign_id"])
+            self.assertEqual("2.0.0", campaign["full_stack_attempts"][0]["scenario_version"])
 
     def test_query_observation_is_persisted_before_resolver_validation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -28,7 +28,9 @@ class AcceptanceContractTests(unittest.TestCase):
         return {
             "schema_version": 1,
             "scenario_id": SCENARIO_ID,
-            "scenario_version": "1.2.0",
+            "scenario_version": "2.0.0",
+            "campaign_id": "order-api-field-migration-2.x",
+            "campaign_slot": 1,
             "assertions": {name: True for name in ("run_a", "run_b", "required_paths", "resolver", "cleanup", "budget", "model_checksums", "all_passed")},
             "required_paths": {name: True for name in REQUIRED_PATH_NAMES},
             "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": "sha256:" + "1" * 64, "demo_commit": "a" * 40},
@@ -54,14 +56,14 @@ class AcceptanceContractTests(unittest.TestCase):
                 for name in (
                     "selected_expected_document",
                     "selected_content_contains_expected_field",
-                    "bge_rerank_leader_matches_contract",
-                    "bge_rerank_leader_was_strict",
+                    "required_documents_retrieved",
+                    "bge_scores_present",
                     "final_top1_matches_contract",
                     "policy_action_matches_contract",
                 )
             },
             "layers": {
-                "bge_cross_encoder": {"leader": {"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"}},
+                "bge_cross_encoder": {"leader": {"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded", "bge_rerank_score": 0.75}},
                 "deepseek_listwise_final": {"top_result": {"document_id": "order-api-release-v2.0", "lifecycle_status": "current"}},
                 "application_lifecycle_policy": {"action": "preserved_final_top1"},
             },
@@ -70,10 +72,11 @@ class AcceptanceContractTests(unittest.TestCase):
 
     def frozen_assertions(self) -> dict[str, object]:
         return {
-            "run_a_dense_cosine_top_document_id": "order-api-release-v2.0",
-            "run_a_dense_cosine_top_document_status": "current",
-            "run_b_bge_rerank_leader_document_id": "order-api-guide-v1.0",
-            "run_b_bge_rerank_leader_status": "superseded",
+            "run_a_dense_cosine_top_document_id": "order-api-guide-v1.0",
+            "run_a_dense_cosine_top_document_status": "superseded",
+            "run_a_required_current_document_id": "order-api-release-v2.0",
+            "run_a_required_current_document_status": "current",
+            "run_b_required_document_ids": ["order-api-guide-v1.0", "order-api-release-v2.0"],
             "run_b_final_top_document_id": "order-api-release-v2.0",
             "run_b_final_top_document_status": "current",
             "resolver_selected_document_id": "order-api-release-v2.0",
@@ -115,10 +118,10 @@ class AcceptanceContractTests(unittest.TestCase):
     def test_readme_exposes_result_run_and_evidence_in_order(self) -> None:
         verify_readme("# Demo\n\n## See the result\nA\n## Run it locally\nB\n## Inspect the evidence\nC\n")
 
-    def test_repository_readme_points_to_the_accepted_run(self) -> None:
+    def test_repository_readme_points_to_the_fail_closed_accepted_run_contract(self) -> None:
         readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
         self.assertIn("scenarios/order-api-field-migration/evidence/accepted-run.json", readme)
-        self.assertNotIn("No accepted English run is published", readme)
+        self.assertIn("does not have an accepted run yet", readme)
 
     def test_readme_rejects_missing_or_reordered_first_run_sections(self) -> None:
         with self.assertRaises(DemoContractError):
@@ -130,7 +133,7 @@ class AcceptanceContractTests(unittest.TestCase):
         self.assertIn('manifest.state !== "accepted"', viewer)
         self.assertIn("manifest.target_identity?.source_revision", viewer)
         self.assertIn("manifest.provider_identity?.model", viewer)
-        self.assertIn("bge_rerank_leader_matches_contract", viewer)
+        self.assertIn("required_documents_retrieved", viewer)
         self.assertIn("deepseek_listwise_final", viewer)
         self.assertIn("manifest.scenario_version", viewer)
         self.assertNotIn("manifest.status", viewer)
@@ -179,7 +182,10 @@ class AcceptanceContractTests(unittest.TestCase):
                 scenario_root / "scenario.json",
                 {
                     "id": SCENARIO_ID,
-                    "scenario_version": "1.2.0",
+                    "scenario_version": "2.0.0",
+                    "synthetic_data": True,
+                    "construction_note": "Synthetic scenario designed to isolate a common API version-conflict failure mode.",
+                    "execution_contract": {"sealed": True, "campaign_id": "order-api-field-migration-2.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0},
                     "requires": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION},
                     "assertions": "expected/assertions.json",
                     "retrieval_contract": {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"},
@@ -219,7 +225,9 @@ class AcceptanceContractTests(unittest.TestCase):
                 "schema_version": 1,
                 "run_id": run_id,
                 "scenario_id": SCENARIO_ID,
-                "scenario_version": "1.2.0",
+                "scenario_version": "2.0.0",
+                "campaign_id": "order-api-field-migration-2.x",
+                "campaign_slot": 1,
                 "state": "candidate",
                 "target_identity": target,
                 "fixture_manifest_sha256": sha256_file(fixture),
@@ -249,7 +257,7 @@ class AcceptanceContractTests(unittest.TestCase):
             }
             files = {
                 "run-manifest.json": manifest,
-                "source-manifest.json": {"run_id": run_id, "scenario_version": "1.2.0", "assertion_contract_sha256": sha256_file(assertion_contract), "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
+                "source-manifest.json": {"run_id": run_id, "attempt": 1, "campaign_id": "order-api-field-migration-2.x", "scenario_version": "2.0.0", "assertion_contract_sha256": sha256_file(assertion_contract), "source": source_identity, "provider": provider, "private_source_paths_recorded": False, "secret_recorded": False},
                 "runtime.json": {"run_id": run_id, "llm": {**provider, "secret_persisted_in_evidence": False}},
                 "contract-smoke.json": {"provider": "deepseek", "model": "deepseek-v4-flash", "call_count": 1, "usage": {"prompt_tokens": 1, "completion_tokens": 1}, "response_content_recorded": False},
                 "model-checksums.json": {"all_match": True},
@@ -259,9 +267,12 @@ class AcceptanceContractTests(unittest.TestCase):
                     "schema_version": 1,
                     "run_id": run_id,
                     "pass": True,
-                    "top1": "order-api-release-v2.0",
-                    "assertions": {name: True for name in ("expected_dense_document_is_top1", "expected_bge_leader_document_is_present", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking")},
-                    "ranking": [{"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"}],
+                    "top1": "order-api-guide-v1.0",
+                    "assertions": {name: True for name in ("expected_dense_document_is_top1", "required_current_document_is_present", "strict_dense_top1", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking")},
+                    "ranking": [
+                        {"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"},
+                        {"document_id": "order-api-release-v2.0", "lifecycle_status": "current"},
+                    ],
                 },
                 "run-b/summary.json": {
                     "run_id": run_id,

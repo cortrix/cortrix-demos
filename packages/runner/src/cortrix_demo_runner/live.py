@@ -22,11 +22,17 @@ def new_run_id() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("order-api-field-migration-%Y%m%dT%H%M%SZ")
 
 
-def attempt_ledger(root: Path) -> dict[str, Any]:
-    path = root / ".runs" / "attempt-ledger.json"
+def attempt_ledger_path(root: Path, campaign_id: str | None = None) -> Path:
+    if campaign_id is None:
+        return root / ".runs" / "attempt-ledger.json"
+    return root / ".runs" / "campaigns" / f"{campaign_id}.json"
+
+
+def attempt_ledger(root: Path, campaign_id: str | None = None) -> dict[str, Any]:
+    path = attempt_ledger_path(root, campaign_id)
     if path.exists():
         return read_json(path)
-    return {"schema_version": 1, "full_stack_attempts": []}
+    return {"schema_version": 1, "campaign_id": campaign_id, "full_stack_attempts": []}
 
 
 def validate_reviewed_attempt_limit(limit: int) -> int:
@@ -35,9 +41,9 @@ def validate_reviewed_attempt_limit(limit: int) -> int:
     return limit
 
 
-def reserve_attempt(root: Path, run_id: str, reviewed_attempt_limit: int = 2) -> int:
-    path = root / ".runs" / "attempt-ledger.json"
-    ledger = attempt_ledger(root)
+def reserve_attempt(root: Path, run_id: str, reviewed_attempt_limit: int = 2, campaign_id: str | None = None, scenario_version: str | None = None, demo_commit: str | None = None) -> int:
+    path = attempt_ledger_path(root, campaign_id)
+    ledger = attempt_ledger(root, campaign_id)
     attempts = ledger.get("full_stack_attempts")
     if not isinstance(attempts, list):
         raise DemoContractError("Full Stack attempt ledger is malformed")
@@ -45,14 +51,14 @@ def reserve_attempt(root: Path, run_id: str, reviewed_attempt_limit: int = 2) ->
     if len(attempts) >= limit:
         raise DemoContractError(f"The reviewed {limit}-attempt Full Stack limit has been reached")
     number = len(attempts) + 1
-    attempts.append({"attempt": number, "run_id": run_id, "state": "reserved", "reserved_at": dt.datetime.now(dt.timezone.utc).isoformat()})
+    attempts.append({"attempt": number, "run_id": run_id, "scenario_version": scenario_version, "demo_commit": demo_commit, "state": "reserved", "reserved_at": dt.datetime.now(dt.timezone.utc).isoformat()})
     write_json(path, ledger, mode=0o600)
     return number
 
 
-def update_attempt(root: Path, run_id: str, state: str, category: str | None = None) -> None:
-    path = root / ".runs" / "attempt-ledger.json"
-    ledger = attempt_ledger(root)
+def update_attempt(root: Path, run_id: str, state: str, category: str | None = None, campaign_id: str | None = None) -> None:
+    path = attempt_ledger_path(root, campaign_id)
+    ledger = attempt_ledger(root, campaign_id)
     for item in ledger["full_stack_attempts"]:
         if item.get("run_id") == run_id:
             item["state"] = state
@@ -180,7 +186,7 @@ def wait_enrichment(namespace: str, before_text: str, expected_document_count: i
 def query_payload(query: str, granularity: str) -> dict[str, Any]:
     return {
         "query": query,
-        "top_k": 2,
+        "top_k": 4,
         "rerank": True,
         "include_sources": True,
         "route": "complex",
@@ -191,7 +197,7 @@ def query_payload(query: str, granularity: str) -> dict[str, Any]:
         "rag_fusion": True,
         "rag_fusion_config": {"enabled": True, "variant_count": 3, "timeout_ms": 120000, "locale": "en", "candidate_multiplier": 5, "max_candidates": 20, "final_rerank": True, "activation_policy": "always"},
         "llm_rerank": True,
-        "llm_rerank_config": {"enabled": True, "top_n": 2, "timeout_ms": 120000, "locale": "en", "consensus_runs": 1},
+        "llm_rerank_config": {"enabled": True, "top_n": 4, "timeout_ms": 120000, "locale": "en", "consensus_runs": 1},
     }
 
 
@@ -339,11 +345,12 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
     }
 
 
-def source_manifest(run_id: str, attempt: int, image: dict[str, str], fixture_manifest: Path, assertion_contract: Path, scenario: dict[str, Any], demo_checkout: dict[str, str]) -> dict[str, Any]:
+def source_manifest(run_id: str, attempt: int, campaign_id: str, image: dict[str, str], fixture_manifest: Path, assertion_contract: Path, scenario: dict[str, Any], demo_checkout: dict[str, str]) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "run_id": run_id,
         "attempt": attempt,
+        "campaign_id": campaign_id,
         "scenario_id": SCENARIO_ID,
         "scenario_version": scenario["scenario_version"],
         "source": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION, "container_image": image["image"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"], "demo_branch": demo_checkout["branch"], "demo_working_tree": demo_checkout["working_tree"]},
@@ -360,6 +367,8 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     if scenario_failures:
         raise DemoContractError("Scenario validation failed: " + "; ".join(scenario_failures))
     scenario = load_scenario(root)
+    execution_contract = scenario["execution_contract"]
+    campaign_id = execution_contract["campaign_id"]
     assertion_path = assertion_contract_path(root)
     assertion_contract = load_assertion_contract(root)
     frozen_assertions = assertion_contract["frozen"]
@@ -368,12 +377,14 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     manifest = read_json(fixture_manifest_path)
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
+    if reviewed_attempt_limit > int(execution_contract["campaign_attempt_cap"]):
+        raise DemoContractError("The reviewed attempt limit exceeds the sealed campaign cap")
     preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit)
     pricing = read_json(pricing_path)
     bound = require_budget_bound(profile, pricing, reviewed_attempt_limit)
     verify_fixture_hashes(fixture_root, manifest)
     demo_checkout = verify_demo_checkout(root)
-    attempt = reserve_attempt(root, run_id, reviewed_attempt_limit)
+    attempt = reserve_attempt(root, run_id, reviewed_attempt_limit, campaign_id, scenario["scenario_version"], demo_checkout["commit"])
     run_dir = root / ".runs" / run_id
     receipt_path = run_dir / "cleanup-receipt.json"
     record_state(run_dir, "created")
@@ -397,7 +408,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         phase = "runtime_identity"
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
-        source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
+        source_identity = source_manifest(run_id, attempt, campaign_id, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
         cost = cost_record(pricing, smoke, run_b_result, bound, float(profile["budget_usd"]))
         write_json(run_dir / "preflight.json", preflight)
         write_json(run_dir / "runtime.json", runtime)
@@ -424,6 +435,8 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
             "run_id": run_id,
             "scenario_id": SCENARIO_ID,
             "scenario_version": scenario["scenario_version"],
+            "campaign_id": campaign_id,
+            "campaign_slot": attempt,
             "state": state,
             "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
             "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
@@ -455,7 +468,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         if state != "candidate":
             raise DemoContractError("Candidate manifest assertions failed")
         record_state(run_dir, "candidate")
-        update_attempt(root, run_id, "candidate")
+        update_attempt(root, run_id, "candidate", campaign_id=campaign_id)
         return run_manifest
     except Exception as exc:
         if not receipt_path.exists():
@@ -465,7 +478,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
                 pass
         category = failure_category(exc)
         record_state(run_dir, "rejected", category)
-        update_attempt(root, run_id, "rejected", category)
+        update_attempt(root, run_id, "rejected", category, campaign_id)
         write_json(run_dir / "rejection.json", {"schema_version": 1, "run_id": run_id, "state": "rejected", "phase": phase, "failure_category": category, "message": sanitized_error(exc), "screenshot_eligible": False})
         raise
 
@@ -488,6 +501,7 @@ def sanitized_error(exc: Exception) -> str:
 
 def execute_with_retry(root: Path, source: Path, pricing_path: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
+    campaign_id = load_scenario(root)["execution_contract"]["campaign_id"]
     first_id = new_run_id()
     try:
         return execute_once(root, source, pricing_path, first_id, reviewed_attempt_limit)
@@ -495,7 +509,7 @@ def execute_with_retry(root: Path, source: Path, pricing_path: Path, reviewed_at
         category = failure_category(first_error)
         if category not in {"http_429", "http_5xx", "timeout"}:
             raise
-        if len(attempt_ledger(root)["full_stack_attempts"]) >= reviewed_attempt_limit:
+        if len(attempt_ledger(root, campaign_id)["full_stack_attempts"]) >= reviewed_attempt_limit:
             raise
         retry_id = new_run_id() + "-retry"
         return execute_once(root, source, pricing_path, retry_id, reviewed_attempt_limit)

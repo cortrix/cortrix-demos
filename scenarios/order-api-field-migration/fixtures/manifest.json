@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "synthetic_data": true,
-  "query": {"path": "query.txt", "sha256": "35c6a25398e9f9a81282cae31f1d54a2ec9fdaa9e09bf7c84e44d7b667577b05"},
+  "construction_note": "Synthetic scenario designed to isolate a common API version-conflict failure mode.",
+  "query": {"path": "query.txt", "sha256": "14afdd9791abbd53e0825a61dff13eedb548ada0ac6832dbc8f6955cd40771a3"},
   "documents": [
     {
       "path": "order-api-guide-v1.0.md",
@@ -11,7 +12,7 @@
       "status": "superseded",
       "effective_at": "2025-01-01",
       "superseded_by": "order-api-release-v2.0",
-      "sha256": "b0b7caac430e5e7d6e8c62412733e69e436caa9e1d5472bc5ea74b7cea6544c0"
+      "sha256": "8751b8bd258587c0b27aaa91adaaf18aae1c5ce5a2c1159fc41023a06b5f190a"
     },
     {
       "path": "order-api-release-v2.0.md",
@@ -21,7 +22,25 @@
       "status": "current",
       "effective_at": "2026-07-01",
       "supersedes": "order-api-guide-v1.0",
-      "sha256": "17b8b47ff8921e32e83890d13177dce0769ae906b749e141d8342b488032221c"
+      "sha256": "84dd5c7a12b950c1250ceb69a4aac1c92550af644d751508962d5d61fcc56475"
+    },
+    {
+      "path": "order-api-list-pagination-v2.0.md",
+      "document_id": "order-api-list-pagination-v2.0",
+      "source": "reference_guide",
+      "version": "v2.0",
+      "status": "current",
+      "effective_at": "2026-07-01",
+      "sha256": "38ace790cfb4a246e4eda6bd225789a3c68742e9d3f605a7b96fadf47f014939"
+    },
+    {
+      "path": "order-api-cancellation-v2.0.md",
+      "document_id": "order-api-cancellation-v2.0",
+      "source": "reference_guide",
+      "version": "v2.0",
+      "status": "current",
+      "effective_at": "2026-07-01",
+      "sha256": "09e9ad1fa7f1f5325f0ebee7d3db92fd4413ef9b33ca30d0a5e523c61079dd7c"
     }
   ],
   "resolver": {

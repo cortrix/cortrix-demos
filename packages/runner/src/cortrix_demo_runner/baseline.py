@@ -138,11 +138,12 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
     ]
     expected_top_document = frozen_assertions.get("run_a_dense_cosine_top_document_id")
     expected_top_status = frozen_assertions.get("run_a_dense_cosine_top_document_status")
-    bge_leader_document = frozen_assertions.get("run_b_bge_rerank_leader_document_id")
-    bge_leader_status = frozen_assertions.get("run_b_bge_rerank_leader_status")
+    required_current_document = frozen_assertions.get("run_a_required_current_document_id")
+    required_current_status = frozen_assertions.get("run_a_required_current_document_status")
     assertions = {
         "expected_dense_document_is_top1": ranking[0]["document_id"] == expected_top_document and ranking[0]["lifecycle_status"] == expected_top_status,
-        "expected_bge_leader_document_is_present": any(item["document_id"] == bge_leader_document and item["lifecycle_status"] == bge_leader_status for item in ranking),
+        "required_current_document_is_present": any(item["document_id"] == required_current_document and item["lifecycle_status"] == required_current_status for item in ranking),
+        "strict_dense_top1": len(ranking) > 1 and ranking[0]["cosine_similarity"] > ranking[1]["cosine_similarity"],
         "exact_cosine_without_ann": True,
         "lifecycle_not_used_in_ranking": True,
     }

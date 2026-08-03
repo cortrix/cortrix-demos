@@ -69,8 +69,8 @@ ALLOWED_CURATED_FILES = {
 LAYERED_RESOLVER_ASSERTIONS = {
     "selected_expected_document",
     "selected_content_contains_expected_field",
-    "bge_rerank_leader_matches_contract",
-    "bge_rerank_leader_was_strict",
+    "required_documents_retrieved",
+    "bge_scores_present",
     "final_top1_matches_contract",
     "policy_action_matches_contract",
 }
@@ -115,6 +115,8 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
         raise DemoContractError("Run fixture manifest checksum is invalid")
     if not isinstance(manifest.get("scenario_version"), str) or not manifest["scenario_version"] or not isinstance(manifest.get("assertion_contract_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", manifest["assertion_contract_sha256"]):
         raise DemoContractError("Run scenario version or assertion contract identity is invalid")
+    if manifest.get("campaign_id") != "order-api-field-migration-2.x" or not isinstance(manifest.get("campaign_slot"), int) or not 1 <= manifest["campaign_slot"] <= 4:
+        raise DemoContractError("Run campaign identity or slot is invalid")
     provider = manifest.get("provider_identity")
     if not isinstance(provider, dict) or provider.get("provider") != "deepseek" or provider.get("model") != "deepseek-v4-flash" or provider.get("base_url") != "https://api.deepseek.com/v1" or provider.get("local_generative_llm") is not False:
         raise DemoContractError("Run provider identity is not accepted")
@@ -166,8 +168,8 @@ def validate_layered_resolver_contract(resolver: dict[str, Any], frozen_assertio
     policy = layers.get("application_lifecycle_policy")
     leader = bge.get("leader") if isinstance(bge, dict) else None
     top_result = final.get("top_result") if isinstance(final, dict) else None
-    if not isinstance(leader, dict) or leader.get("document_id") != frozen_assertions.get("run_b_bge_rerank_leader_document_id") or leader.get("lifecycle_status") != frozen_assertions.get("run_b_bge_rerank_leader_status"):
-        raise DemoContractError("Resolver BGE layer does not match the frozen assertion contract")
+    if not isinstance(leader, dict) or not isinstance(leader.get("document_id"), str) or not isinstance(leader.get("bge_rerank_score"), (int, float)):
+        raise DemoContractError("Resolver BGE layer does not expose an observable leader")
     if not isinstance(top_result, dict) or top_result.get("document_id") != frozen_assertions.get("run_b_final_top_document_id") or top_result.get("lifecycle_status") != frozen_assertions.get("run_b_final_top_document_status"):
         raise DemoContractError("Resolver final layer does not match the frozen assertion contract")
     if not isinstance(policy, dict) or policy.get("action") != frozen_assertions.get("resolver_action"):
@@ -179,14 +181,14 @@ def validate_layered_resolver_contract(resolver: dict[str, Any], frozen_assertio
 
 def validate_run_a_contract(run_a: dict[str, Any], frozen_assertions: dict[str, Any]) -> None:
     assertions = run_a.get("assertions")
-    required = {"expected_dense_document_is_top1", "expected_bge_leader_document_is_present", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking"}
+    required = {"expected_dense_document_is_top1", "required_current_document_is_present", "strict_dense_top1", "exact_cosine_without_ann", "lifecycle_not_used_in_ranking"}
     if run_a.get("schema_version") != 1 or run_a.get("pass") is not True or not isinstance(assertions, dict) or not all(assertions.get(name) is True for name in required):
         raise DemoContractError("Run A does not satisfy the layered dense-baseline assertions")
     if run_a.get("top1") != frozen_assertions.get("run_a_dense_cosine_top_document_id"):
         raise DemoContractError("Run A top result does not match the frozen assertion contract")
     ranking = run_a.get("ranking")
-    if not isinstance(ranking, list) or not any(isinstance(item, dict) and item.get("document_id") == frozen_assertions.get("run_b_bge_rerank_leader_document_id") and item.get("lifecycle_status") == frozen_assertions.get("run_b_bge_rerank_leader_status") for item in ranking):
-        raise DemoContractError("Run A does not contain the frozen BGE-leader document identity")
+    if not isinstance(ranking, list) or not any(isinstance(item, dict) and item.get("document_id") == frozen_assertions.get("run_a_required_current_document_id") and item.get("lifecycle_status") == frozen_assertions.get("run_a_required_current_document_status") for item in ranking):
+        raise DemoContractError("Run A does not contain the frozen current-document identity")
 
 
 def validate_run_b_retrieval_contract(run_b: dict[str, Any]) -> None:
@@ -233,7 +235,7 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
         "demo_branch": "main",
         "demo_working_tree": "clean",
     }
-    if source_manifest.get("run_id") != run_id or source_manifest.get("scenario_version") != scenario.get("scenario_version") or source_manifest.get("assertion_contract_sha256") != manifest.get("assertion_contract_sha256") or any(source_identity.get(key) != value for key, value in expected_source.items()):
+    if source_manifest.get("run_id") != run_id or source_manifest.get("campaign_id") != manifest.get("campaign_id") or source_manifest.get("attempt") != manifest.get("campaign_slot") or source_manifest.get("scenario_version") != scenario.get("scenario_version") or source_manifest.get("assertion_contract_sha256") != manifest.get("assertion_contract_sha256") or any(source_identity.get(key) != value for key, value in expected_source.items()):
         raise DemoContractError("Candidate source manifest does not match the run target identity")
     if source_manifest.get("provider") != manifest.get("provider_identity") or source_manifest.get("private_source_paths_recorded") is not False or source_manifest.get("secret_recorded") is not False:
         raise DemoContractError("Candidate source manifest provider or safety boundary is invalid")
@@ -316,8 +318,8 @@ def stage_accepted(root: Path, run_id: str, human_review_id: str) -> dict[str, A
     if staging.exists():
         raise DemoContractError("Ignored accepted-evidence staging directory already exists")
     pointer_path = scenario_root(root) / "evidence" / "accepted-run.json"
-    if pointer_path.exists():
-        raise DemoContractError("Accepted-run pointer already exists; replacement requires a separate review")
+    if pointer_path.exists() and read_json(pointer_path).get("status") == "accepted":
+        raise DemoContractError("Accepted-run pointer already names an accepted run; replacement requires a separate review")
     staging.mkdir(parents=True)
     accepted_at = dt.datetime.now(dt.timezone.utc).isoformat()
     accepted_manifest = dict(manifest)
@@ -353,6 +355,7 @@ def stage_accepted(root: Path, run_id: str, human_review_id: str) -> dict[str, A
         "run_id": run_id,
         "demo_commit": demo_commit,
         "manifest": f"{pointer_prefix}/run-manifest.json",
+        "run_a": f"{pointer_prefix}/run-a/pgvector-result.json",
         "resolver": f"{pointer_prefix}/run-b/resolver-01.json",
         "screenshot_manifest": f"{pointer_prefix}/screenshots/screenshot-manifest.json",
     }
@@ -504,6 +507,7 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     pointer_prefix = f"../../scenarios/{SCENARIO_ID}/evidence/runs/{run_id}"
     expected_pointer = {
         "manifest": f"{pointer_prefix}/run-manifest.json",
+        "run_a": f"{pointer_prefix}/run-a/pgvector-result.json",
         "resolver": f"{pointer_prefix}/run-b/resolver-01.json",
         "screenshot_manifest": f"{pointer_prefix}/screenshots/screenshot-manifest.json",
     }

@@ -61,7 +61,6 @@ def apply_lifecycle_resolver(
     for rank, candidate in enumerate(bge_order, start=1):
         candidate["bge_rerank_rank"] = rank
     bge_leader = bge_order[0]
-    bge_runner_up = bge_order[1]
     final_top = candidates[0]
     selected = next((item for item in candidates if item["eligible_under_policy"]), None)
     if selected is None:
@@ -75,11 +74,13 @@ def apply_lifecycle_resolver(
         raise DemoContractError("Fixture resolver and frozen assertion contract do not match")
     selected_content = selected.get("content")
     policy_action = "preserved_final_top1" if final_top["document_id"] == selected["document_id"] else "changed_final_top1"
+    required_document_ids = frozen_assertions.get("run_b_required_document_ids")
+    retrieved_document_ids = {item["document_id"] for item in candidates}
     assertions = {
         "selected_expected_document": selected["document_id"] == expected_document,
         "selected_content_contains_expected_field": isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content,
-        "bge_rerank_leader_matches_contract": bge_leader["document_id"] == frozen_assertions.get("run_b_bge_rerank_leader_document_id") and bge_leader["lifecycle_status"] == frozen_assertions.get("run_b_bge_rerank_leader_status"),
-        "bge_rerank_leader_was_strict": float(bge_leader["rerank_score"]) > float(bge_runner_up["rerank_score"]),
+        "required_documents_retrieved": isinstance(required_document_ids, list) and set(required_document_ids).issubset(retrieved_document_ids),
+        "bge_scores_present": all(isinstance(item.get("rerank_score"), (int, float)) and not isinstance(item.get("rerank_score"), bool) for item in candidates),
         "final_top1_matches_contract": final_top["document_id"] == frozen_assertions.get("run_b_final_top_document_id") and final_top["lifecycle_status"] == frozen_assertions.get("run_b_final_top_document_status"),
         "policy_action_matches_contract": policy_action == frozen_assertions.get("resolver_action"),
     }
