@@ -1,7 +1,10 @@
 {
   "schema_version": 1,
-  "status": "none",
-  "scenario_version": "2.0.0",
-  "reason": "The sealed 2.0.0 scenario does not have a human-accepted run yet.",
-  "historical_run_retained": "order-api-field-migration-20260803T124237Z"
+  "status": "accepted",
+  "run_id": "order-api-field-migration-20260803T152219Z",
+  "demo_commit": "37ee40d321f1825a602aa9c94370a4dba3ee97a5",
+  "manifest": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/run-manifest.json",
+  "run_a": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/run-a/pgvector-result.json",
+  "resolver": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/run-b/resolver-01.json",
+  "screenshot_manifest": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/screenshots/screenshot-manifest.json"
 }

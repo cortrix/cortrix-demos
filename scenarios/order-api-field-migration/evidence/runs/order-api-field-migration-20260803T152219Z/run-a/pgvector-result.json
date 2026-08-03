@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "environment": {
+    "postgresql_version": "16.14 (Debian 16.14-1.pgdg12+1)",
+    "pgvector_version": "0.8.6"
+  },
+  "search": "exact cosine; no ANN index and no lifecycle metadata in ORDER BY",
+  "query_embedding_sha256": "c9805b08cf8c875db32fba344b3a62c514349dbdc3e9a660eef8afee14a21c41",
+  "inserted_block_count": 5,
+  "ranking": [
+    {
+      "rank": 1,
+      "block_id": "9633219907298423399",
+      "document_id": "order-api-guide-v1.0",
+      "chunk_index": 0,
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "cosine_similarity": 0.7531767425327823
+    },
+    {
+      "rank": 2,
+      "block_id": "3992755694348882313",
+      "document_id": "order-api-guide-v1.0",
+      "chunk_index": 1,
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "cosine_similarity": 0.6072149968938516
+    },
+    {
+      "rank": 3,
+      "block_id": "13517948612006132340",
+      "document_id": "order-api-release-v2.0",
+      "chunk_index": 0,
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "cosine_similarity": 0.5937288161355068
+    },
+    {
+      "rank": 4,
+      "block_id": "6165527612252139160",
+      "document_id": "order-api-cancellation-v2.0",
+      "chunk_index": 0,
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "cosine_similarity": 0.5611662007073772
+    },
+    {
+      "rank": 5,
+      "block_id": "1348986824444796375",
+      "document_id": "order-api-list-pagination-v2.0",
+      "chunk_index": 0,
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "cosine_similarity": 0.49156024800547193
+    }
+  ],
+  "top1": "order-api-guide-v1.0",
+  "assertions": {
+    "expected_dense_document_is_top1": true,
+    "required_current_document_is_present": true,
+    "strict_dense_top1": true,
+    "exact_cosine_without_ann": true,
+    "lifecycle_not_used_in_ranking": true
+  },
+  "pass": true,
+  "claim_boundary": "Dense BGE-M3 exact-cosine baseline only. It is not the BGE cross-encoder layer, the Full Stack final order, a lifecycle decision, or a performance benchmark."
+}

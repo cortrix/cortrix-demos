@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-03T15:21:05Z",
+  "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "model_version": "DeepSeek-V4-Flash-0731",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "prices_per_million_tokens": {
+    "input_cache_hit": 0.0028,
+    "input_cache_miss": 0.14,
+    "output": 0.28
+  },
+  "listed_peak_pricing_status": "announced_not_yet_effective",
+  "listed_future_peak_multiplier": 2.0,
+  "notes": "The official page states that peak pricing will soon be adopted and that its effective date is subject to a future announcement. This snapshot uses the currently listed regular prices and does not expand the USD 5.00 budget."
+}

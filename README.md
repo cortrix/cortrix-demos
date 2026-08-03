@@ -16,7 +16,7 @@ PostgreSQL and pgvector can filter on lifecycle metadata; this Run A profile int
 
 ## See the result
 
-Open the [evidence viewer](packages/viewer/README.md) to inspect an accepted-run replay. A replay is a frozen result, not a new live execution. The sealed 2.0.0 scenario does not have an accepted run yet, so the viewer currently fails closed.
+Open the [evidence viewer](packages/viewer/README.md) to inspect the accepted local replay. A replay is a frozen result, not a new live execution. The sealed 2.0.0 run passed Clean Room review and screenshot verification; final Human Review is still pending.
 
 The viewer reads the [accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json). It renders only when the pointer, Run A result, run manifest, layered resolver, and screenshot binding agree with the current scenario contract.
 

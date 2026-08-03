@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260803T152219Z",
+  "accepted_commit": "37ee40d321f1825a602aa9c94370a4dba3ee97a5",
+  "screenshots": [
+    {
+      "file": "screenshots/cortrix-demo-viewer-final-20260803T1600Z.png",
+      "route": "/packages/viewer/index.html",
+      "evidence_path": "run-b/resolver-01.json",
+      "sha256": "82312510e6301eb9676f6b7b6a03d9aa24594eef9e0378470b9b9e502fce0b47",
+      "width": 1440,
+      "height": 2700,
+      "captured_at": "2026-08-03T15:58:31.946615+00:00"
+    }
+  ]
+}

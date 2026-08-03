@@ -1,0 +1,19 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "call_count": 1,
+  "usage": {
+    "prompt_tokens": 87,
+    "completion_tokens": 2,
+    "total_tokens": 89,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 2
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 87
+  },
+  "response_content_recorded": false
+}

@@ -1,0 +1,368 @@
+{
+  "namespace": "order-b-gration-20260803t152219z",
+  "tasks": [
+    {
+      "doc_id": "01KZ43GABH96JXDNQDYS6E6A8N",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T15:22:31.673Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ43GABH96JXDNQDYS6E6A8P",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T15:22:49.558Z"
+    },
+    {
+      "doc_id": "01KZ43GWMZHD22G0AHRSP42C5E",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T15:22:52.248Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ43GWMZHD22G0AHRSP42C5F",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T15:23:03.897Z"
+    },
+    {
+      "doc_id": "01KZ43HAGFCT71AN5KAJM11N04",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T15:23:07.063Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ43HAGFCT71AN5KAJM11N05",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T15:23:17.162Z"
+    },
+    {
+      "doc_id": "01KZ43HQPKR96HF677NMH7Q5S3",
+      "error_code": null,
+      "error_msg": null,
+      "eta_seconds": -1,
+      "failed_pages": [],
+      "meta": {
+        "agent_decision_hint": "done_fetch_doc",
+        "current_phase": "parsing",
+        "estimated_finish_at": null,
+        "retryable_if_fail": true,
+        "worker_id": 1
+      },
+      "processed_pages": 1,
+      "progress_pct": 100.0,
+      "started_at": "2026-08-03T15:23:19.909Z",
+      "status": "completed",
+      "structured_data": null,
+      "task_id": "01KZ43HQPMSSERZVZ91S2NP8XY",
+      "total_pages": 1,
+      "trace_id": null,
+      "updated_at": "2026-08-03T15:23:28.233Z"
+    }
+  ],
+  "ingestion": {
+    "f03_llm_enriched_chunks": 5.0,
+    "f35_contextualized_chunks": 5.0,
+    "f35_failures": 0.0,
+    "f38_failures": 0.0,
+    "f41_document_summaries": 4.0,
+    "f41_failures": 0.0,
+    "hype_questions": 15,
+    "document_summaries": 4,
+    "enrich_state_ok": 5,
+    "completion": {
+      "expected_document_count": 4,
+      "expected_text_block_count": 5,
+      "hype_questions_per_chunk": 3,
+      "expected_hype_question_count": 15,
+      "checks": {
+        "all_documents_materialized": true,
+        "f03_all_chunks": true,
+        "f35_all_chunks": true,
+        "f38_all_chunks": true,
+        "f41_all_documents": true,
+        "enrich_state_all_chunks": true
+      },
+      "pass": true
+    }
+  },
+  "query_granularity": "chunk",
+  "document_summary_role": "ingestion_evidence_only",
+  "query_attempts": [
+    {
+      "checks": {
+        "chunk_only_result_identity": true,
+        "bm25_recall": true,
+        "contextualized_recall": true,
+        "hype_recall": true,
+        "rrf_fusion": true,
+        "bge_cross_encoder_rerank": true,
+        "deepseek_query_fusion": true,
+        "deepseek_listwise_rerank": true,
+        "application_lifecycle_resolver": true
+      },
+      "rrf_path_counts": {
+        "contextualized": 4,
+        "dense": 4,
+        "fts5": 4,
+        "hype_question": 4,
+        "sparse": 4
+      },
+      "rag_fusion": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36",
+        "llm_latency_ms": 2565,
+        "reason": "active",
+        "variant_count": 4,
+        "variants_used": [
+          "Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?",
+          "When creating an order, the payload is rejected because account_id is not recognized. What field should be used instead?",
+          "What is the correct field name for the account identifier in the order creation request?",
+          "Which field in the order creation request is currently causing rejection due to being unknown, and what should replace it?"
+        ]
+      },
+      "llm_listwise_rerank": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36-LR",
+        "llm_calls": 1,
+        "llm_latency_ms": 1167,
+        "model": "deepseek-v4-flash",
+        "order_changed": true,
+        "reason": "active",
+        "top_n_effective": 4,
+        "votes_ok": 1
+      },
+      "result_child_ids": [
+        "01KZ43GYF420QQYNEFQ4972MYP",
+        "01KZ43GAC5464K3EA6W3R25W9N",
+        "01KZ43GAC5464K3EA6W3R25W9P",
+        "01KZ43HSFJDMQAKVPCGGYWXTPG"
+      ],
+      "rerank_scores": [
+        0.6197220683097839,
+        0.9467289447784424,
+        0.6608520746231079,
+        0.05192147567868233
+      ],
+      "rag_fusion_input_tokens": 231.0,
+      "rag_fusion_output_tokens": 95.0,
+      "pass": true
+    },
+    {
+      "checks": {
+        "chunk_only_result_identity": true,
+        "bm25_recall": true,
+        "contextualized_recall": true,
+        "hype_recall": true,
+        "rrf_fusion": true,
+        "bge_cross_encoder_rerank": true,
+        "deepseek_query_fusion": true,
+        "deepseek_listwise_rerank": true,
+        "application_lifecycle_resolver": true
+      },
+      "rrf_path_counts": {
+        "contextualized": 4,
+        "dense": 4,
+        "fts5": 4,
+        "hype_question": 4,
+        "sparse": 4
+      },
+      "rag_fusion": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36",
+        "llm_latency_ms": 1836,
+        "reason": "active",
+        "variant_count": 4,
+        "variants_used": [
+          "Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?",
+          "The order creation endpoint now returns an error for payloads containing account_id as an unrecognized field. What field should be used instead?",
+          "What is the correct field name for the account identifier in the order creation request payload?",
+          "Which field in the order creation request is currently being rejected as unknown, and what is the appropriate replacement for it?"
+        ]
+      },
+      "llm_listwise_rerank": {
+        "active": true,
+        "degraded": false,
+        "feature_id": "F36-LR",
+        "llm_calls": 1,
+        "llm_latency_ms": 1434,
+        "model": "deepseek-v4-flash",
+        "order_changed": true,
+        "reason": "active",
+        "top_n_effective": 4,
+        "votes_ok": 1
+      },
+      "result_child_ids": [
+        "01KZ43GYF420QQYNEFQ4972MYP",
+        "01KZ43GAC5464K3EA6W3R25W9N",
+        "01KZ43GAC5464K3EA6W3R25W9P",
+        "01KZ43HSFJDMQAKVPCGGYWXTPG"
+      ],
+      "rerank_scores": [
+        0.6197220683097839,
+        0.9467289447784424,
+        0.6608520746231079,
+        0.05192147567868233
+      ],
+      "rag_fusion_input_tokens": 231.0,
+      "rag_fusion_output_tokens": 101.0,
+      "pass": true
+    }
+  ],
+  "repeat": {
+    "result_order_identical": true,
+    "rerank_scores_identical": true,
+    "resolver_decision_identical": true,
+    "pass": true
+  },
+  "resolver": {
+    "schema_version": 2,
+    "policy_owner": "demo_application_policy",
+    "policy_rule": "select the highest-ranked result whose status is current",
+    "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
+    "candidates": [
+      {
+        "final_response_rank": 1,
+        "retrieval_rank": 1,
+        "child_id": "01KZ43GYF420QQYNEFQ4972MYP",
+        "doc_id": "01KZ43GWMZHD22G0AHRSP42C5E",
+        "document_id": "order-api-release-v2.0",
+        "version": "v2.0",
+        "lifecycle_status": "current",
+        "source": "release_note",
+        "score": 0.800000011920929,
+        "rerank_score": 0.6197220683097839,
+        "content": "# Order API v2 Buyer Identity Migration\nStatus: Current\nEffective date: July 1, 2026\nFor Create Order requests under the v2 contract, set the buyer identifier in `buyer_account_id`. This field is required for all current integrations.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"buyer_account_id\": \"acct_2048\"\n}\n```\nRequests that use the retired v1 customer-identifier key fail schema validation. This bulletin supersedes the buyer field guidance in the historical v1.0 integration guide.",
+        "eligible_under_policy": true,
+        "bge_rerank_rank": 3
+      },
+      {
+        "final_response_rank": 2,
+        "retrieval_rank": 2,
+        "child_id": "01KZ43GAC5464K3EA6W3R25W9N",
+        "doc_id": "01KZ43GABH96JXDNQDYS6E6A8N",
+        "document_id": "order-api-guide-v1.0",
+        "version": "v1.0",
+        "lifecycle_status": "superseded",
+        "source": "integration_guide",
+        "score": 0.6000000238418579,
+        "rerank_score": 0.9467289447784424,
+        "content": "# Order Creation API Integration Guide v1.0\nVersion: v1.0 historical contract\nThis guide describes the former Create Order request. A client sends the buyer's account identifier in `account_id`.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"account_id\": \"acct_2048\"\n}\n```\n## Troubleshooting an unknown field error\nIf Create Order rejects the payload with `unknown field account_id`, verify that the request still includes `account_id` exactly as shown above. In the v1.0 contract, `account_id` is the request field for the customer account.",
+        "eligible_under_policy": false,
+        "bge_rerank_rank": 1
+      },
+      {
+        "final_response_rank": 3,
+        "retrieval_rank": 3,
+        "child_id": "01KZ43GAC5464K3EA6W3R25W9P",
+        "doc_id": "01KZ43GABH96JXDNQDYS6E6A8N",
+        "document_id": "order-api-guide-v1.0",
+        "version": "v1.0",
+        "lifecycle_status": "superseded",
+        "source": "integration_guide",
+        "score": 0.4000000059604645,
+        "rerank_score": 0.6608520746231079,
+        "content": ", `account_id` is the request field for the customer account.This historical integration guide is retained for v1.0 clients and has been superseded for current integrations.",
+        "eligible_under_policy": false,
+        "bge_rerank_rank": 2
+      },
+      {
+        "final_response_rank": 4,
+        "retrieval_rank": 4,
+        "child_id": "01KZ43HSFJDMQAKVPCGGYWXTPG",
+        "doc_id": "01KZ43HQPKR96HF677NMH7Q5S3",
+        "document_id": "order-api-cancellation-v2.0",
+        "version": "v2.0",
+        "lifecycle_status": "current",
+        "source": "reference_guide",
+        "score": 0.20000000298023224,
+        "rerank_score": 0.05192147567868233,
+        "content": "# Order API v2 Cancellation\nStatus: Current\nEffective date: July 1, 2026\nCancel an existing order by sending its immutable `order_id` and a machine-readable `reason_code`.\n```json\n{\n  \"order_id\": \"ord_8091\",\n  \"reason_code\": \"customer_request\"\n}\n```\nCancellation fields apply after an order exists. They do not define the buyer identifier used by Create Order.",
+        "eligible_under_policy": true,
+        "bge_rerank_rank": 4
+      }
+    ],
+    "layers": {
+      "bge_cross_encoder": {
+        "meaning": "Candidate order by descending BGE cross-encoder rerank score before the final listwise order is applied.",
+        "leader": {
+          "document_id": "order-api-guide-v1.0",
+          "version": "v1.0",
+          "lifecycle_status": "superseded",
+          "final_response_rank": 2,
+          "bge_rerank_rank": 1,
+          "bge_rerank_score": 0.9467289447784424
+        }
+      },
+      "deepseek_listwise_final": {
+        "meaning": "Final result order returned by the configured Cortrix Full Stack query.",
+        "top_result": {
+          "document_id": "order-api-release-v2.0",
+          "version": "v2.0",
+          "lifecycle_status": "current",
+          "final_response_rank": 1,
+          "bge_rerank_rank": 3,
+          "bge_rerank_score": 0.6197220683097839
+        }
+      },
+      "application_lifecycle_policy": {
+        "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
+        "action": "preserved_final_top1"
+      }
+    },
+    "decision": {
+      "selected_document_id": "order-api-release-v2.0",
+      "selected_version": "v2.0",
+      "selected_field": "buyer_account_id",
+      "reason": "The highest BGE cross-encoder score belongs to order-api-guide-v1.0 (superseded). The Full Stack final response places order-api-release-v2.0 (current) first. The application lifecycle policy independently selects order-api-release-v2.0 and preserves the final top result."
+    },
+    "assertions": {
+      "selected_expected_document": true,
+      "selected_content_contains_expected_field": true,
+      "required_documents_retrieved": true,
+      "bge_scores_present": true,
+      "final_top1_matches_contract": true,
+      "policy_action_matches_contract": true
+    },
+    "pass": true,
+    "run_id": "order-api-field-migration-20260803T152219Z"
+  },
+  "pass": true
+}

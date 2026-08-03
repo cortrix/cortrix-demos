@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260803T152219Z",
+  "health": {
+    "components": {
+      "catalog": {
+        "catalog_db_open": true,
+        "status": "ok"
+      },
+      "disk": {
+        "stage": "warn",
+        "status": "ok"
+      },
+      "embedding_execution_provider": {
+        "active_ep": "cpu",
+        "configured_ep": "cpu",
+        "fallback": false,
+        "model_configured": true,
+        "policy_mismatch": false,
+        "preferred_ep": "cpu",
+        "status": "ok"
+      },
+      "reranker_execution_provider": {
+        "active_ep": "cpu",
+        "configured_ep": "cpu",
+        "fallback": false,
+        "model_configured": true,
+        "policy_mismatch": false,
+        "preferred_ep": "cpu",
+        "status": "ok"
+      },
+      "secret_provider": {
+        "provider_type": "env",
+        "status": "ok"
+      },
+      "spc_pipeline": {
+        "queue_depth": 0,
+        "status": "ok",
+        "workers": 1
+      }
+    },
+    "status": "ready",
+    "version": "1.0.0-rc.1"
+  },
+  "image": {
+    "image": "cortrix-demo:32b82f6",
+    "digest": "sha256:c31aeef5c9708ab739015f1ea06b23550a262d7e0dc79f15a0daf95091312255",
+    "source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+  },
+  "services": [
+    {
+      "Name": "cortrix_demos_order_api-cortrix-1",
+      "Image": "cortrix-demo:32b82f6",
+      "Service": "cortrix",
+      "Project": "cortrix_demos_order_api",
+      "State": "running",
+      "Health": "starting",
+      "Status": "Up 7 seconds (health: starting)",
+      "Ports": "127.0.0.1:18420->8420/tcp, 127.0.0.1:19091->9091/tcp"
+    },
+    {
+      "Name": "cortrix_demos_order_api-postgres-1",
+      "Image": "pgvector/pgvector:pg16",
+      "Service": "postgres",
+      "Project": "cortrix_demos_order_api",
+      "State": "running",
+      "Health": "healthy",
+      "Status": "Up About a minute (healthy)",
+      "Ports": "127.0.0.1:15432->5432/tcp"
+    }
+  ],
+  "llm": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "base_url": "https://api.deepseek.com/v1",
+    "local_generative_llm": false,
+    "secret_persisted_in_evidence": false
+  }
+}

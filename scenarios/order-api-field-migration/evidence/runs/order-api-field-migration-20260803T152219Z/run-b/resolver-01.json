@@ -1,0 +1,112 @@
+{
+  "schema_version": 2,
+  "policy_owner": "demo_application_policy",
+  "policy_rule": "select the highest-ranked result whose status is current",
+  "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
+  "candidates": [
+    {
+      "final_response_rank": 1,
+      "retrieval_rank": 1,
+      "child_id": "01KZ43GYF420QQYNEFQ4972MYP",
+      "doc_id": "01KZ43GWMZHD22G0AHRSP42C5E",
+      "document_id": "order-api-release-v2.0",
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "source": "release_note",
+      "score": 0.800000011920929,
+      "rerank_score": 0.6197220683097839,
+      "content": "# Order API v2 Buyer Identity Migration\nStatus: Current\nEffective date: July 1, 2026\nFor Create Order requests under the v2 contract, set the buyer identifier in `buyer_account_id`. This field is required for all current integrations.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"buyer_account_id\": \"acct_2048\"\n}\n```\nRequests that use the retired v1 customer-identifier key fail schema validation. This bulletin supersedes the buyer field guidance in the historical v1.0 integration guide.",
+      "eligible_under_policy": true,
+      "bge_rerank_rank": 3
+    },
+    {
+      "final_response_rank": 2,
+      "retrieval_rank": 2,
+      "child_id": "01KZ43GAC5464K3EA6W3R25W9N",
+      "doc_id": "01KZ43GABH96JXDNQDYS6E6A8N",
+      "document_id": "order-api-guide-v1.0",
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "source": "integration_guide",
+      "score": 0.6000000238418579,
+      "rerank_score": 0.9467289447784424,
+      "content": "# Order Creation API Integration Guide v1.0\nVersion: v1.0 historical contract\nThis guide describes the former Create Order request. A client sends the buyer's account identifier in `account_id`.\n```json\n{\n  \"order_no\": \"SO-10001\",\n  \"account_id\": \"acct_2048\"\n}\n```\n## Troubleshooting an unknown field error\nIf Create Order rejects the payload with `unknown field account_id`, verify that the request still includes `account_id` exactly as shown above. In the v1.0 contract, `account_id` is the request field for the customer account.",
+      "eligible_under_policy": false,
+      "bge_rerank_rank": 1
+    },
+    {
+      "final_response_rank": 3,
+      "retrieval_rank": 3,
+      "child_id": "01KZ43GAC5464K3EA6W3R25W9P",
+      "doc_id": "01KZ43GABH96JXDNQDYS6E6A8N",
+      "document_id": "order-api-guide-v1.0",
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "source": "integration_guide",
+      "score": 0.4000000059604645,
+      "rerank_score": 0.6608520746231079,
+      "content": ", `account_id` is the request field for the customer account.This historical integration guide is retained for v1.0 clients and has been superseded for current integrations.",
+      "eligible_under_policy": false,
+      "bge_rerank_rank": 2
+    },
+    {
+      "final_response_rank": 4,
+      "retrieval_rank": 4,
+      "child_id": "01KZ43HSFJDMQAKVPCGGYWXTPG",
+      "doc_id": "01KZ43HQPKR96HF677NMH7Q5S3",
+      "document_id": "order-api-cancellation-v2.0",
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "source": "reference_guide",
+      "score": 0.20000000298023224,
+      "rerank_score": 0.05192147567868233,
+      "content": "# Order API v2 Cancellation\nStatus: Current\nEffective date: July 1, 2026\nCancel an existing order by sending its immutable `order_id` and a machine-readable `reason_code`.\n```json\n{\n  \"order_id\": \"ord_8091\",\n  \"reason_code\": \"customer_request\"\n}\n```\nCancellation fields apply after an order exists. They do not define the buyer identifier used by Create Order.",
+      "eligible_under_policy": true,
+      "bge_rerank_rank": 4
+    }
+  ],
+  "layers": {
+    "bge_cross_encoder": {
+      "meaning": "Candidate order by descending BGE cross-encoder rerank score before the final listwise order is applied.",
+      "leader": {
+        "document_id": "order-api-guide-v1.0",
+        "version": "v1.0",
+        "lifecycle_status": "superseded",
+        "final_response_rank": 2,
+        "bge_rerank_rank": 1,
+        "bge_rerank_score": 0.9467289447784424
+      }
+    },
+    "deepseek_listwise_final": {
+      "meaning": "Final result order returned by the configured Cortrix Full Stack query.",
+      "top_result": {
+        "document_id": "order-api-release-v2.0",
+        "version": "v2.0",
+        "lifecycle_status": "current",
+        "final_response_rank": 1,
+        "bge_rerank_rank": 3,
+        "bge_rerank_score": 0.6197220683097839
+      }
+    },
+    "application_lifecycle_policy": {
+      "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
+      "action": "preserved_final_top1"
+    }
+  },
+  "decision": {
+    "selected_document_id": "order-api-release-v2.0",
+    "selected_version": "v2.0",
+    "selected_field": "buyer_account_id",
+    "reason": "The highest BGE cross-encoder score belongs to order-api-guide-v1.0 (superseded). The Full Stack final response places order-api-release-v2.0 (current) first. The application lifecycle policy independently selects order-api-release-v2.0 and preserves the final top result."
+  },
+  "assertions": {
+    "selected_expected_document": true,
+    "selected_content_contains_expected_field": true,
+    "required_documents_retrieved": true,
+    "bge_scores_present": true,
+    "final_top1_matches_contract": true,
+    "policy_action_matches_contract": true
+  },
+  "pass": true,
+  "run_id": "order-api-field-migration-20260803T152219Z"
+}

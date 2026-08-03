@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260803T152219Z",
+  "transitions": [
+    {
+      "state": "created",
+      "recorded_at": "2026-08-03T15:22:19.478832+00:00"
+    },
+    {
+      "state": "running",
+      "recorded_at": "2026-08-03T15:22:19.478968+00:00"
+    },
+    {
+      "state": "candidate",
+      "recorded_at": "2026-08-03T15:24:12.594163+00:00"
+    },
+    {
+      "state": "accepted",
+      "recorded_at": "2026-08-03T15:50:11.041453+00:00",
+      "detail": "secondscott_clean_room_passed"
+    }
+  ]
+}
