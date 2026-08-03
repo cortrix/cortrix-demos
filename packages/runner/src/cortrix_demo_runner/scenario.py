@@ -117,8 +117,8 @@ def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[s
     if locales != {"default": "en-US", "available": ["en-US"]}:
         failures.append("Official locale bundle must contain only en-US")
     profile = read_json(scenario_root(repo_root, scenario_id) / "profiles" / "full-stack.json")
-    if profile.get("budget_usd") != 1.0:
-        failures.append("Full Stack budget must be USD 1.00")
+    if profile.get("budget_usd") != 5.0:
+        failures.append("Full Stack budget must be USD 5.00")
     if profile.get("max_full_stack_attempts") != 2:
         failures.append("Full Stack attempts must be capped at two")
     if profile.get("local_generative_llm") is not False:

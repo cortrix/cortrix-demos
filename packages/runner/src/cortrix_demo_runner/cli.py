@@ -105,7 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--scenario", default=SCENARIO_ID)
     live.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     live.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
-    live.add_argument("--reviewed-attempt-limit", type=int, choices=[2, 3], default=2, help="Use 3 only after explicit Human Review authorizes one additional attempt.")
+    live.add_argument("--reviewed-attempt-limit", type=int, choices=[2, 3, 4], default=2, help="Use 3 or 4 only when an explicit Human Review authorizes that exact cumulative limit.")
     live.set_defaults(handler=command_run_full_stack)
 
     accepted = subparsers.add_parser("stage-accepted")

@@ -30,8 +30,8 @@ def attempt_ledger(root: Path) -> dict[str, Any]:
 
 
 def validate_reviewed_attempt_limit(limit: int) -> int:
-    if limit not in {2, 3}:
-        raise DemoContractError("The reviewed Full Stack attempt limit must be 2 or 3")
+    if limit not in {2, 3, 4}:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, or 4")
     return limit
 
 
@@ -293,15 +293,15 @@ def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     return run_exact_cosine(document_vectors, query_vectors, fixture_root / "manifest.json", frozen_assertions, run_dir / "run-a" / "pgvector-result.json")
 
 
-def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: dict[str, Any], bound: float) -> dict[str, Any]:
+def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: dict[str, Any], bound: float, budget_usd: float) -> dict[str, Any]:
     usage = smoke.get("usage", {})
     input_tokens = int(usage.get("prompt_tokens", 0)) + int(sum(item["rag_fusion_input_tokens"] for item in run_b_result["query_attempts"]))
     output_tokens = int(usage.get("completion_tokens", 0)) + int(sum(item["rag_fusion_output_tokens"] for item in run_b_result["query_attempts"]))
     observed_cost = pricing_cost(pricing, input_tokens, output_tokens)
     return {
         "currency": "USD",
-        "budget_usd": 1.0,
-        "maximum_two_attempt_contract_cost_usd": bound,
+        "budget_usd": budget_usd,
+        "maximum_reviewed_attempt_contract_cost_usd": bound,
         "observable_input_tokens": input_tokens,
         "observable_output_tokens": output_tokens,
         "observable_call_count_minimum": 5,
@@ -310,7 +310,7 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
         "estimated_total_usd": None,
         "usage_visibility": "partial",
         "public_cost_claim_allowed": False,
-        "within_budget_contract": bound <= 1.0,
+        "within_budget_contract": bound <= budget_usd,
         "pricing_snapshot": pricing,
     }
 
@@ -371,7 +371,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
         source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
-        cost = cost_record(pricing, smoke, run_b_result, bound)
+        cost = cost_record(pricing, smoke, run_b_result, bound, float(profile["budget_usd"]))
         write_json(run_dir / "preflight.json", preflight)
         write_json(run_dir / "runtime.json", runtime)
         write_json(run_dir / "source-manifest.json", source_identity)

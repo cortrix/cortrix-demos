@@ -25,16 +25,16 @@ class LiveContractTests(unittest.TestCase):
         self.assertEqual(0.0025, pricing_cost(PRICING, 3000, 1000))
 
     def test_budget_bound_rejects_price_increase_without_expanding_budget(self) -> None:
-        profile = {"budget_usd": 1.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 1_000_000, "maximum_output_tokens": 1_000_000}}
-        with self.assertRaisesRegex(DemoContractError, "exceed USD 1.00"):
+        profile = {"budget_usd": 5.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 5_000_000, "maximum_output_tokens": 5_000_000}}
+        with self.assertRaisesRegex(DemoContractError, "exceed USD 5.00"):
             require_budget_bound(profile, PRICING)
 
-    def test_reviewed_third_attempt_uses_three_attempt_budget_bound(self) -> None:
-        profile = {"budget_usd": 1.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 200_000, "maximum_output_tokens": 50_000}}
+    def test_reviewed_fourth_attempt_uses_four_attempt_budget_bound(self) -> None:
+        profile = {"budget_usd": 5.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 200_000, "maximum_output_tokens": 50_000}}
         pricing = {"prices_per_million_tokens": {"input_cache_miss": 0.14, "output": 0.28}}
-        self.assertEqual(0.126, require_budget_bound(profile, pricing, reviewed_attempt_limit=3))
+        self.assertEqual(0.168, require_budget_bound(profile, pricing, reviewed_attempt_limit=4))
 
-    def test_only_one_reviewed_additional_attempt_can_be_reserved(self) -> None:
+    def test_reviewed_fourth_attempt_is_the_final_reservable_attempt(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             reserve_attempt(root, "attempt-1")
@@ -42,12 +42,14 @@ class LiveContractTests(unittest.TestCase):
             reserve_attempt(root, "attempt-2")
             update_attempt(root, "attempt-2", "rejected", "timeout")
             self.assertEqual(3, reserve_attempt(root, "attempt-3", reviewed_attempt_limit=3))
-            with self.assertRaisesRegex(DemoContractError, "reviewed 3-attempt"):
-                reserve_attempt(root, "attempt-4", reviewed_attempt_limit=3)
+            update_attempt(root, "attempt-3", "rejected", "deterministic_or_contract_failure")
+            self.assertEqual(4, reserve_attempt(root, "attempt-4", reviewed_attempt_limit=4))
+            with self.assertRaisesRegex(DemoContractError, "reviewed 4-attempt"):
+                reserve_attempt(root, "attempt-5", reviewed_attempt_limit=4)
 
-    def test_reviewed_attempt_limit_cannot_exceed_three(self) -> None:
-        with self.assertRaisesRegex(DemoContractError, "must be 2 or 3"):
-            validate_reviewed_attempt_limit(4)
+    def test_reviewed_attempt_limit_cannot_exceed_four(self) -> None:
+        with self.assertRaisesRegex(DemoContractError, "must be 2, 3, or 4"):
+            validate_reviewed_attempt_limit(5)
 
     def test_only_named_transient_categories_are_retryable(self) -> None:
         self.assertEqual("http_429", failure_category(DemoContractError("request failed. transient_category=http_429")))

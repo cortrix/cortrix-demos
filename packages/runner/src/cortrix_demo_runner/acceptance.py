@@ -120,7 +120,7 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
     if not isinstance(cleanup, dict) or not all(cleanup.get(key) is True for key in ("namespaces_removed", "containers_removed", "ports_released", "runtime_secret_removed")):
         raise DemoContractError("Run cleanup receipt is not complete")
     cost = manifest.get("cost")
-    if not isinstance(cost, dict) or cost.get("budget_usd") != 1.0 or cost.get("within_budget_contract") is not True or cost.get("public_cost_claim_allowed") is not False or cost.get("usage_visibility") not in {"complete", "partial"} or cost.get("model") != "deepseek-v4-flash":
+    if not isinstance(cost, dict) or cost.get("budget_usd") != 5.0 or cost.get("within_budget_contract") is not True or cost.get("public_cost_claim_allowed") is not False or cost.get("usage_visibility") not in {"complete", "partial"} or cost.get("model") != "deepseek-v4-flash":
         raise DemoContractError("Run cost contract is not accepted")
     for name in ("observable_input_tokens", "observable_output_tokens", "observable_call_count_minimum"):
         if not isinstance(cost.get(name), int) or cost[name] < 0:

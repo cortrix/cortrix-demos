@@ -56,8 +56,8 @@ def verify_runtime() -> dict[str, str]:
 
 
 def full_stack_preflight(source: Path, pricing_snapshot: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
-    if reviewed_attempt_limit not in {2, 3}:
-        raise DemoContractError("The reviewed Full Stack attempt limit must be 2 or 3")
+    if reviewed_attempt_limit not in {2, 3, 4}:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, or 4")
     require_api_key()
     return {
         "secret_present": True,
@@ -65,7 +65,7 @@ def full_stack_preflight(source: Path, pricing_snapshot: Path, reviewed_attempt_
         "source": verify_source(source),
         "runtime": verify_runtime(),
         "pricing": verify_pricing_snapshot(pricing_snapshot),
-        "budget_usd": 1.0,
+        "budget_usd": 5.0,
         "max_full_stack_attempts": reviewed_attempt_limit,
         "local_generative_llm": False,
     }

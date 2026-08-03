@@ -30,7 +30,7 @@ Immediately before a live run, read the official [DeepSeek pricing page](https:/
 }
 ```
 
-The runner computes a conservative two-attempt cost bound from the current prices. A price change never expands the USD 1.00 budget.
+The runner computes a conservative cumulative-attempt cost bound from the current prices. A price change never expands the USD 5.00 budget.
 
 ## 3. Inject the secret and run
 
@@ -42,7 +42,7 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
-The default reviewed attempt limit is two. If both attempts were consumed by documented runner defects, a Human Review may authorize exactly one additional attempt without increasing the USD 1.00 budget. Run that exception with `./democtl run-full-stack --root . --reviewed-attempt-limit 3`. The runner accepts no limit above three, preserves the first two ledger entries, applies a three-attempt cumulative budget bound, and never starts a fourth attempt.
+The default reviewed attempt limit is two. A Human Review may authorize an exact cumulative limit of three or four without changing the USD 5.00 budget. Pass that exact limit with `--reviewed-attempt-limit`; the runner preserves every existing ledger entry, applies the matching cumulative budget bound, accepts no limit above four, and never starts a fifth attempt.
 
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 

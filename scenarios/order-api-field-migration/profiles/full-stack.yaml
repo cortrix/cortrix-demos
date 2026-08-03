@@ -2,7 +2,7 @@ schema_version: 1
 profile: full-stack
 external_calls: true
 manual_only: true
-budget_usd: 1.00
+budget_usd: 5.00
 max_full_stack_attempts: 2
 contract_smokes_per_attempt: 1
 candidate_runs_per_attempt: 1
