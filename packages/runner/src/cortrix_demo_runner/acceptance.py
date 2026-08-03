@@ -272,7 +272,7 @@ def append_accepted_state(source: Path, destination: Path) -> None:
     transitions = history.get("transitions")
     if not isinstance(transitions, list) or not all(isinstance(item, dict) for item in transitions) or [item.get("state") for item in transitions] != ["created", "running", "candidate"]:
         raise DemoContractError("Candidate state history is not created -> running -> candidate")
-    transitions.append({"state": "accepted", "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat(), "detail": "human_review_accepted"})
+    transitions.append({"state": "accepted", "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat(), "detail": "secondscott_clean_room_passed"})
     write_json(destination, history)
 
 

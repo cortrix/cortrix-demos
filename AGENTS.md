@@ -12,7 +12,7 @@ This repository contains reproducible, evidence-backed demos for Cortrix.
 ## Evidence
 
 - A run advances through `created -> running -> candidate -> accepted | rejected`.
-- Automation may produce a candidate or rejected run. Only a recorded human review may promote a candidate to accepted.
+- Automation may produce a candidate or rejected run. Only a recorded SecondScott Clean Room `PASS` may promote a candidate to accepted; final Human Review follows screenshot capture.
 - Screenshots must come from the read-only viewer rendering one accepted run. Do not synthesize or manually rewrite result images.
 - Preserve source revision, release identity, fixture and model checksums, provider/model identity, resolver output, cleanup receipts, and cost visibility.
 - Reject a run when a required path is missing, degraded, locally substituted, over budget, or not attributable to a durable source identity.

@@ -293,13 +293,21 @@ class AcceptanceContractTests(unittest.TestCase):
             }
             for relative, value in files.items():
                 write_json(candidate / relative, value)
+            (root / "acceptance-tooling-marker.txt").write_text("Clean Room acceptance tooling only.\n", encoding="utf-8")
+            for command in (["git", "add", "acceptance-tooling-marker.txt"], ["git", "commit", "-m", "acceptance tooling"]):
+                subprocess.run(command, cwd=root, check=True, capture_output=True)
+            tooling_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            self.assertNotEqual(commit, tooling_commit)
             staged = stage_accepted(root, run_id, "REVIEW-TEST-CLEAN-ROOM")
             self.assertEqual("accepted_staged", staged["status"])
             accepted_root = root / "scenarios" / SCENARIO_ID / "evidence" / "runs" / run_id
             accepted_manifest = json.loads((accepted_root / "run-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual("secondscott_clean_room", accepted_manifest["acceptance"]["method"])
             self.assertEqual("pass", accepted_manifest["acceptance"]["verdict"])
+            self.assertEqual(tooling_commit, accepted_manifest["acceptance"]["acceptance_tooling_commit"])
             self.assertTrue(accepted_manifest["post_screenshot_human_review_required"])
+            accepted_history = json.loads((accepted_root / "state-history.json").read_text(encoding="utf-8"))
+            self.assertEqual("secondscott_clean_room_passed", accepted_history["transitions"][-1]["detail"])
             self.assertEqual(assertion_contract.read_bytes(), (accepted_root / "assertion-contract.json").read_bytes())
             self.assertEqual(fixture.read_bytes(), (accepted_root / "fixture-manifest.json").read_bytes())
             screenshot = root / "viewer.png"
@@ -309,6 +317,7 @@ class AcceptanceContractTests(unittest.TestCase):
             self.assertEqual("pass", verified["status"])
             accepted_text = "\n".join(path.read_text(encoding="utf-8") for path in (root / "scenarios" / SCENARIO_ID / "evidence").rglob("*.json"))
             self.assertNotIn("REVIEW-TEST-CLEAN-ROOM", accepted_text)
+            self.assertNotIn("human_review_accepted", accepted_text)
 
 
 if __name__ == "__main__":

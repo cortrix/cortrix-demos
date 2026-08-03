@@ -61,7 +61,7 @@ Start with these contracts:
 - [Compatibility](docs/compatibility.md)
 - [Known limitations](docs/known-limitations.md)
 
-Candidate runs stay in the ignored `.runs/` directory. Human-accepted, sanitized evidence is promoted into the scenario's tracked `evidence/runs/` directory only after review.
+Candidate runs stay in the ignored `.runs/` directory. Clean Room-accepted, sanitized evidence is promoted into the scenario's tracked `evidence/runs/` directory only after review; the screenshot-backed package still requires final Human Review.
 
 ## Repository structure
 
