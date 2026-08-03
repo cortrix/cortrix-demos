@@ -45,9 +45,9 @@ Run the manual Full Stack preflight:
 
 The runner fails before any external call when the key, pinned source identity, Docker runtime, model checksums, pricing snapshot, or budget contract is missing.
 
-The complete manual procedure is in the [Full Stack runbook](docs/full-stack-runbook.md). It records a candidate, never an accepted run. Acceptance, promotion, and screenshot capture remain separate human-review steps.
+The complete manual procedure is in the [Full Stack runbook](docs/full-stack-runbook.md). It records a candidate, never an accepted run. Acceptance, promotion, and screenshot capture remain separate review-gated steps.
 
-After a candidate passes private Human Review, follow the [acceptance and screenshot runbook](docs/acceptance-runbook.md) to stage curated evidence, capture the real viewer, verify screenshot bindings, and test a fresh clone.
+After a candidate passes the private SecondScott Clean Room review, follow the [acceptance and screenshot runbook](docs/acceptance-runbook.md) to stage curated evidence, capture the real viewer, verify screenshot bindings, and test a fresh clone. Final Human Review remains required after the screenshot-backed local package is complete.
 
 ## Inspect the evidence
 

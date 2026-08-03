@@ -18,7 +18,7 @@ from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, ass
 
 
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
-REVIEW_PATTERN = re.compile(r"^OUTPUT-[A-Z0-9-]+$")
+CLEAN_ROOM_REVIEW_PATTERN = re.compile(r"^REVIEW-[A-Z0-9-]+$")
 SCREENSHOT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.png$")
 REQUIRED_PATH_NAMES = {
     "bge_m3_embedding",
@@ -302,14 +302,15 @@ def validate_curated_safety(destination: Path) -> None:
                 raise DemoContractError("Curated staging failed public-safety validation: " + "; ".join(failures))
 
 
-def stage_accepted(root: Path, run_id: str, human_review_id: str) -> dict[str, Any]:
-    if not REVIEW_PATTERN.fullmatch(human_review_id):
-        raise DemoContractError("Human Review ID must be an OUTPUT identifier")
+def stage_accepted(root: Path, run_id: str, clean_room_review_id: str) -> dict[str, Any]:
+    if not CLEAN_ROOM_REVIEW_PATTERN.fullmatch(clean_room_review_id):
+        raise DemoContractError("Clean Room review ID must be a REVIEW identifier")
     manifest = validate_candidate(root, run_id)
     checkout = verify_demo_checkout(root)
     demo_commit = manifest["target_identity"]["demo_commit"]
-    if checkout["commit"] != demo_commit:
-        raise DemoContractError("Current main commit does not match the candidate demo commit")
+    ancestor = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", demo_commit, checkout["commit"]], capture_output=True, check=False)
+    if ancestor.returncode != 0:
+        raise DemoContractError("Candidate demo commit must be an ancestor of the clean acceptance-tooling commit")
     source = candidate_root(root, run_id)
     destination = accepted_root(root, run_id)
     staging = root / ".runs" / f"{run_id}.accepted-stage"
@@ -328,7 +329,15 @@ def stage_accepted(root: Path, run_id: str, human_review_id: str) -> dict[str, A
             "state": "accepted",
             "screenshot_eligible": True,
             "human_review_required": False,
-            "acceptance": {"method": "human_review", "accepted_at": accepted_at, "demo_commit": demo_commit, "private_review_reference_recorded": False},
+            "post_screenshot_human_review_required": True,
+            "acceptance": {
+                "method": "secondscott_clean_room",
+                "verdict": "pass",
+                "accepted_at": accepted_at,
+                "demo_commit": demo_commit,
+                "acceptance_tooling_commit": checkout["commit"],
+                "private_review_reference_recorded": False,
+            },
         }
     )
     write_json(staging / "run-manifest.json", accepted_manifest)
@@ -523,13 +532,17 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
         raise DemoContractError("Accepted scenario version or assertion contract does not match the tracked scenario")
     target_identity = require_object(manifest.get("target_identity"), "Accepted target identity")
     acceptance = manifest.get("acceptance")
-    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or not isinstance(acceptance, dict) or acceptance.get("method") != "human_review" or acceptance.get("demo_commit") != demo_commit or acceptance.get("private_review_reference_recorded") is not False:
-        raise DemoContractError("Accepted manifest does not preserve the human-review screenshot gate")
+    tooling_commit = acceptance.get("acceptance_tooling_commit") if isinstance(acceptance, dict) else None
+    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or manifest.get("post_screenshot_human_review_required") is not True or not isinstance(acceptance, dict) or acceptance.get("method") != "secondscott_clean_room" or acceptance.get("verdict") != "pass" or acceptance.get("demo_commit") != demo_commit or not isinstance(tooling_commit, str) or not COMMIT_PATTERN.fullmatch(tooling_commit) or acceptance.get("private_review_reference_recorded") is not False:
+        raise DemoContractError("Accepted manifest does not preserve the Clean Room and post-screenshot Human Review gates")
     if pointer.get("demo_commit") != demo_commit:
         raise DemoContractError("Accepted-run pointer commit does not match the run manifest")
     commit_check = subprocess.run(["git", "-C", str(root), "cat-file", "-e", f"{demo_commit}^{{commit}}"], capture_output=True, check=False)
     if commit_check.returncode != 0:
         raise DemoContractError("Accepted evidence demo commit is not present in Git history")
+    tooling_commit_check = subprocess.run(["git", "-C", str(root), "cat-file", "-e", f"{tooling_commit}^{{commit}}"], capture_output=True, check=False)
+    if tooling_commit_check.returncode != 0:
+        raise DemoContractError("Accepted evidence tooling commit is not present in Git history")
     curated_target = require_object(read_json(destination / "target-identity.json"), "Curated target identity")
     expected_target = {
         "cortrix_release": target_identity.get("release"),

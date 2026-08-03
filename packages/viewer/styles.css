@@ -73,6 +73,16 @@ h1 {
   line-height: 1.6;
 }
 
+.review-state {
+  display: inline-block;
+  margin: 4px 0 0;
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .status-panel {
   display: inline-flex;
   gap: 10px;

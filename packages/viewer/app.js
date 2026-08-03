@@ -50,6 +50,9 @@ function requireAccepted(pointer, manifest, runA, resolver, scenario) {
   if (runA.pass !== true || runA.top1 !== "order-api-guide-v1.0") {
     throw new Error("The accepted Run A result does not expose the frozen outdated top result.");
   }
+  if (manifest.acceptance?.method !== "secondscott_clean_room" || manifest.acceptance?.verdict !== "pass" || manifest.post_screenshot_human_review_required !== true) {
+    throw new Error("The accepted run does not preserve the Clean Room and final Human Review gates.");
+  }
 }
 
 async function render() {
@@ -119,7 +122,7 @@ async function render() {
     byId("evidence-grid").hidden = false;
     byId("boundary").hidden = false;
     byId("status-panel").classList.add("accepted");
-    byId("status-text").textContent = "Accepted local evidence";
+    byId("status-text").textContent = "Clean Room passed · final Human Review pending";
   } catch (error) {
     rejectViewer(error instanceof Error ? error.message : "The accepted evidence contract failed.");
   }

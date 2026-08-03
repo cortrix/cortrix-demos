@@ -1,15 +1,15 @@
 # Acceptance and screenshot runbook
 
-The Full Stack runner can produce only a candidate or a rejected run. This procedure begins only after a private Human Review accepts the exact candidate run ID and its `demo_commit`.
+The Full Stack runner can produce only a candidate or a rejected run. This procedure begins only after the private SecondScott Clean Room returns `PASS` for the exact candidate run ID and its `demo_commit`. Final Human Review occurs after the screenshot-backed local package is complete.
 
 ## 1. Stage curated accepted evidence
 
-Keep `main` checked out at the clean commit recorded by the candidate. Pass the private review identifier to the command; the identifier is used as an execution gate and is not copied into the future-public evidence.
+Keep `main` on a clean commit that descends from the candidate's recorded commit without changing the frozen scenario inputs. Pass the private Clean Room review identifier to the command; the identifier is used as an execution gate and is not copied into the future-public evidence.
 
 ```bash
 ./democtl stage-accepted \
   --run-id <accepted-run-id> \
-  --human-review-id <private-output-id>
+  --clean-room-review-id <private-review-id>
 ```
 
 The command copies only the curated manifest, target identity, sanitized runtime identity, provider contract-smoke identity and usage, pricing snapshot, fixture manifest, frozen assertion contract, model checksums, Run A result, Run B summary and resolvers, run assertions, cleanup receipt, and state history. It writes the accepted pointer last. Raw requests, raw responses, metrics, runtime logs, private paths, provider response content, and the private review identifier stay out of tracked evidence.

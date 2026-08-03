@@ -55,7 +55,7 @@ def command_run_full_stack(args: argparse.Namespace) -> None:
 
 
 def command_stage_accepted(args: argparse.Namespace) -> None:
-    result = stage_accepted(args.root.resolve(), args.run_id, args.human_review_id)
+    result = stage_accepted(args.root.resolve(), args.run_id, args.clean_room_review_id)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
@@ -111,7 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     accepted = subparsers.add_parser("stage-accepted")
     accepted.add_argument("--root", type=Path, default=Path.cwd())
     accepted.add_argument("--run-id", required=True)
-    accepted.add_argument("--human-review-id", required=True)
+    accepted.add_argument("--clean-room-review-id", required=True)
     accepted.set_defaults(handler=command_stage_accepted)
 
     screenshot = subparsers.add_parser("record-screenshot")

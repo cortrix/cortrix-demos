@@ -136,6 +136,8 @@ class AcceptanceContractTests(unittest.TestCase):
         self.assertIn("required_documents_retrieved", viewer)
         self.assertIn("deepseek_listwise_final", viewer)
         self.assertIn("manifest.scenario_version", viewer)
+        self.assertIn('manifest.acceptance?.method !== "secondscott_clean_room"', viewer)
+        self.assertIn("manifest.post_screenshot_human_review_required", viewer)
         self.assertNotIn("manifest.status", viewer)
 
     def test_manifest_contract_requires_the_exact_frozen_paths(self) -> None:
@@ -163,6 +165,8 @@ class AcceptanceContractTests(unittest.TestCase):
         run_schema = json.loads((root / "packages" / "evidence-schema" / "run-manifest.schema.json").read_text(encoding="utf-8"))
         screenshot_schema = json.loads((root / "packages" / "evidence-schema" / "screenshot-manifest.schema.json").read_text(encoding="utf-8"))
         self.assertIn("acceptance", run_schema["properties"])
+        self.assertEqual("secondscott_clean_room", run_schema["properties"]["acceptance"]["properties"]["method"]["const"])
+        self.assertIn("post_screenshot_human_review_required", run_schema["properties"])
         self.assertIn("required_paths", run_schema["required"])
         self.assertIn("scenario_version", run_schema["required"])
         self.assertIn("assertion_contract_sha256", run_schema["required"])
@@ -289,9 +293,13 @@ class AcceptanceContractTests(unittest.TestCase):
             }
             for relative, value in files.items():
                 write_json(candidate / relative, value)
-            staged = stage_accepted(root, run_id, "OUTPUT-TEST-ACCEPTANCE")
+            staged = stage_accepted(root, run_id, "REVIEW-TEST-CLEAN-ROOM")
             self.assertEqual("accepted_staged", staged["status"])
             accepted_root = root / "scenarios" / SCENARIO_ID / "evidence" / "runs" / run_id
+            accepted_manifest = json.loads((accepted_root / "run-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual("secondscott_clean_room", accepted_manifest["acceptance"]["method"])
+            self.assertEqual("pass", accepted_manifest["acceptance"]["verdict"])
+            self.assertTrue(accepted_manifest["post_screenshot_human_review_required"])
             self.assertEqual(assertion_contract.read_bytes(), (accepted_root / "assertion-contract.json").read_bytes())
             self.assertEqual(fixture.read_bytes(), (accepted_root / "fixture-manifest.json").read_bytes())
             screenshot = root / "viewer.png"
@@ -300,7 +308,7 @@ class AcceptanceContractTests(unittest.TestCase):
             verified = verify_accepted(root, run_id)
             self.assertEqual("pass", verified["status"])
             accepted_text = "\n".join(path.read_text(encoding="utf-8") for path in (root / "scenarios" / SCENARIO_ID / "evidence").rglob("*.json"))
-            self.assertNotIn("OUTPUT-TEST-ACCEPTANCE", accepted_text)
+            self.assertNotIn("REVIEW-TEST-CLEAN-ROOM", accepted_text)
 
 
 if __name__ == "__main__":
