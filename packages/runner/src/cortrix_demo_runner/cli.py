@@ -11,7 +11,7 @@ from .errors import DemoContractError
 from .fresh_clone import verify_fresh_clone
 from .io import read_json, write_json
 from .live import execute_with_retry
-from .preflight import full_stack_preflight
+from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .safety import require_safe
 from .scenario import SCENARIO_ID, load_assertion_contract, scenario_root, validate_scenario
@@ -105,7 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--scenario", default=SCENARIO_ID)
     live.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     live.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
-    live.add_argument("--reviewed-attempt-limit", type=int, choices=[2, 3, 4], default=2, help="Use 3 or 4 only when an explicit Human Review authorizes that exact cumulative limit.")
+    live.add_argument("--reviewed-attempt-limit", type=int, choices=REVIEWED_ATTEMPT_LIMITS, default=2, help="Use 3, 4, or 5 only when an explicit Human Review authorizes that exact cumulative limit.")
     live.set_defaults(handler=command_run_full_stack)
 
     accepted = subparsers.add_parser("stage-accepted")

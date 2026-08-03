@@ -42,7 +42,7 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
-The default reviewed attempt limit is two. A Human Review may authorize an exact cumulative limit of three or four without changing the USD 5.00 budget. Pass that exact limit with `--reviewed-attempt-limit`; the runner preserves every existing ledger entry, applies the matching cumulative budget bound, accepts no limit above four, and never starts a fifth attempt.
+The default reviewed attempt limit is two. A Human Review may authorize an exact cumulative limit of three, four, or five without changing the USD 5.00 budget. Pass that exact limit with `--reviewed-attempt-limit`; the runner preserves every existing ledger entry, applies the matching cumulative budget bound, accepts no limit above five, and never starts a sixth attempt.
 
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 

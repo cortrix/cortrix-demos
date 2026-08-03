@@ -12,7 +12,7 @@ import urllib.error
 from .baseline import export_vectors, run_exact_cosine
 from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
-from .preflight import full_stack_preflight
+from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
 from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root, validate_scenario
@@ -30,8 +30,8 @@ def attempt_ledger(root: Path) -> dict[str, Any]:
 
 
 def validate_reviewed_attempt_limit(limit: int) -> int:
-    if limit not in {2, 3, 4}:
-        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, or 4")
+    if limit not in REVIEWED_ATTEMPT_LIMITS:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, 4, or 5")
     return limit
 
 

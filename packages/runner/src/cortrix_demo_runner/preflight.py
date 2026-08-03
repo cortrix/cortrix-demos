@@ -10,6 +10,9 @@ from .io import read_json
 from .scenario import RELEASE_COMMIT, SOURCE_REVISION
 
 
+REVIEWED_ATTEMPT_LIMITS = (2, 3, 4, 5)
+
+
 def require_api_key() -> None:
     value = os.environ.get("DEEPSEEK_API_KEY", "").strip()
     if len(value) < 20:
@@ -56,8 +59,8 @@ def verify_runtime() -> dict[str, str]:
 
 
 def full_stack_preflight(source: Path, pricing_snapshot: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
-    if reviewed_attempt_limit not in {2, 3, 4}:
-        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, or 4")
+    if reviewed_attempt_limit not in REVIEWED_ATTEMPT_LIMITS:
+        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, 4, or 5")
     require_api_key()
     return {
         "secret_present": True,

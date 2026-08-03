@@ -53,7 +53,12 @@ class LiveContractTests(unittest.TestCase):
         pricing = {"prices_per_million_tokens": {"input_cache_miss": 0.14, "output": 0.28}}
         self.assertEqual(0.168, require_budget_bound(profile, pricing, reviewed_attempt_limit=4))
 
-    def test_reviewed_fourth_attempt_is_the_final_reservable_attempt(self) -> None:
+    def test_reviewed_fifth_attempt_uses_five_attempt_budget_bound(self) -> None:
+        profile = {"budget_usd": 5.0, "max_full_stack_attempts": 2, "budget_guard": {"maximum_input_tokens": 200_000, "maximum_output_tokens": 50_000}}
+        pricing = {"prices_per_million_tokens": {"input_cache_miss": 0.14, "output": 0.28}}
+        self.assertEqual(0.21, require_budget_bound(profile, pricing, reviewed_attempt_limit=5))
+
+    def test_fifth_attempt_requires_five_limit_and_sixth_is_denied(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             reserve_attempt(root, "attempt-1")
@@ -65,10 +70,13 @@ class LiveContractTests(unittest.TestCase):
             self.assertEqual(4, reserve_attempt(root, "attempt-4", reviewed_attempt_limit=4))
             with self.assertRaisesRegex(DemoContractError, "reviewed 4-attempt"):
                 reserve_attempt(root, "attempt-5", reviewed_attempt_limit=4)
+            self.assertEqual(5, reserve_attempt(root, "attempt-5", reviewed_attempt_limit=5))
+            with self.assertRaisesRegex(DemoContractError, "reviewed 5-attempt"):
+                reserve_attempt(root, "attempt-6", reviewed_attempt_limit=5)
 
-    def test_reviewed_attempt_limit_cannot_exceed_four(self) -> None:
-        with self.assertRaisesRegex(DemoContractError, "must be 2, 3, or 4"):
-            validate_reviewed_attempt_limit(5)
+    def test_reviewed_attempt_limit_cannot_exceed_five(self) -> None:
+        with self.assertRaisesRegex(DemoContractError, "must be 2, 3, 4, or 5"):
+            validate_reviewed_attempt_limit(6)
 
     def test_query_observation_is_persisted_before_resolver_validation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
