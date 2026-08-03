@@ -27,6 +27,7 @@
   "resolver": {
     "owner": "demo_application_policy",
     "rule": "select the highest-ranked result whose status is current",
+    "role": "defense_in_depth",
     "expected_document_id": "order-api-release-v2.0",
     "expected_field": "buyer_account_id"
   }

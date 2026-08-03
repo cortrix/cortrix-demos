@@ -137,8 +137,8 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
         for rank, row in enumerate(rows[1:], start=1)
     ]
     assertions = {
-        "superseded_guide_is_top1": ranking[0]["document_id"] == "order-api-guide-v1.0" and ranking[0]["lifecycle_status"] == "superseded",
-        "current_release_is_present": any(item["document_id"] == "order-api-release-v2.0" and item["lifecycle_status"] == "current" for item in ranking),
+        "current_release_is_top1": ranking[0]["document_id"] == "order-api-release-v2.0" and ranking[0]["lifecycle_status"] == "current",
+        "superseded_guide_is_present": any(item["document_id"] == "order-api-guide-v1.0" and item["lifecycle_status"] == "superseded" for item in ranking),
         "exact_cosine_without_ann": True,
         "lifecycle_not_used_in_ranking": True,
     }
@@ -153,7 +153,7 @@ SELECT block_id, doc_id, chunk_index, version, lifecycle_status, 1 - (embedding 
         "top1": ranking[0]["document_id"],
         "assertions": assertions,
         "pass": passed,
-        "claim_boundary": "Capability baseline only; not a PostgreSQL or pgvector failure and not a performance benchmark.",
+        "claim_boundary": "Dense BGE-M3 exact-cosine baseline only. It is not the BGE cross-encoder layer, the Full Stack final order, a lifecycle decision, or a performance benchmark.",
     }
     write_json(output, result)
     if not passed:

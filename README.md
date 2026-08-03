@@ -6,13 +6,13 @@ This repository is currently a private pre-publication candidate. License select
 
 ## First scenario: Order API Field Migration
 
-An outdated integration guide is more similar to the question than the current release note. The demo separates two responsibilities:
+An outdated integration guide receives the highest BGE cross-encoder rerank score, but that score is only one layer of the Full Stack result. The demo keeps each ranking responsibility explicit:
 
-- Run A answers which document is most similar with PostgreSQL, pgvector, and exact cosine distance.
-- Run B uses the Cortrix Full Stack to expose retrieval paths, reranking, LLM-assisted query work, and durable source identity.
-- The demo application applies the explicit lifecycle rule: select the highest-ranked result whose status is current.
+- Run A records a dense BGE-M3 exact-cosine baseline, where the current v2 release note ranks first.
+- Run B exposes the superseded v1 guide as the BGE cross-encoder leader, then records the current v2 release note as the final top result after DeepSeek listwise reranking.
+- The demo application independently applies the lifecycle rule and preserves the current final top result as defense in depth.
 
-Cortrix supplies evidence. The application owns the lifecycle decision.
+The phrase “most similar” in this scenario title refers specifically to the highest BGE cross-encoder rerank score, not the dense baseline or the final response order. Cortrix supplies ranking evidence. The application owns lifecycle validation.
 
 ## See the result
 
@@ -55,6 +55,7 @@ Start with these contracts:
 
 - [Scenario definition](scenarios/order-api-field-migration/scenario.yaml)
 - [Expected assertions](scenarios/order-api-field-migration/expected/assertions.json)
+- [Layered-ranking contract](docs/layered-ranking-contract.md)
 - [Evidence policy](docs/evidence-policy.md)
 - [Evidence schema](packages/evidence-schema/run-manifest.schema.json)
 - [Compatibility](docs/compatibility.md)

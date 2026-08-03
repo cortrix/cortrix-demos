@@ -4,11 +4,11 @@
   "fallback": "en-US",
   "messages": {
     "scenario.title": "Order API Field Migration",
-    "scenario.subtitle": "When the most similar guide is outdated",
+    "scenario.subtitle": "When the highest BGE rerank score belongs to an outdated guide",
     "state.noAcceptedRun": "No accepted run is available yet.",
-    "runA.title": "Run A: similarity only",
-    "runB.title": "Run B: evidence plus an application policy",
-    "resolver.title": "Application lifecycle decision",
-    "boundary": "Cortrix supplies evidence. The application owns the lifecycle decision."
+    "runA.title": "Run A: dense exact-cosine baseline",
+    "runB.title": "Run B: layered Full Stack ranking",
+    "resolver.title": "Application lifecycle validation",
+    "boundary": "Cortrix supplies ranking evidence. The application independently owns lifecycle validation."
   }
 }

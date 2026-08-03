@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from .errors import DemoContractError
@@ -35,6 +36,7 @@ def apply_lifecycle_resolver(
             raise DemoContractError(f"Result {rank} maps to an unknown fixture document")
         candidates.append(
             {
+                "final_response_rank": rank,
                 "retrieval_rank": rank,
                 "child_id": child_id,
                 "doc_id": durable.get("doc_id"),
@@ -48,6 +50,18 @@ def apply_lifecycle_resolver(
                 "eligible_under_policy": fixture.get("status") == "current",
             }
         )
+    if len(candidates) < 2:
+        raise DemoContractError("Layered ranking requires at least two durable candidates")
+    for candidate in candidates:
+        rerank_score = candidate.get("rerank_score")
+        if isinstance(rerank_score, bool) or not isinstance(rerank_score, (int, float)) or not math.isfinite(float(rerank_score)):
+            raise DemoContractError("Every candidate must expose a finite BGE rerank score")
+    bge_order = sorted(candidates, key=lambda item: (-float(item["rerank_score"]), int(item["final_response_rank"])))
+    for rank, candidate in enumerate(bge_order, start=1):
+        candidate["bge_rerank_rank"] = rank
+    bge_leader = bge_order[0]
+    bge_runner_up = bge_order[1]
+    final_top = candidates[0]
     selected = next((item for item in candidates if item["eligible_under_policy"]), None)
     if selected is None:
         raise DemoContractError("No retrieved result is current under the application policy")
@@ -60,21 +74,49 @@ def apply_lifecycle_resolver(
     assertions = {
         "selected_expected_document": selected["document_id"] == expected_document,
         "selected_content_contains_expected_field": isinstance(selected_content, str) and isinstance(expected_field, str) and expected_field in selected_content,
-        "retrieval_top1_was_superseded": candidates[0]["lifecycle_status"] == "superseded",
-        "resolver_changed_final_document": candidates[0]["document_id"] != selected["document_id"],
+        "bge_rerank_leader_was_superseded": bge_leader["lifecycle_status"] == "superseded",
+        "bge_rerank_leader_was_strict": float(bge_leader["rerank_score"]) > float(bge_runner_up["rerank_score"]),
+        "final_top1_is_current": final_top["lifecycle_status"] == "current",
+        "policy_preserved_final_top1": final_top["document_id"] == selected["document_id"],
     }
     passed = all(assertions.values())
     reason = (
-        "The higher-ranked document is superseded, so the application selects the highest-ranked candidate whose lifecycle status is current."
-        if assertions["resolver_changed_final_document"]
-        else "The highest-ranked document is already current, so the lifecycle resolver does not change the selected document."
+        f"The highest BGE cross-encoder score belongs to {bge_leader['document_id']} ({bge_leader['lifecycle_status']}). "
+        f"The Full Stack final response places {final_top['document_id']} ({final_top['lifecycle_status']}) first. "
+        f"The application lifecycle policy independently selects {selected['document_id']} and "
+        f"{'preserves' if final_top['document_id'] == selected['document_id'] else 'changes'} the final top result."
     )
+
+    def layer_result(candidate: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "document_id": candidate["document_id"],
+            "version": candidate["version"],
+            "lifecycle_status": candidate["lifecycle_status"],
+            "final_response_rank": candidate["final_response_rank"],
+            "bge_rerank_rank": candidate["bge_rerank_rank"],
+            "bge_rerank_score": candidate["rerank_score"],
+        }
+
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "policy_owner": resolver.get("owner"),
         "policy_rule": resolver.get("rule"),
-        "claim_boundary": "Cortrix supplies retrieved content, scores, paths, and durable identity; the demo application owns the lifecycle decision.",
+        "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
         "candidates": candidates,
+        "layers": {
+            "bge_cross_encoder": {
+                "meaning": "Candidate order by descending BGE cross-encoder rerank score before the final listwise order is applied.",
+                "leader": layer_result(bge_leader),
+            },
+            "deepseek_listwise_final": {
+                "meaning": "Final result order returned by the configured Cortrix Full Stack query.",
+                "top_result": layer_result(final_top),
+            },
+            "application_lifecycle_policy": {
+                "meaning": "Independent defense-in-depth validation that selects the highest final-ranked current document.",
+                "action": "preserved_final_top1" if final_top["document_id"] == selected["document_id"] else "changed_final_top1",
+            },
+        },
         "decision": {
             "selected_document_id": selected["document_id"],
             "selected_version": selected["version"],

@@ -2,7 +2,7 @@ schema_version: 1
 id: order-api-field-migration
 display_name: Order API Field Migration
 title: "Order API Field Migration: When the Most Similar Guide Is Outdated"
-scenario_version: 1.0.0
+scenario_version: 1.1.0
 synthetic_data: true
 requires:
   cortrix_release: v1.0.0-rc.1

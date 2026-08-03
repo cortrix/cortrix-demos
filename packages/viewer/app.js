@@ -33,6 +33,17 @@ function requireAccepted(pointer, manifest, resolver) {
   if (resolver.pass !== true || manifest.assertions?.all_passed !== true) {
     throw new Error("The accepted run does not contain passing resolver and run assertions.");
   }
+  const requiredAssertions = [
+    "selected_expected_document",
+    "selected_content_contains_expected_field",
+    "bge_rerank_leader_was_superseded",
+    "bge_rerank_leader_was_strict",
+    "final_top1_is_current",
+    "policy_preserved_final_top1",
+  ];
+  if (resolver.schema_version !== 2 || !requiredAssertions.every((name) => resolver.assertions?.[name] === true)) {
+    throw new Error("The accepted resolver does not satisfy the layered-ranking contract.");
+  }
 }
 
 async function render() {
@@ -48,18 +59,29 @@ async function render() {
     const resolver = await loadJson(pointer.resolver);
     requireAccepted(pointer, manifest, resolver);
 
-    const first = resolver.candidates[0];
+    const bgeLeader = resolver.layers?.bge_cross_encoder?.leader;
+    const finalTop = resolver.layers?.deepseek_listwise_final?.top_result;
     const decision = resolver.decision;
-    byId("retrieval-title").textContent = first.document_id;
-    addDefinition(byId("retrieval-details"), "Version", first.version);
-    addDefinition(byId("retrieval-details"), "Lifecycle", first.lifecycle_status);
-    addDefinition(byId("retrieval-details"), "Retrieval rank", first.retrieval_rank);
-    addDefinition(byId("retrieval-details"), "Rerank score", first.rerank_score);
+    if (!bgeLeader || !finalTop) {
+      throw new Error("The accepted resolver does not expose both ranking layers.");
+    }
+    byId("bge-title").textContent = bgeLeader.document_id;
+    addDefinition(byId("bge-details"), "Version", bgeLeader.version);
+    addDefinition(byId("bge-details"), "Lifecycle", bgeLeader.lifecycle_status);
+    addDefinition(byId("bge-details"), "BGE rerank rank", bgeLeader.bge_rerank_rank);
+    addDefinition(byId("bge-details"), "BGE rerank score", bgeLeader.bge_rerank_score);
+
+    byId("final-title").textContent = finalTop.document_id;
+    addDefinition(byId("final-details"), "Version", finalTop.version);
+    addDefinition(byId("final-details"), "Lifecycle", finalTop.lifecycle_status);
+    addDefinition(byId("final-details"), "Final response rank", finalTop.final_response_rank);
+    addDefinition(byId("final-details"), "BGE rerank score", finalTop.bge_rerank_score);
 
     byId("decision-title").textContent = decision.selected_document_id;
     byId("decision-reason").textContent = decision.reason;
     addDefinition(byId("decision-details"), "Version", decision.selected_version);
     addDefinition(byId("decision-details"), "Selected field", decision.selected_field);
+    addDefinition(byId("decision-details"), "Policy action", resolver.layers.application_lifecycle_policy.action);
 
     addDefinition(byId("run-details"), "Run ID", manifest.run_id);
     addDefinition(byId("run-details"), "Cortrix release", manifest.target_identity?.release);

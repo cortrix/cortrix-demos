@@ -31,7 +31,9 @@ An accepted run records:
 
 ## Variable and frozen assertions
 
-LLM wording, generated query variants, latency, and exact text may vary. Provider/model identity, call count, degraded state, required retrieval paths, source identity, resolver output, cleanup, secret persistence, and budget are frozen assertions.
+LLM wording, generated query variants, latency, and exact numeric ranking scores may vary. Provider/model identity, call count, degraded state, required retrieval paths, source identity, Run A dense top document, Run B BGE rerank leader, Run B final top document, resolver action, cleanup, secret persistence, and budget are frozen assertions.
+
+The ranking layers are not interchangeable. Run A records dense exact cosine. Run B records the BGE cross-encoder score order and the final Full Stack response order separately. The application lifecycle policy is an independent validation layer.
 
 ## Screenshots
 

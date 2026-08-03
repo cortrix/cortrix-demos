@@ -42,6 +42,30 @@ class AcceptanceContractTests(unittest.TestCase):
             "claim_boundary": "Runtime evidence for this scenario only.",
         }
 
+    def layered_resolver(self, run_id: str) -> dict[str, object]:
+        return {
+            "schema_version": 2,
+            "run_id": run_id,
+            "pass": True,
+            "assertions": {
+                name: True
+                for name in (
+                    "selected_expected_document",
+                    "selected_content_contains_expected_field",
+                    "bge_rerank_leader_was_superseded",
+                    "bge_rerank_leader_was_strict",
+                    "final_top1_is_current",
+                    "policy_preserved_final_top1",
+                )
+            },
+            "layers": {
+                "bge_cross_encoder": {"leader": {"document_id": "order-api-guide-v1.0", "lifecycle_status": "superseded"}},
+                "deepseek_listwise_final": {"top_result": {"document_id": "order-api-release-v2.0", "lifecycle_status": "current"}},
+                "application_lifecycle_policy": {"action": "preserved_final_top1"},
+            },
+            "decision": {"selected_document_id": "order-api-release-v2.0", "selected_field": "buyer_account_id"},
+        }
+
     def test_frozen_run_id_accepts_initial_and_retry_attempts(self) -> None:
         validate_run_id("order-api-field-migration-20260803T120000Z")
         validate_run_id("order-api-field-migration-20260803T120000Z-retry")
@@ -86,6 +110,8 @@ class AcceptanceContractTests(unittest.TestCase):
         self.assertIn('manifest.state !== "accepted"', viewer)
         self.assertIn("manifest.target_identity?.source_revision", viewer)
         self.assertIn("manifest.provider_identity?.model", viewer)
+        self.assertIn("bge_rerank_leader_was_superseded", viewer)
+        self.assertIn("deepseek_listwise_final", viewer)
         self.assertNotIn("manifest.status", viewer)
 
     def test_manifest_contract_requires_the_exact_frozen_paths(self) -> None:
@@ -166,8 +192,8 @@ class AcceptanceContractTests(unittest.TestCase):
                 "state-history.json": {"run_id": run_id, "transitions": [{"state": "created"}, {"state": "running"}, {"state": "candidate"}]},
                 "run-a/pgvector-result.json": {"run_id": run_id, "pass": True},
                 "run-b/summary.json": {"run_id": run_id, "pass": True},
-                "run-b/resolver-01.json": {"run_id": run_id, "pass": True},
-                "run-b/resolver-02.json": {"run_id": run_id, "pass": True},
+                "run-b/resolver-01.json": self.layered_resolver(run_id),
+                "run-b/resolver-02.json": self.layered_resolver(run_id),
             }
             for relative, value in files.items():
                 write_json(candidate / relative, value)

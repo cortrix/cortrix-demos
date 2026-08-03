@@ -9,11 +9,18 @@ Two synthetic documents are intentionally similar:
 - an outdated v1.0 integration guide uses `account_id` and is marked `superseded`;
 - a current v2.0 release note requires `buyer_account_id` and is marked `current`.
 
-The outdated guide may rank first. The demo application then applies a separate lifecycle policy and selects the highest-ranked result whose status is current.
+The reviewed scenario contract distinguishes four layers:
+
+1. The Run A dense BGE-M3 exact-cosine baseline places the current v2 release note first.
+2. The Run B BGE cross-encoder gives the superseded v1 guide the highest rerank score.
+3. DeepSeek listwise reranking places the current v2 release note first in the final Full Stack response.
+4. The demo application independently applies the lifecycle policy and preserves the current final top result as defense in depth.
+
+“Most similar” in the scenario title refers only to layer 2: the highest BGE cross-encoder rerank score. It does not describe the dense baseline or final response order.
 
 ## Responsibility boundary
 
-Cortrix provides retrieved content, scores, retrieval paths, source and document identity, and observable evidence. The demo application owns the lifecycle decision. Retrieval rank and LLM output are not business truth.
+Cortrix provides the final response order, BGE rerank scores, retrieved content, retrieval paths, source and document identity, and observable evidence. The demo application independently owns lifecycle validation. No single score, rank, or LLM output is business truth.
 
 ## Profiles
 

@@ -63,6 +63,14 @@ ALLOWED_CURATED_FILES = {
     "run-b/resolver-02.json",
     "screenshots/screenshot-manifest.json",
 }
+LAYERED_RESOLVER_ASSERTIONS = {
+    "selected_expected_document",
+    "selected_content_contains_expected_field",
+    "bge_rerank_leader_was_superseded",
+    "bge_rerank_leader_was_strict",
+    "final_top1_is_current",
+    "policy_preserved_final_top1",
+}
 
 
 def require_object(value: Any, label: str) -> dict[str, Any]:
@@ -141,6 +149,29 @@ def validate_manifest_contract(manifest: dict[str, Any]) -> str:
     return demo_commit
 
 
+def validate_layered_resolver_contract(resolver: dict[str, Any]) -> None:
+    assertions = resolver.get("assertions")
+    layers = resolver.get("layers")
+    if resolver.get("schema_version") != 2 or resolver.get("pass") is not True or not isinstance(assertions, dict) or not all(assertions.get(name) is True for name in LAYERED_RESOLVER_ASSERTIONS):
+        raise DemoContractError("Resolver does not satisfy the layered-ranking assertions")
+    if not isinstance(layers, dict):
+        raise DemoContractError("Resolver layered-ranking evidence is missing")
+    bge = layers.get("bge_cross_encoder")
+    final = layers.get("deepseek_listwise_final")
+    policy = layers.get("application_lifecycle_policy")
+    leader = bge.get("leader") if isinstance(bge, dict) else None
+    top_result = final.get("top_result") if isinstance(final, dict) else None
+    if not isinstance(leader, dict) or leader.get("document_id") != "order-api-guide-v1.0" or leader.get("lifecycle_status") != "superseded":
+        raise DemoContractError("Resolver BGE layer does not identify the superseded guide")
+    if not isinstance(top_result, dict) or top_result.get("document_id") != "order-api-release-v2.0" or top_result.get("lifecycle_status") != "current":
+        raise DemoContractError("Resolver final layer does not identify the current release")
+    if not isinstance(policy, dict) or policy.get("action") != "preserved_final_top1":
+        raise DemoContractError("Resolver lifecycle policy did not preserve the final top result")
+    decision = resolver.get("decision")
+    if not isinstance(decision, dict) or decision.get("selected_document_id") != "order-api-release-v2.0" or decision.get("selected_field") != "buyer_account_id":
+        raise DemoContractError("Resolver decision does not match the frozen current-document contract")
+
+
 def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     validate_run_id(run_id)
     source = candidate_root(root, run_id)
@@ -187,6 +218,8 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     run_b = require_object(read_json(source / "run-b" / "summary.json"), "Candidate Run B summary")
     resolver_one = require_object(read_json(source / "run-b" / "resolver-01.json"), "Candidate resolver result one")
     resolver_two = require_object(read_json(source / "run-b" / "resolver-02.json"), "Candidate resolver result two")
+    validate_layered_resolver_contract(resolver_one)
+    validate_layered_resolver_contract(resolver_two)
     if models.get("all_match") is not True or cleanup_receipt.get("run_id") != run_id or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):
         raise DemoContractError("Candidate model or cleanup evidence does not match the manifest")
     if run_a.get("pass") is not True or run_b.get("pass") is not True or any(item.get("run_id") != run_id or item.get("pass") is not True for item in (resolver_one, resolver_two)):
@@ -428,6 +461,7 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     resolver = read_json(destination / "run-b" / "resolver-01.json")
     if not all(isinstance(value, dict) for value in (pointer, manifest, resolver)):
         raise DemoContractError("Accepted pointer, manifest, and resolver must be JSON objects")
+    validate_layered_resolver_contract(resolver)
     pointer_prefix = f"../../scenarios/{SCENARIO_ID}/evidence/runs/{run_id}"
     expected_pointer = {
         "manifest": f"{pointer_prefix}/run-manifest.json",
@@ -478,6 +512,7 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     run_a = require_object(read_json(destination / "run-a" / "pgvector-result.json"), "Curated Run A result")
     run_b = require_object(read_json(destination / "run-b" / "summary.json"), "Curated Run B summary")
     resolver_two = require_object(read_json(destination / "run-b" / "resolver-02.json"), "Curated resolver result two")
+    validate_layered_resolver_contract(resolver_two)
     if pricing != manifest["cost"]["pricing_snapshot"] or sha256_file(fixture) != manifest.get("fixture_manifest_sha256"):
         raise DemoContractError("Curated pricing or fixture identity does not match the accepted manifest")
     if models.get("all_match") is not True or curated_assertions != assertions or any(cleanup_receipt.get(key) != value for key, value in manifest["cleanup"].items() if key != "path"):
