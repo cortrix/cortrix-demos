@@ -113,7 +113,34 @@ def ingest_documents(run_id: str, namespace: str, fixture_root: Path, manifest: 
     return tasks
 
 
-def wait_enrichment(namespace: str, before_text: str, timeout_seconds: float = 900) -> tuple[dict[str, Any], str]:
+def ingestion_completion(
+    evidence: dict[str, Any],
+    durable: dict[str, Any],
+    expected_document_count: int,
+    hype_questions_per_chunk: int,
+) -> dict[str, Any]:
+    text_blocks = durable.get("text_blocks")
+    text_block_count = len(text_blocks) if isinstance(text_blocks, list) else 0
+    expected_hype_questions = text_block_count * hype_questions_per_chunk
+    checks = {
+        "all_documents_materialized": text_block_count >= expected_document_count,
+        "f03_all_chunks": evidence["f03_llm_enriched_chunks"] >= text_block_count,
+        "f35_all_chunks": evidence["f35_contextualized_chunks"] >= text_block_count,
+        "f38_all_chunks": evidence["hype_questions"] >= expected_hype_questions,
+        "f41_all_documents": evidence["document_summaries"] >= expected_document_count,
+        "enrich_state_all_chunks": evidence["enrich_state_ok"] >= text_block_count,
+    }
+    return {
+        "expected_document_count": expected_document_count,
+        "expected_text_block_count": text_block_count,
+        "hype_questions_per_chunk": hype_questions_per_chunk,
+        "expected_hype_question_count": expected_hype_questions,
+        "checks": checks,
+        "pass": all(checks.values()),
+    }
+
+
+def wait_enrichment(namespace: str, before_text: str, expected_document_count: int, hype_questions_per_chunk: int = 3, timeout_seconds: float = 900) -> tuple[dict[str, Any], str]:
     deadline = time.monotonic() + timeout_seconds
     last = {}
     while time.monotonic() < deadline:
@@ -132,11 +159,12 @@ def wait_enrichment(namespace: str, before_text: str, timeout_seconds: float = 9
             "document_summaries": durable.get("document_summary_count", 0),
             "enrich_state_ok": durable.get("enrich_state_ok_count", 0),
         }
-        last = evidence
+        completion = ingestion_completion(evidence, durable, expected_document_count, hype_questions_per_chunk)
+        last = {**evidence, "completion": completion}
         if any(evidence[name] > 0 for name in ("f35_failures", "f38_failures", "f41_failures")):
             raise DemoContractError("Full Stack ingestion recorded a deterministic feature failure")
-        if evidence["f03_llm_enriched_chunks"] >= 5 and evidence["f35_contextualized_chunks"] >= 5 and evidence["hype_questions"] >= 15 and evidence["document_summaries"] >= 2 and evidence["enrich_state_ok"] >= 5:
-            return {"metrics": evidence, "durable": durable}, after_text
+        if completion["pass"]:
+            return {"metrics": {**evidence, "completion": completion}, "durable": durable}, after_text
         time.sleep(2)
     raise DemoContractError(f"Full Stack ingestion timed out. transient_category=timeout evidence={json.dumps(last, sort_keys=True)}")
 
@@ -207,7 +235,7 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     namespace = "order-b-" + safe_run_suffix(run_id)
     before_ingest = metrics()
     tasks = ingest_documents(run_id, namespace, fixture_root, manifest)
-    ingestion, after_ingest = wait_enrichment(namespace, before_ingest)
+    ingestion, after_ingest = wait_enrichment(namespace, before_ingest, expected_document_count=len(manifest["documents"]))
     write_json(run_dir / "run-b" / "durable-inspection.json", ingestion["durable"])
     (run_dir / "run-b" / "metrics-before-ingest.prom").write_text(before_ingest, encoding="utf-8")
     (run_dir / "run-b" / "metrics-after-ingest.prom").write_text(after_ingest, encoding="utf-8")
@@ -316,8 +344,10 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         health = start("full-stack")
         phase = "model_verification"
         models = verify_models()
+        write_json(run_dir / "model-checksums.json", models)
         phase = "provider_contract_smoke"
         smoke = contract_smoke()
+        write_json(run_dir / "contract-smoke.json", smoke)
         phase = "run_b"
         run_b_result = run_b(run_id, run_dir, fixture_root, manifest)
         phase = "run_a"
@@ -328,8 +358,6 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
         source_identity = source_manifest(run_id, attempt, image, fixture_manifest_path, demo_checkout)
         cost = cost_record(pricing, smoke, run_b_result, bound)
         write_json(run_dir / "preflight.json", preflight)
-        write_json(run_dir / "model-checksums.json", models)
-        write_json(run_dir / "contract-smoke.json", smoke)
         write_json(run_dir / "runtime.json", runtime)
         write_json(run_dir / "source-manifest.json", source_identity)
         cleanup_result = cleanup(run_id, receipt_path)
@@ -340,7 +368,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str) -> d
             "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
             "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
             "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
-            "deepseek_ingestion": run_b_result["ingestion"]["f03_llm_enriched_chunks"] >= 5 and run_b_result["ingestion"]["f35_contextualized_chunks"] >= 5 and run_b_result["ingestion"]["hype_questions"] >= 15 and run_b_result["ingestion"]["document_summaries"] >= 2,
+            "deepseek_ingestion": run_b_result["ingestion"]["completion"]["pass"],
             "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),
             "deepseek_listwise_rerank": all(item["checks"]["deepseek_listwise_rerank"] for item in run_b_result["query_attempts"]),
             "application_lifecycle_resolver": run_b_result["resolver"]["pass"],
@@ -413,6 +441,8 @@ def execute_with_retry(root: Path, source: Path, pricing_path: Path) -> dict[str
     except (DemoContractError, subprocess.CalledProcessError, urllib.error.URLError) as first_error:
         category = failure_category(first_error)
         if category not in {"http_429", "http_5xx", "timeout"}:
+            raise
+        if len(attempt_ledger(root)["full_stack_attempts"]) >= 2:
             raise
         retry_id = new_run_id() + "-retry"
         return execute_once(root, source, pricing_path, retry_id)

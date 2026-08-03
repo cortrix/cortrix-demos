@@ -42,6 +42,8 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
+The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
+
 ## 4. Inspect the candidate
 
 Candidate evidence is written under ignored `.runs/<run_id>/`. A successful candidate includes Run A, Run B, two serialized query records, durable identity, resolver output, model checksums, runtime identity, a cleanup receipt, a pricing snapshot, partial usage visibility, and a candidate manifest.

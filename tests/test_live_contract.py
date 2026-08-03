@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.live import failure_category, pricing_cost, require_budget_bound
+from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, require_budget_bound
 from cortrix_demo_runner.runtime import request
 
 
@@ -36,6 +36,33 @@ class LiveContractTests(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=http.client.RemoteDisconnected("closed")):
             with self.assertRaisesRegex(DemoContractError, "closed the connection before an HTTP response"):
                 request("GET", "/system/health/ready")
+
+    def test_ingestion_completion_uses_all_durable_blocks_not_an_unrelated_demo_constant(self) -> None:
+        evidence = {
+            "f03_llm_enriched_chunks": 2,
+            "f35_contextualized_chunks": 2,
+            "hype_questions": 6,
+            "document_summaries": 2,
+            "enrich_state_ok": 2,
+        }
+        durable = {"text_blocks": [{"child_id": "a"}, {"child_id": "b"}]}
+        result = ingestion_completion(evidence, durable, expected_document_count=2, hype_questions_per_chunk=3)
+        self.assertTrue(result["pass"])
+        self.assertEqual(2, result["expected_text_block_count"])
+        self.assertEqual(6, result["expected_hype_question_count"])
+
+    def test_ingestion_completion_rejects_any_unfinished_actual_block(self) -> None:
+        evidence = {
+            "f03_llm_enriched_chunks": 2,
+            "f35_contextualized_chunks": 1,
+            "hype_questions": 6,
+            "document_summaries": 2,
+            "enrich_state_ok": 2,
+        }
+        durable = {"text_blocks": [{"child_id": "a"}, {"child_id": "b"}]}
+        result = ingestion_completion(evidence, durable, expected_document_count=2, hype_questions_per_chunk=3)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["checks"]["f35_all_chunks"])
 
 
 if __name__ == "__main__":
