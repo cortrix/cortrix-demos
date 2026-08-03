@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
+from cortrix_demo_runner.live import failure_category, ingestion_completion, pricing_cost, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
 from cortrix_demo_runner.runtime import request
 
 
@@ -50,6 +50,22 @@ class LiveContractTests(unittest.TestCase):
     def test_reviewed_attempt_limit_cannot_exceed_four(self) -> None:
         with self.assertRaisesRegex(DemoContractError, "must be 2, 3, or 4"):
             validate_reviewed_attempt_limit(5)
+
+    def test_query_observation_is_persisted_before_resolver_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            record_query_observation(
+                run_dir,
+                1,
+                {"query": "example"},
+                {"results": [{"child_id": "unmapped"}]},
+                "before\n",
+                "after\n",
+            )
+            self.assertTrue((run_dir / "run-b" / "query-01.request.json").is_file())
+            self.assertTrue((run_dir / "run-b" / "query-01.response.json").is_file())
+            self.assertEqual("before\n", (run_dir / "run-b" / "query-01.metrics.before.prom").read_text())
+            self.assertEqual("after\n", (run_dir / "run-b" / "query-01.metrics.after.prom").read_text())
 
     def test_only_named_transient_categories_are_retryable(self) -> None:
         self.assertEqual("http_429", failure_category(DemoContractError("request failed. transient_category=http_429")))

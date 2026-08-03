@@ -206,6 +206,21 @@ def run_query(namespace: str, query: str) -> tuple[dict[str, Any], dict[str, Any
     return payload, response, before_text, after_text
 
 
+def record_query_observation(
+    run_dir: Path,
+    number: int,
+    payload: dict[str, Any],
+    response: dict[str, Any],
+    before_metrics: str,
+    after_metrics: str,
+) -> None:
+    """Persist raw ignored query evidence before any resolver assertion can fail."""
+    write_json(run_dir / "run-b" / f"query-{number:02d}.request.json", payload)
+    write_json(run_dir / "run-b" / f"query-{number:02d}.response.json", response)
+    (run_dir / "run-b" / f"query-{number:02d}.metrics.before.prom").write_text(before_metrics, encoding="utf-8")
+    (run_dir / "run-b" / f"query-{number:02d}.metrics.after.prom").write_text(after_metrics, encoding="utf-8")
+
+
 def query_assertions(response: dict[str, Any], before_text: str, after_text: str, resolver: dict[str, Any]) -> dict[str, Any]:
     explain = response.get("explain")
     dependent = explain.get("llm_dependent_features") if isinstance(explain, dict) else None
@@ -254,14 +269,11 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     resolvers = []
     for number in (1, 2):
         payload, response, before, after = run_query(namespace, query)
+        record_query_observation(run_dir, number, payload, response, before, after)
         resolver = apply_lifecycle_resolver(response, manifest, identities, frozen_assertions)
         resolver["run_id"] = run_id
         summary = query_assertions(response, before, after, resolver)
-        write_json(run_dir / "run-b" / f"query-{number:02d}.request.json", payload)
-        write_json(run_dir / "run-b" / f"query-{number:02d}.response.json", response)
         write_json(run_dir / "run-b" / f"resolver-{number:02d}.json", resolver)
-        (run_dir / "run-b" / f"query-{number:02d}.metrics.before.prom").write_text(before, encoding="utf-8")
-        (run_dir / "run-b" / f"query-{number:02d}.metrics.after.prom").write_text(after, encoding="utf-8")
         attempts.append(summary)
         resolvers.append(resolver)
     repeat = {
