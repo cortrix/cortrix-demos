@@ -118,10 +118,12 @@ class AcceptanceContractTests(unittest.TestCase):
     def test_readme_exposes_result_run_and_evidence_in_order(self) -> None:
         verify_readme("# Demo\n\n## See the result\nA\n## Run it locally\nB\n## Inspect the evidence\nC\n")
 
-    def test_repository_readme_points_to_the_fail_closed_accepted_run_contract(self) -> None:
+    def test_repository_readme_points_to_the_reviewed_accepted_run_contract(self) -> None:
         readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
         self.assertIn("scenarios/order-api-field-migration/evidence/accepted-run.json", readme)
-        self.assertIn("does not have an accepted run yet", readme)
+        self.assertIn("accepted local replay", readme)
+        self.assertIn("passed Clean Room review and screenshot verification", readme)
+        self.assertIn("final Human Review is still pending", readme)
 
     def test_readme_rejects_missing_or_reordered_first_run_sections(self) -> None:
         with self.assertRaises(DemoContractError):
