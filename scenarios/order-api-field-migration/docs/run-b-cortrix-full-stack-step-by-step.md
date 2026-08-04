@@ -186,11 +186,20 @@ docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d po
 docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d --force-recreate cortrix
 ```
 
-Wait for readiness and save the metrics baseline before ingestion:
+Wait for the API and metrics endpoints independently, then save the metrics baseline before ingestion. API readiness does not guarantee that the separate metrics listener is already returning complete responses:
 
 ```bash
 until curl -fsS http://127.0.0.1:18420/api/v1/system/health/ready >/dev/null; do sleep 2; done
-curl -fsS http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-before-ingest.prom
+METRICS_READY=0
+for _ in $(seq 1 60); do
+  if curl -fsS --max-time 10 http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-before-ingest.prom.tmp; then
+    METRICS_READY=1
+    break
+  fi
+  sleep 2
+done
+test "$METRICS_READY" = 1
+mv .runs/manual-cortrix/metrics-before-ingest.prom.tmp .runs/manual-cortrix/metrics-before-ingest.prom
 ```
 
 Verify the loaded model files directly inside the container against the frozen checksums:
@@ -309,7 +318,16 @@ PY
   sleep 2
 done
 test "$READY" = 1
-curl -fsS http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-after-ingest.prom
+METRICS_AFTER_READY=0
+for _ in $(seq 1 60); do
+  if curl -fsS --max-time 10 http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-after-ingest.prom.tmp; then
+    METRICS_AFTER_READY=1
+    break
+  fi
+  sleep 2
+done
+test "$METRICS_AFTER_READY" = 1
+mv .runs/manual-cortrix/metrics-after-ingest.prom.tmp .runs/manual-cortrix/metrics-after-ingest.prom
 ```
 
 Reject the run if contextualization, HyPE, or document-summary failures increased during ingestion:

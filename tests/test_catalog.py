@@ -131,6 +131,13 @@ class CatalogTests(unittest.TestCase):
             self.assertIn(fragment, run_a_pipeline)
         for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "config/external-call-policy.json", "math.isfinite", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
             self.assertIn(fragment, run_b_pipeline)
+        self.assertIn("API readiness does not guarantee", run_b_pipeline)
+        self.assertIn("METRICS_READY=0", run_b_pipeline)
+        self.assertIn("METRICS_AFTER_READY=0", run_b_pipeline)
+        self.assertIn("metrics-before-ingest.prom.tmp", run_b_pipeline)
+        self.assertIn("metrics-after-ingest.prom.tmp", run_b_pipeline)
+        self.assertEqual(2, run_b_pipeline.count("curl -fsS --max-time 10 http://127.0.0.1:19091/metrics"))
+        self.assertEqual(2, run_b_pipeline.count("for _ in $(seq 1 60); do"))
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Demo observability versus production operation", readme)
         self.assertIn("not a required Cortrix production interface", readme)
@@ -194,6 +201,52 @@ class CatalogTests(unittest.TestCase):
             )
             self.assertEqual(0, valid.returncode, valid.stderr)
             self.assertEqual(0.042, json.loads(output.read_text(encoding="utf-8"))["conservative_bound_usd"])
+
+    def test_run_b_manual_metrics_capture_retries_empty_replies(self) -> None:
+        runbook = (
+            ROOT
+            / "scenarios"
+            / "order-api-field-migration"
+            / "docs"
+            / "run-b-cortrix-full-stack-step-by-step.md"
+        ).read_text(encoding="utf-8")
+        needle = "METRICS_READY=0"
+        needle_position = runbook.index(needle)
+        block_start = runbook.rfind("```bash\n", 0, needle_position) + len("```bash\n")
+        block_end = runbook.index("\n```", needle_position)
+        block = runbook[block_start:block_end]
+        metrics_command = "curl -fsS --max-time 10 http://127.0.0.1:19091/metrics"
+        self.assertIn(metrics_command, block)
+        block = block[block.index(needle):]
+        block = block.replace(metrics_command, "fake_curl").replace("sleep 2", ":")
+
+        with tempfile.TemporaryDirectory() as directory:
+            script = f"""
+set -euo pipefail
+mkdir -p .runs/manual-cortrix
+printf '0\n' > counter
+fake_curl() {{
+  count="$(cat counter)"
+  count="$((count + 1))"
+  printf '%s\n' "$count" > counter
+  if [ "$count" -eq 1 ]; then
+    return 52
+  fi
+  printf 'cortrix_test_metric 1\n'
+}}
+{block}
+test "$(cat counter)" = 2
+grep -qx 'cortrix_test_metric 1' .runs/manual-cortrix/metrics-before-ingest.prom
+test ! -e .runs/manual-cortrix/metrics-before-ingest.prom.tmp
+"""
+            result = subprocess.run(
+                ["bash", "-c", script],
+                cwd=directory,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
 
 
 if __name__ == "__main__":
