@@ -57,7 +57,70 @@ if ! docker image inspect cortrix-demo:32b82f6 >/dev/null 2>&1; then
     --build-arg CORTRIX_SOURCE_REVISION=32b82f6f8f1d7a41349f408969ff03b7997b6c15 \
     .runtime/cortrix-src
 fi
+IMAGE_REVISION="$(docker image inspect cortrix-demo:32b82f6 --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+test "$IMAGE_REVISION" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+printf 'image source revision: %s\n' "$IMAGE_REVISION"
 ```
+
+Immediately before the run, open the official [DeepSeek pricing page](https://api-docs.deepseek.com/quick_start/pricing). Replace the three example values below if the page has changed, then execute the local one-attempt budget gate. A price change never expands the repository's `USD 1.00` ceiling:
+
+```bash
+export DEEPSEEK_INPUT_CACHE_HIT_USD_PER_M="0.0028"
+export DEEPSEEK_INPUT_CACHE_MISS_USD_PER_M="0.14"
+export DEEPSEEK_OUTPUT_USD_PER_M="0.28"
+mkdir -p .runs/manual-cortrix
+python3 - <<'PY'
+import datetime
+import json
+import os
+from pathlib import Path
+
+policy = json.loads(Path("config/external-call-policy.json").read_text())
+profile = json.loads(Path("scenarios/order-api-field-migration/profiles/full-stack.json").read_text())
+prices = {
+    "input_cache_hit": float(os.environ["DEEPSEEK_INPUT_CACHE_HIT_USD_PER_M"]),
+    "input_cache_miss": float(os.environ["DEEPSEEK_INPUT_CACHE_MISS_USD_PER_M"]),
+    "output": float(os.environ["DEEPSEEK_OUTPUT_USD_PER_M"]),
+}
+budget_usd = float(policy["budget_usd"])
+guard = profile["budget_guard"]
+attempt_limit = 1
+bound_usd = round(
+    attempt_limit
+    * (
+        int(guard["maximum_input_tokens"]) * prices["input_cache_miss"]
+        + int(guard["maximum_output_tokens"]) * prices["output"]
+    )
+    / 1_000_000,
+    8,
+)
+if budget_usd != 1.0 or bound_usd > budget_usd:
+    raise RuntimeError({"budget_usd": budget_usd, "conservative_bound_usd": bound_usd})
+snapshot = {
+    "schema_version": 1,
+    "observed_at": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "currency": "USD",
+    "unit": "per_million_tokens",
+    "prices_per_million_tokens": prices,
+    "attempt_limit": attempt_limit,
+    "budget_usd": budget_usd,
+    "conservative_bound_usd": bound_usd,
+}
+Path(".runs/manual-cortrix/pricing-snapshot.json").write_text(json.dumps(snapshot, indent=2) + "\n")
+print({"budget_usd": budget_usd, "attempt_limit": attempt_limit, "conservative_bound_usd": bound_usd, "pass": True})
+PY
+```
+
+With the reference prices above, the expected bound is:
+
+```text
+{'budget_usd': 1.0, 'attempt_limit': 1, 'conservative_bound_usd': 0.042, 'pass': True}
+```
+
+Stop if the gate fails. This manual session permits one complete attempt only; do not retry a deterministic failure.
 
 Inject the secret through the current shell or a secret manager. Confirm only that it exists; never print its value:
 
@@ -235,6 +298,38 @@ test "$READY" = 1
 curl -fsS http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-after-ingest.prom
 ```
 
+Reject the run if contextualization, HyPE, or document-summary failures increased during ingestion:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+
+before = Path(".runs/manual-cortrix/metrics-before-ingest.prom").read_text()
+after = Path(".runs/manual-cortrix/metrics-after-ingest.prom").read_text()
+keys = {
+    "f35_contextualization_failures": 'cortrix_contextual_retrieval_chunks_total{status="failed"}',
+    "f38_hype_failures": 'cortrix_hype_index_llm_calls_total{status="failed"}',
+    "f41_summary_failures": 'cortrix_doc_summary_llm_calls_total{status="failed"}',
+}
+
+def metric(text, key):
+    for line in text.splitlines():
+        if line.startswith(key + " "):
+            return float(line.rsplit(" ", 1)[1])
+    return 0.0
+
+deltas = {name: metric(after, key) - metric(before, key) for name, key in keys.items()}
+assert all(value == 0 for value in deltas.values()), deltas
+print({**deltas, "pass": True})
+PY
+```
+
+Expected output:
+
+```text
+{'f35_contextualization_failures': 0.0, 'f38_hype_failures': 0.0, 'f41_summary_failures': 0.0, 'pass': True}
+```
+
 The reference run completed with:
 
 ```text
@@ -339,6 +434,9 @@ projected = [project(item, rank) for rank, item in enumerate(response["results"]
 bge_leader = max(projected, key=lambda item: item["bge_rerank_score"])
 final_top = projected[0]
 resolver = next(item for item in projected if item["lifecycle_status"] == "current")
+selected_response = response["results"][resolver["final_response_rank"] - 1]
+expected_field = manifest["resolver"]["expected_field"]
+selected_content_contains_expected_field = isinstance(selected_response.get("content"), str) and expected_field in selected_response["content"]
 explain = response["explain"]
 required_paths = {"dense", "fts5", "contextualized", "hype_question", "sparse"}
 result = {
@@ -350,7 +448,8 @@ result = {
     "resolver_decision": {
         "selected_document_id": resolver["document_id"],
         "selected_version": resolver["version"],
-        "selected_field": manifest["resolver"]["expected_field"],
+        "selected_field": expected_field,
+        "selected_content_contains_expected_field": selected_content_contains_expected_field,
         "action": "preserved_final_top1" if resolver == final_top else "changed_final_top1",
     },
 }
@@ -364,6 +463,7 @@ assert bge_leader["document_id"] == "order-api-guide-v1.0"
 assert final_top["document_id"] == "order-api-release-v2.0"
 assert {"order-api-guide-v1.0", "order-api-release-v2.0"}.issubset({item["document_id"] for item in projected})
 assert result["resolver_decision"]["selected_field"] == "buyer_account_id"
+assert result["resolver_decision"]["selected_content_contains_expected_field"]
 print(json.dumps(result, indent=2))
 PY
 ```
@@ -378,6 +478,32 @@ The reference run showed:
     "fts5": 4,
     "hype_question": 4,
     "sparse": 4
+  },
+  "rag_fusion": {
+    "active": true,
+    "degraded": false,
+    "feature_id": "F36",
+    "llm_latency_ms": 1569,
+    "reason": "active",
+    "variant_count": 4,
+    "variants_used": [
+      "Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?",
+      "What field should be used instead of account_id when creating an order, since it is now rejected as unknown?",
+      "What are the valid request fields for the create order endpoint?",
+      "If account_id is not a valid field for creating an order, what is the correct field to include in the request?"
+    ]
+  },
+  "listwise_rerank": {
+    "active": true,
+    "degraded": false,
+    "feature_id": "F36-LR",
+    "llm_calls": 1,
+    "llm_latency_ms": 3040,
+    "model": "deepseek-v4-flash",
+    "order_changed": true,
+    "reason": "active",
+    "top_n_effective": 4,
+    "votes_ok": 1
   },
   "bge_leader": {
     "document_id": "order-api-guide-v1.0",
@@ -397,6 +523,7 @@ The reference run showed:
     "selected_document_id": "order-api-release-v2.0",
     "selected_version": "v2.0",
     "selected_field": "buyer_account_id",
+    "selected_content_contains_expected_field": true,
     "action": "preserved_final_top1"
   }
 }
@@ -449,6 +576,7 @@ docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T 
   python3 /demo-helpers/cleanup_namespaces.py "$B_NS"
 docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml down --remove-orphans
 python3 -c 'from pathlib import Path; Path(".runtime/config/cortrix.yaml").unlink(missing_ok=True)'
+unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY CORTRIX_LLM_ENABLED CORTRIX_LLM_PROVIDER CORTRIX_LLM_MODEL CORTRIX_LLM_BASE_URL
 ```
 
 Confirm that the three loopback ports are released:

@@ -119,9 +119,9 @@ class CatalogTests(unittest.TestCase):
         query_command = "python3 -c 'from pathlib import Path; print(Path(\"scenarios/order-api-field-migration/fixtures/query.txt\").read_text().strip())'"
         self.assertIn(query_command, run_a_pipeline)
         self.assertIn(query_command, run_b_pipeline)
-        for fragment in ("docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
+        for fragment in ("org.opencontainers.image.revision", "docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
             self.assertIn(fragment, run_a_pipeline)
-        for fragment in ("cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py"):
+        for fragment in ("org.opencontainers.image.revision", "config/external-call-policy.json", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
             self.assertIn(fragment, run_b_pipeline)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Demo observability versus production operation", readme)

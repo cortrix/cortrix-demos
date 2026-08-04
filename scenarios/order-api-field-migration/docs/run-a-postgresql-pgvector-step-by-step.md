@@ -61,6 +61,9 @@ if ! docker image inspect cortrix-demo:32b82f6 >/dev/null 2>&1; then
     --build-arg CORTRIX_SOURCE_REVISION=32b82f6f8f1d7a41349f408969ff03b7997b6c15 \
     .runtime/cortrix-src
 fi
+IMAGE_REVISION="$(docker image inspect cortrix-demo:32b82f6 --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+test "$IMAGE_REVISION" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+printf 'image source revision: %s\n' "$IMAGE_REVISION"
 ```
 
 Materialize the tracked embedding-only configuration. It contains no API key:
