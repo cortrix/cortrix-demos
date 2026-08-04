@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+import tempfile
 import unittest
 
 from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy
@@ -119,14 +122,73 @@ class CatalogTests(unittest.TestCase):
         query_command = "python3 -c 'from pathlib import Path; print(Path(\"scenarios/order-api-field-migration/fixtures/query.txt\").read_text().strip())'"
         self.assertIn(query_command, run_a_pipeline)
         self.assertIn(query_command, run_b_pipeline)
-        for fragment in ("org.opencontainers.image.revision", "docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
+        for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
             self.assertIn(fragment, run_a_pipeline)
-        for fragment in ("org.opencontainers.image.revision", "config/external-call-policy.json", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
+        for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "config/external-call-policy.json", "math.isfinite", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
             self.assertIn(fragment, run_b_pipeline)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Demo observability versus production operation", readme)
         self.assertIn("not a required Cortrix production interface", readme)
         self.assertIn("Humans can use the paired manual Runbooks", readme)
+
+    def test_manual_runbooks_fail_closed_on_source_and_pricing_drift(self) -> None:
+        def bash_block(text: str, needle: str) -> str:
+            needle_position = text.index(needle)
+            start = text.rfind("```bash\n", 0, needle_position) + len("```bash\n")
+            end = text.index("\n```", needle_position)
+            return text[start:end]
+
+        runbook_paths = (
+            ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector-step-by-step.md",
+            ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack-step-by-step.md",
+        )
+        for path in runbook_paths:
+            text = path.read_text(encoding="utf-8")
+            block = bash_block(text, "org.opencontainers.image.revision")
+            self.assertLess(block.index("set -euo pipefail"), block.index("git -C .runtime/cortrix-src checkout"))
+            self.assertIn("git -C .runtime/cortrix-src rev-parse HEAD", block)
+            source_guard = block[block.index('SOURCE_HEAD="'):block.index("if ! docker image inspect")]
+            source_guard = re.sub(r'^SOURCE_HEAD=.*$', 'SOURCE_HEAD="wrong"', source_guard, count=1, flags=re.MULTILINE)
+            source_result = subprocess.run(["bash", "-c", "set -euo pipefail\n" + source_guard], check=False, capture_output=True, text=True)
+            self.assertNotEqual(0, source_result.returncode)
+            image_guard = block[block.index('IMAGE_REVISION="'):]
+            image_guard = re.sub(r'^IMAGE_REVISION=.*$', 'IMAGE_REVISION="wrong"', image_guard, count=1, flags=re.MULTILINE)
+            image_result = subprocess.run(["bash", "-c", "set -euo pipefail\n" + image_guard], check=False, capture_output=True, text=True)
+            self.assertNotEqual(0, image_result.returncode)
+
+        run_b_text = runbook_paths[1].read_text(encoding="utf-8")
+        pricing_block = bash_block(run_b_text, "Pricing values must be finite and non-negative")
+        python_start = pricing_block.index("python3 - <<'PY'\n") + len("python3 - <<'PY'\n")
+        python_end = pricing_block.index("\nPY", python_start)
+        pricing_code = pricing_block[python_start:python_end]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "pricing-snapshot.json"
+            pricing_code = pricing_code.replace('Path(".runs/manual-cortrix/pricing-snapshot.json")', f"Path({str(output)!r})")
+            base_environment = {
+                **os.environ,
+                "DEEPSEEK_INPUT_CACHE_HIT_USD_PER_M": "0.0028",
+                "DEEPSEEK_OUTPUT_USD_PER_M": "0.28",
+            }
+            for invalid_value in ("nan", "-0.14"):
+                result = subprocess.run(
+                    [sys.executable, "-c", pricing_code],
+                    cwd=ROOT,
+                    env={**base_environment, "DEEPSEEK_INPUT_CACHE_MISS_USD_PER_M": invalid_value},
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(0, result.returncode)
+            valid = subprocess.run(
+                [sys.executable, "-c", pricing_code],
+                cwd=ROOT,
+                env={**base_environment, "DEEPSEEK_INPUT_CACHE_MISS_USD_PER_M": "0.14"},
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, valid.returncode, valid.stderr)
+            self.assertEqual(0.042, json.loads(output.read_text(encoding="utf-8"))["conservative_bound_usd"])
 
 
 if __name__ == "__main__":

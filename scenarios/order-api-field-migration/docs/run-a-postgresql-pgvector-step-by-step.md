@@ -49,11 +49,17 @@ Expected output:
 The Cortrix image must come from source revision `32b82f6f8f1d7a41349f408969ff03b7997b6c15`. If the image is not already present, prepare it from a local source checkout:
 
 ```bash
+set -euo pipefail
 mkdir -p .runtime
 if [ ! -d .runtime/cortrix-src/.git ]; then
   git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src
 fi
 git -C .runtime/cortrix-src checkout --detach 32b82f6f8f1d7a41349f408969ff03b7997b6c15
+SOURCE_HEAD="$(git -C .runtime/cortrix-src rev-parse HEAD)"
+if [ "$SOURCE_HEAD" != "32b82f6f8f1d7a41349f408969ff03b7997b6c15" ]; then
+  printf 'source revision mismatch: %s\n' "$SOURCE_HEAD" >&2
+  exit 1
+fi
 if ! docker image inspect cortrix-demo:32b82f6 >/dev/null 2>&1; then
   docker build \
     --tag cortrix-demo:32b82f6 \
@@ -62,7 +68,10 @@ if ! docker image inspect cortrix-demo:32b82f6 >/dev/null 2>&1; then
     .runtime/cortrix-src
 fi
 IMAGE_REVISION="$(docker image inspect cortrix-demo:32b82f6 --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
-test "$IMAGE_REVISION" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+if [ "$IMAGE_REVISION" != "32b82f6f8f1d7a41349f408969ff03b7997b6c15" ]; then
+  printf 'image source revision mismatch: %s\n' "$IMAGE_REVISION" >&2
+  exit 1
+fi
 printf 'image source revision: %s\n' "$IMAGE_REVISION"
 ```
 
