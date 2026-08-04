@@ -6,6 +6,7 @@
       "id": "order-api-field-migration",
       "display_name": "Order API Field Migration",
       "scenario_contract": "order-api-field-migration/scenario.json",
+      "validation_contract": "order-api-field-migration/expected/validation.json",
       "technology_profile": "order-api-field-migration/profiles/technology-profile.json",
       "human_guide": "order-api-field-migration/README.md",
       "accepted_pointer": "order-api-field-migration/evidence/accepted-run.json",

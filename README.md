@@ -30,11 +30,15 @@ Discover and verify the accepted replay without external calls:
 ./democtl verify-accepted
 ```
 
+`verify-accepted` proves `proof_scope: archive_integrity`: the tracked pointer, manifest, checksums, source identity, assertions, cleanup receipt, and screenshot bindings agree and remain unmodified. It reports `live_reexecution: false`; it does not rerun PostgreSQL, Cortrix, retrieval, or an LLM. Use the manual Runbooks or an explicitly authorized live run when you need to prove current reproducibility.
+
 Start the read-only viewer:
 
 ```bash
 make viewer
 ```
+
+The viewer tries the preferred local preview address and prints the address it actually uses. To force loopback or choose another port, run `make viewer VIEWER_BIND=127.0.0.1 VIEWER_PORT=18765`.
 
 Follow the two human-readable paths:
 
@@ -43,13 +47,7 @@ Follow the two human-readable paths:
 - [Run A Manual Runbook: PostgreSQL and pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) provides copy-and-paste Docker, HTTP, Python, and SQL commands for operating the baseline directly, without `democtl`.
 - [Run B Manual Runbook: Cortrix Full Stack](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) provides the matching copy-and-paste Docker, HTTP, and Python commands for configuring and querying Cortrix directly, without `democtl`.
 
-A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
-
-## Demo observability versus production operation
-
-This repository is designed to let both Agents and humans understand why each result was produced, not merely see the final answer. Agents use the structured `democtl` lifecycle for discovery, reproducibility, fail-closed execution, and evidence generation. Humans can use the paired manual Runbooks to operate the underlying components directly: Run A exposes PostgreSQL/pgvector storage and exact-cosine SQL, while Run B exposes Cortrix configuration, ingestion, retrieval, ranking layers, and lifecycle validation through direct APIs. Both Runbooks use the same frozen fixtures and query and pair copyable commands with real output excerpts.
-
-That level of terminal output is a Demo and audit feature, not a required Cortrix production interface. A production application normally automates embedding, ingestion, vector transfer, query construction, policy validation, and cleanup, and exposes only the business result and the operational telemetry required by its own reliability, privacy, and security policy. It should not copy these educational diagnostics into an end-user response, and it must never expose secrets, raw private content, local paths, or unnecessary provider internals. The manual commands use the underlying PostgreSQL and Cortrix interfaces; the Agent path adds orchestration and sanitized evidence projection without changing those interfaces.
+A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Its explicit preparation path clones the pinned Cortrix source and runs `./democtl prepare-image --scenario order-api-field-migration`; the command reuses a matching local image and builds from the pinned source only when the image is absent. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
 
 ## Inspect the evidence
 
@@ -64,6 +62,12 @@ Start with:
 
 Candidate runs stay in the ignored `.runs/` directory. Only independently accepted, sanitized evidence is promoted under a scenario's tracked `evidence/runs/` directory. Existing accepted evidence remains immutable historical identity even when shared repository infrastructure evolves.
 
+## Demo observability versus production operation
+
+This repository is designed to let both Agents and humans understand why each result was produced, not merely see the final answer. Agents use the structured `democtl` lifecycle for discovery, reproducibility, fail-closed execution, and evidence generation. Humans can use the paired manual Runbooks to operate the underlying components directly: Run A exposes PostgreSQL/pgvector storage and exact-cosine SQL, while Run B exposes Cortrix configuration, ingestion, retrieval, ranking layers, and lifecycle validation through direct APIs. Both Runbooks use the same frozen fixtures and query and pair copyable commands with real output excerpts.
+
+That level of terminal output is a Demo and audit feature, not a required Cortrix production interface. A production application normally automates embedding, ingestion, vector transfer, query construction, policy validation, and cleanup, and exposes only the business result and the operational telemetry required by its own reliability, privacy, and security policy. It should not copy these educational diagnostics into an end-user response, and it must never expose secrets, raw private content, local paths, or unnecessary provider internals. The manual commands use the underlying PostgreSQL and Cortrix interfaces; the Agent path adds orchestration and sanitized evidence projection without changing those interfaces.
+
 ## Agent-first by design
 
 Agent-first means the executable contract does not begin with an Agent interpreting long prose. A newly cloned repository exposes [agent.json](agent.json) as its root machine entry, then routes the Agent through scenario discovery, description, validation, accepted-evidence verification, and structured errors. The default path is read-only and makes zero external model calls.
@@ -73,7 +77,7 @@ This design is intended to earn human trust, not remove human judgment. Humans c
 For a first-time Agent, the discovery order is:
 
 ```text
-agent.json -> scenarios/registry.json -> scenario.json -> technology profile -> adapter registry -> accepted-run pointer -> run manifest
+agent.json -> scenarios/registry.json -> scenario.json -> scenario validation contract -> technology profile -> adapter registry -> accepted-run pointer -> run manifest
 ```
 
 See [Agent quick start](docs/agent-quickstart.md) for the complete safe lifecycle and review boundaries.
@@ -89,12 +93,14 @@ scenarios/<id>/
   scenario.json                    Business question and frozen assertions
   fixtures/                        Synthetic or curated scenario inputs
   expected/                        Machine-checkable expected outcomes
+  expected/validation.json         Scenario-owned validation and accepted evidence requirements
   profiles/technology-profile.json Scenario-selected database, Cortrix, and LLM stack
   docs/                            Scenario-specific human Run A and Run B guides
   web/                             Scenario presentation copy for the viewer
   evidence/                        Accepted-run pointer and immutable accepted runs
 runtime/adapters/                  Reusable database and LLM provider integrations
 runtime/config/                    Runtime profiles used by implemented adapters
+runtime/image-provenance.json      Local source build and OCI revision contract
 packages/runner/                   Shared discovery, validation, execution, and cleanup
 packages/evidence-schema/          Machine-readable evidence contracts
 packages/viewer/                   Read-only human projection of accepted evidence

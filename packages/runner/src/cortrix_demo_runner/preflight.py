@@ -7,32 +7,69 @@ from typing import Any
 
 from .errors import DemoContractError
 from .io import read_json
-from .scenario import RELEASE_COMMIT, SOURCE_REVISION
 
 
 REVIEWED_ATTEMPT_LIMITS = (2, 3, 4, 5)
 
 
-def require_api_key() -> None:
-    value = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+def require_api_key(secret_env: str = "DEEPSEEK_API_KEY") -> None:
+    value = os.environ.get(secret_env, "").strip()
     if len(value) < 20:
-        raise DemoContractError("DEEPSEEK_API_KEY is missing; no external call was made")
+        raise DemoContractError(
+            f"{secret_env} is missing; no external call was made",
+            code="CX_DEMO_SECRET_MISSING",
+            category="auth",
+            structured_data={
+                "secret_env": secret_env,
+                "external_calls_made": False,
+                "next_action": f"Inject {secret_env} through the process environment, then rerun preflight.",
+            },
+        )
 
 
-def verify_source(source: Path) -> dict[str, str]:
+def verify_source(
+    source: Path,
+    *,
+    release_commit: str,
+    source_revision: str,
+    source_repository: str | None = None,
+    source_path: str = ".runtime/cortrix-src",
+) -> dict[str, str]:
     if not (source / ".git").exists():
-        raise DemoContractError("Pinned Cortrix source checkout is missing")
+        raise DemoContractError(
+            "Pinned Cortrix source checkout is missing",
+            code="CX_DEMO_SOURCE_CHECKOUT_MISSING",
+            structured_data={
+                "required_path": source_path,
+                "source_repository": source_repository,
+                "source_revision": source_revision,
+                "next_action": "Obtain the repository, check out the required revision, and rerun this command.",
+            },
+        )
     head = _git(source, "rev-parse", "HEAD")
-    if head != SOURCE_REVISION:
-        raise DemoContractError(f"Cortrix source revision mismatch: {head}")
+    if head != source_revision:
+        raise DemoContractError(
+            "Cortrix source revision does not match the scenario contract",
+            code="CX_DEMO_SOURCE_REVISION_MISMATCH",
+            structured_data={
+                "required_path": source_path,
+                "expected_revision": source_revision,
+                "actual_revision": head,
+                "next_action": f"Check out {source_revision} in the pinned source directory.",
+            },
+        )
     ancestor = subprocess.run(
-        ["git", "-C", str(source), "merge-base", "--is-ancestor", RELEASE_COMMIT, SOURCE_REVISION],
+        ["git", "-C", str(source), "merge-base", "--is-ancestor", release_commit, source_revision],
         capture_output=True,
         check=False,
     )
     if ancestor.returncode != 0:
-        raise DemoContractError("The validated source revision does not descend from the release commit")
-    return {"release_commit": RELEASE_COMMIT, "source_revision": head}
+        raise DemoContractError(
+            "The validated source revision does not descend from the release commit",
+            code="CX_DEMO_SOURCE_ANCESTRY_INVALID",
+            structured_data={"release_commit": release_commit, "source_revision": source_revision, "next_action": "Use the source history required by the scenario contract."},
+        )
+    return {"release_commit": release_commit, "source_revision": head}
 
 
 def verify_pricing_snapshot(path: Path) -> dict[str, Any]:
@@ -49,23 +86,66 @@ def verify_pricing_snapshot(path: Path) -> dict[str, Any]:
 
 
 def verify_runtime() -> dict[str, str]:
-    docker = subprocess.run(["docker", "version", "--format", "{{.Client.Version}} {{.Server.Version}}"], capture_output=True, text=True, check=False)
+    try:
+        docker = subprocess.run(["docker", "version", "--format", "{{.Client.Version}} {{.Server.Version}}"], capture_output=True, text=True, check=False)
+    except FileNotFoundError as exc:
+        raise DemoContractError(
+            "Docker CLI is unavailable",
+            code="CX_DEMO_DOCKER_CLI_MISSING",
+            structured_data={"requirement": "docker", "next_action": "Install Docker and make the docker command available on PATH."},
+        ) from exc
     if docker.returncode != 0:
-        raise DemoContractError("Docker runtime is unavailable")
-    compose = subprocess.run(["docker-compose", "version", "--short"], capture_output=True, text=True, check=False)
+        raise DemoContractError(
+            "Docker engine is unavailable",
+            code="CX_DEMO_DOCKER_ENGINE_UNAVAILABLE",
+            category="transient",
+            retryable=True,
+            retry_after_ms=1000,
+            structured_data={"requirement": "docker_engine", "next_action": "Start the Docker engine, wait until it is ready, and rerun preflight."},
+        )
+    try:
+        compose = subprocess.run(["docker-compose", "version", "--short"], capture_output=True, text=True, check=False)
+    except FileNotFoundError as exc:
+        raise DemoContractError(
+            "Docker Compose CLI is unavailable",
+            code="CX_DEMO_COMPOSE_CLI_MISSING",
+            structured_data={"requirement": "docker-compose", "next_action": "Install Docker Compose and make docker-compose available on PATH."},
+        ) from exc
     if compose.returncode != 0:
-        raise DemoContractError("Docker Compose is unavailable")
+        raise DemoContractError(
+            "Docker Compose is unavailable",
+            code="CX_DEMO_COMPOSE_UNAVAILABLE",
+            structured_data={"requirement": "docker-compose", "next_action": "Repair the Docker Compose installation, then rerun preflight."},
+        )
     return {"docker": docker.stdout.strip(), "docker_compose": compose.stdout.strip()}
 
 
-def full_stack_preflight(source: Path, pricing_snapshot: Path, reviewed_attempt_limit: int = 2, budget_usd: float = 1.0) -> dict[str, Any]:
+def full_stack_preflight(
+    source: Path,
+    pricing_snapshot: Path,
+    *,
+    release_commit: str,
+    source_revision: str,
+    source_repository: str | None = None,
+    source_path: str = ".runtime/cortrix-src",
+    secret_env: str = "DEEPSEEK_API_KEY",
+    reviewed_attempt_limit: int = 2,
+    budget_usd: float = 1.0,
+) -> dict[str, Any]:
     if reviewed_attempt_limit not in REVIEWED_ATTEMPT_LIMITS:
         raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, 4, or 5")
-    require_api_key()
+    require_api_key(secret_env)
     return {
         "secret_present": True,
+        "secret_env": secret_env,
         "secret_value_recorded": False,
-        "source": verify_source(source),
+        "source": verify_source(
+            source,
+            release_commit=release_commit,
+            source_revision=source_revision,
+            source_repository=source_repository,
+            source_path=source_path,
+        ),
         "runtime": verify_runtime(),
         "pricing": verify_pricing_snapshot(pricing_snapshot),
         "budget_usd": budget_usd,

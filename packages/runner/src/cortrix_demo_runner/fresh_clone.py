@@ -7,7 +7,7 @@ import tempfile
 from typing import Any
 
 from .acceptance import verify_accepted
-from .catalog import load_agent_manifest
+from .catalog import default_scenario_id, load_agent_manifest
 from .errors import DemoContractError
 
 
@@ -25,10 +25,11 @@ def verify_readme(text: str) -> None:
 def verify_agent_bootstrap(clone: Path) -> dict[str, Any]:
     manifest = load_agent_manifest(clone)
     commands = manifest["bootstrap"]["safe_default"]
+    scenario_id = default_scenario_id(clone)
     required_commands = {
         "./democtl list --json",
-        "./democtl describe --scenario order-api-field-migration --json",
-        "./democtl validate --scenario order-api-field-migration",
+        f"./democtl describe --scenario {scenario_id} --json",
+        f"./democtl validate --scenario {scenario_id}",
         "./democtl verify-accepted",
     }
     if not required_commands.issubset(set(commands)):

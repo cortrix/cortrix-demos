@@ -15,12 +15,13 @@ from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
 from .resolver import apply_lifecycle_resolver
-from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, scenario_root, validate_scenario
+from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, require_scenario_image_provenance, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
+from .scenario import assertion_contract_path, load_assertion_contract, load_scenario, resolve_scenario_id, scenario_root, validate_scenario
 
 
-def new_run_id() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("order-api-field-migration-%Y%m%dT%H%M%SZ")
+def new_run_id(scenario_id: str) -> str:
+    timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"{scenario_id}-{timestamp}"
 
 
 def attempt_ledger_path(root: Path, campaign_id: str | None = None) -> Path:
@@ -337,7 +338,7 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
         "observable_input_tokens": input_tokens,
         "observable_output_tokens": output_tokens,
         "observable_call_count_minimum": 5,
-        "model": "deepseek-v4-flash",
+        "model": pricing.get("model"),
         "estimated_observable_cost_usd": observed_cost,
         "estimated_total_usd": None,
         "usage_visibility": "partial",
@@ -348,17 +349,20 @@ def cost_record(pricing: dict[str, Any], smoke: dict[str, Any], run_b_result: di
 
 
 def source_manifest(run_id: str, attempt: int, campaign_id: str, image: dict[str, str], fixture_manifest: Path, assertion_contract: Path, scenario: dict[str, Any], demo_checkout: dict[str, str]) -> dict[str, Any]:
+    technology = read_json(fixture_manifest.parent.parent / "profiles" / "technology-profile.json")
+    llm = technology["llm"]
+    requires = scenario["requires"]
     return {
         "schema_version": 1,
         "run_id": run_id,
         "attempt": attempt,
         "campaign_id": campaign_id,
-        "scenario_id": SCENARIO_ID,
+        "scenario_id": scenario["id"],
         "scenario_version": scenario["scenario_version"],
-        "source": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION, "container_image": image["image"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"], "demo_branch": demo_checkout["branch"], "demo_working_tree": demo_checkout["working_tree"]},
+        "source": {"cortrix_release": requires["cortrix_release"], "cortrix_release_commit": requires["cortrix_release_commit"], "cortrix_source_revision": requires["cortrix_source_revision"], "container_image": image["image"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"], "demo_branch": demo_checkout["branch"], "demo_working_tree": demo_checkout["working_tree"]},
         "fixture_manifest_sha256": sha256_file(fixture_manifest),
         "assertion_contract_sha256": sha256_file(assertion_contract),
-        "provider": {"provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1", "local_generative_llm": False},
+        "provider": {"provider": llm["provider"], "model": llm["model"], "base_url": llm.get("base_url", "https://api.deepseek.com/v1"), "local_generative_llm": False},
         "private_source_paths_recorded": False,
         "secret_recorded": False,
     }
@@ -382,8 +386,9 @@ def finalize_candidate(
     run_b_result: dict[str, Any],
 ) -> dict[str, Any]:
     campaign_id = scenario["execution_contract"]["campaign_id"]
-    fixture_manifest_path = scenario_root(root) / "fixtures" / "manifest.json"
-    assertion_path = assertion_contract_path(root)
+    scenario_id = scenario["id"]
+    fixture_manifest_path = scenario_root(root, scenario_id) / "fixtures" / "manifest.json"
+    assertion_path = assertion_contract_path(root, scenario_id)
     run_dir = root / ".runs" / run_id
     receipt_path = run_dir / "cleanup-receipt.json"
     runtime = sanitized_runtime(run_id, health, image)
@@ -420,12 +425,12 @@ def finalize_candidate(
     run_manifest = {
         "schema_version": 1,
         "run_id": run_id,
-        "scenario_id": SCENARIO_ID,
+        "scenario_id": scenario_id,
         "scenario_version": scenario["scenario_version"],
         "campaign_id": campaign_id,
         "campaign_slot": attempt,
         "state": state,
-        "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
+        "target_identity": {"release": scenario["requires"]["cortrix_release"], "release_commit": scenario["requires"]["cortrix_release_commit"], "source_revision": scenario["requires"]["cortrix_source_revision"], "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
         "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
         "assertion_contract_sha256": source_identity["assertion_contract_sha256"],
         "provider_identity": source_identity["provider"],
@@ -459,25 +464,37 @@ def finalize_candidate(
     return run_manifest
 
 
-def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
-    scenario_failures = validate_scenario(root)
+def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2, *, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(root, scenario_id)
+    scenario_failures = validate_scenario(root, resolved_id)
     if scenario_failures:
         raise DemoContractError("Scenario validation failed: " + "; ".join(scenario_failures))
-    scenario = load_scenario(root)
+    scenario = load_scenario(root, resolved_id)
     execution_contract = scenario["execution_contract"]
     campaign_id = execution_contract["campaign_id"]
-    assertion_contract = load_assertion_contract(root)
+    assertion_contract = load_assertion_contract(root, resolved_id)
     frozen_assertions = assertion_contract["frozen"]
-    fixture_root = scenario_root(root) / "fixtures"
+    fixture_root = scenario_root(root, resolved_id) / "fixtures"
     manifest = read_json(fixture_root / "manifest.json")
-    profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
+    profile = read_json(scenario_root(root, resolved_id) / "profiles" / "full-stack.json")
     external_policy = load_external_call_policy(root)
     effective_profile = dict(profile)
     effective_profile["budget_usd"] = min(float(profile["budget_usd"]), float(external_policy["budget_usd"]))
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     if reviewed_attempt_limit > int(execution_contract["campaign_attempt_cap"]):
         raise DemoContractError("The reviewed attempt limit exceeds the sealed campaign cap")
-    preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit, budget_usd=float(effective_profile["budget_usd"]))
+    provenance = require_scenario_image_provenance(scenario["requires"])
+    technology = read_json(scenario_root(root, resolved_id) / "profiles" / "technology-profile.json")
+    preflight = full_stack_preflight(
+        source,
+        pricing_path,
+        release_commit=scenario["requires"]["cortrix_release_commit"],
+        source_revision=scenario["requires"]["cortrix_source_revision"],
+        source_repository=provenance["source_repository"],
+        secret_env=technology["llm"]["secret_env"],
+        reviewed_attempt_limit=reviewed_attempt_limit,
+        budget_usd=float(effective_profile["budget_usd"]),
+    )
     pricing = read_json(pricing_path)
     bound = require_budget_bound(effective_profile, pricing, reviewed_attempt_limit)
     verify_fixture_hashes(fixture_root, manifest)
@@ -552,17 +569,18 @@ def sanitized_error(exc: Exception) -> str:
     return message.replace(str(ROOT), "[repository]")
 
 
-def execute_with_retry(root: Path, source: Path, pricing_path: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
+def execute_with_retry(root: Path, source: Path, pricing_path: Path, reviewed_attempt_limit: int = 2, *, scenario_id: str | None = None) -> dict[str, Any]:
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
-    campaign_id = load_scenario(root)["execution_contract"]["campaign_id"]
-    first_id = new_run_id()
+    resolved_id = resolve_scenario_id(root, scenario_id)
+    campaign_id = load_scenario(root, resolved_id)["execution_contract"]["campaign_id"]
+    first_id = new_run_id(resolved_id)
     try:
-        return execute_once(root, source, pricing_path, first_id, reviewed_attempt_limit)
+        return execute_once(root, source, pricing_path, first_id, reviewed_attempt_limit, scenario_id=resolved_id)
     except (DemoContractError, subprocess.CalledProcessError, urllib.error.URLError) as first_error:
         category = failure_category(first_error)
         if category not in {"http_429", "http_5xx", "timeout"}:
             raise
         if len(attempt_ledger(root, campaign_id)["full_stack_attempts"]) >= reviewed_attempt_limit:
             raise
-        retry_id = new_run_id() + "-retry"
-        return execute_once(root, source, pricing_path, retry_id, reviewed_attempt_limit)
+        retry_id = new_run_id(resolved_id) + "-retry"
+        return execute_once(root, source, pricing_path, retry_id, reviewed_attempt_limit, scenario_id=resolved_id)

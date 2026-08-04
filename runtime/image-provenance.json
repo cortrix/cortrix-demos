@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "distribution": "local_source_build",
+  "image": "cortrix-demo:32b82f6",
+  "source_repository": "https://github.com/cortrix/cortrix.git",
+  "cortrix_release": "v1.0.0-rc.1",
+  "release_commit": "e159974f936bd987d5718195d54cd70ff3acc2e5",
+  "source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15",
+  "dockerfile": "deploy/Dockerfile",
+  "source_revision_build_arg": "CORTRIX_SOURCE_REVISION",
+  "required_oci_revision_label": "org.opencontainers.image.revision",
+  "registry_source": null,
+  "external_model_calls": 0
+}

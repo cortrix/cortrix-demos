@@ -3,119 +3,141 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .catalog import default_scenario_id
 from .errors import DemoContractError
 from .io import read_json, sha256_file
 
 
-SCENARIO_ID = "order-api-field-migration"
-RELEASE = "v1.0.0-rc.1"
-RELEASE_COMMIT = "e159974f936bd987d5718195d54cd70ff3acc2e5"
-SOURCE_REVISION = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
-EXPECTED_RETRIEVAL_CONTRACT = {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"}
-EXPECTED_SCENARIO_VERSION = "2.0.0"
-EXPECTED_CONSTRUCTION_NOTE = "Synthetic scenario designed to isolate a common API version-conflict failure mode."
-EXPECTED_EXECUTION_CONTRACT = {"sealed": True, "campaign_id": "order-api-field-migration-2.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0}
-REQUIRED_LAYERED_ASSERTIONS = {
-    "run_a_dense_cosine_top_document_id",
-    "run_a_dense_cosine_top_document_status",
-    "run_a_required_current_document_id",
-    "run_a_required_current_document_status",
-    "run_b_required_document_ids",
-    "run_b_final_top_document_id",
-    "run_b_final_top_document_status",
-    "resolver_selected_document_id",
-    "resolver_selected_field",
-    "resolver_action",
-}
-REQUIRED_FULL_STACK_PATHS = {
-    "bge_m3_embedding",
-    "bm25_recall",
-    "contextualized_recall",
-    "hype_recall",
-    "rrf_fusion",
-    "bge_cross_encoder_rerank",
-    "f41_document_summary_ingestion",
-    "chunk_only_result_identity",
-    "deepseek_ingestion",
-    "deepseek_query_fusion",
-    "deepseek_listwise_rerank",
-    "application_lifecycle_resolver",
-}
+def resolve_scenario_id(repo_root: Path, scenario_id: str | None = None) -> str:
+    return scenario_id or default_scenario_id(repo_root)
 
 
-def scenario_root(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
-    return repo_root / "scenarios" / scenario_id
+def scenario_root(repo_root: Path, scenario_id: str | None = None) -> Path:
+    return repo_root / "scenarios" / resolve_scenario_id(repo_root, scenario_id)
 
 
-def load_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, Any]:
-    root = scenario_root(repo_root, scenario_id)
+def load_scenario(repo_root: Path, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    root = scenario_root(repo_root, resolved_id)
     scenario = read_json(root / "scenario.json")
-    if scenario.get("id") != scenario_id:
-        raise DemoContractError("Scenario ID does not match its directory")
+    if scenario.get("schema_version") != 1 or scenario.get("id") != resolved_id:
+        raise DemoContractError(
+            "Scenario ID does not match its directory",
+            code="CX_DEMO_SCENARIO_IDENTITY_INVALID",
+            structured_data={"scenario_id": resolved_id, "next_action": "Make scenario.json id match its registered directory name."},
+        )
     requires = scenario.get("requires")
     if not isinstance(requires, dict):
         raise DemoContractError("Scenario requires object is missing")
-    expected = {
-        "cortrix_release": RELEASE,
-        "cortrix_release_commit": RELEASE_COMMIT,
-        "cortrix_source_revision": SOURCE_REVISION,
-    }
-    for key, value in expected.items():
-        if requires.get(key) != value:
-            raise DemoContractError(f"Scenario identity mismatch for {key}")
+    for key in ("cortrix_release", "cortrix_release_commit", "cortrix_source_revision"):
+        value = requires.get(key)
+        if not isinstance(value, str) or not value:
+            raise DemoContractError(
+                f"Scenario source identity is missing {key}",
+                code="CX_DEMO_SCENARIO_SOURCE_IDENTITY_INVALID",
+                structured_data={"scenario_id": resolved_id, "field": key, "next_action": "Set the missing source identity in scenario.json."},
+            )
     return scenario
 
 
-def require_reviewed_retrieval_contract(scenario: dict[str, Any]) -> None:
-    if scenario.get("scenario_version") != EXPECTED_SCENARIO_VERSION or scenario.get("retrieval_contract") != EXPECTED_RETRIEVAL_CONTRACT:
-        raise DemoContractError("Scenario must preserve the reviewed 2.0.0 sealed chunk-only retrieval contract")
-    if scenario.get("synthetic_data") is not True or scenario.get("construction_note") != EXPECTED_CONSTRUCTION_NOTE:
-        raise DemoContractError("Scenario must disclose the reviewed synthetic construction boundary")
-    if scenario.get("execution_contract") != EXPECTED_EXECUTION_CONTRACT:
-        raise DemoContractError("Scenario must preserve the reviewed sealed campaign contract")
-
-
-def assertion_contract_path(repo_root: Path, scenario_id: str = SCENARIO_ID) -> Path:
+def _scenario_relative_file(repo_root: Path, scenario_id: str, value: object, label: str) -> Path:
     root = scenario_root(repo_root, scenario_id).resolve()
-    scenario = load_scenario(repo_root, scenario_id)
-    value = scenario.get("assertions")
-    if not isinstance(value, str) or not value:
-        raise DemoContractError("Scenario assertion contract path is missing")
+    if not isinstance(value, str) or not value or Path(value).is_absolute():
+        raise DemoContractError(f"{label} must be a non-empty relative path")
     path = (root / value).resolve()
     if root not in path.parents:
-        raise DemoContractError("Scenario assertion contract path escapes the scenario root")
+        raise DemoContractError(f"{label} escapes the scenario root")
+    if not path.is_file():
+        raise DemoContractError(
+            f"{label} does not exist",
+            structured_data={"scenario_id": scenario_id, "path": value, "next_action": f"Create the registered {label.lower()} file."},
+        )
     return path
 
 
-def load_assertion_contract(repo_root: Path, scenario_id: str = SCENARIO_ID) -> dict[str, Any]:
-    contract = read_json(assertion_contract_path(repo_root, scenario_id))
-    if contract.get("schema_version") != 1 or contract.get("scenario_id") != scenario_id:
-        raise DemoContractError("Scenario assertion contract identity is invalid")
-    frozen = contract.get("frozen")
-    if not isinstance(frozen, dict) or not REQUIRED_LAYERED_ASSERTIONS.issubset(frozen):
-        raise DemoContractError("Scenario layered-ranking assertions are incomplete")
+def validation_contract_path(repo_root: Path, scenario_id: str | None = None) -> Path:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    scenario = load_scenario(repo_root, resolved_id)
+    return _scenario_relative_file(repo_root, resolved_id, scenario.get("validation_contract"), "Scenario validation contract")
+
+
+def load_validation_contract(repo_root: Path, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    contract = read_json(validation_contract_path(repo_root, resolved_id))
+    if contract.get("schema_version") != 1 or contract.get("scenario_id") != resolved_id:
+        raise DemoContractError("Scenario validation contract identity is invalid")
     return contract
 
 
-def validate_fixture_manifest(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[str]:
-    root = scenario_root(repo_root, scenario_id)
-    manifest_path = root / "fixtures" / "manifest.json"
+def require_reviewed_retrieval_contract(
+    scenario: dict[str, Any],
+    validation: dict[str, Any],
+) -> None:
+    identity = validation.get("scenario_identity")
+    if not isinstance(identity, dict):
+        raise DemoContractError("Scenario validation identity is missing")
+    for key in ("scenario_version", "retrieval_contract", "construction_note", "execution_contract"):
+        if scenario.get(key) != identity.get(key):
+            raise DemoContractError(
+                f"Scenario reviewed identity mismatch for {key}",
+                code="CX_DEMO_SCENARIO_CONTRACT_DRIFT",
+                structured_data={"scenario_id": scenario.get("id"), "field": key, "next_action": "Review and update the scenario validation contract before changing sealed inputs."},
+            )
+    if scenario.get("synthetic_data") is not identity.get("synthetic_data"):
+        raise DemoContractError("Scenario synthetic data disclosure does not match its validation contract")
+
+
+def assertion_contract_path(repo_root: Path, scenario_id: str | None = None) -> Path:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    scenario = load_scenario(repo_root, resolved_id)
+    return _scenario_relative_file(repo_root, resolved_id, scenario.get("assertions"), "Scenario assertion contract")
+
+
+def load_assertion_contract(repo_root: Path, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    contract = read_json(assertion_contract_path(repo_root, resolved_id))
+    if contract.get("schema_version") != 1 or contract.get("scenario_id") != resolved_id:
+        raise DemoContractError("Scenario assertion contract identity is invalid")
+    frozen = contract.get("frozen")
+    validation = load_validation_contract(repo_root, resolved_id)
+    assertion_rules = validation.get("assertion_contract")
+    required = assertion_rules.get("required_keys") if isinstance(assertion_rules, dict) else None
+    if not isinstance(frozen, dict) or not isinstance(required, list) or not all(isinstance(key, str) for key in required) or not set(required).issubset(frozen):
+        raise DemoContractError("Scenario assertion contract is incomplete")
+    return contract
+
+
+def validate_fixture_manifest(repo_root: Path, scenario_id: str | None = None) -> list[str]:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
+    root = scenario_root(repo_root, resolved_id)
+    scenario = load_scenario(repo_root, resolved_id)
+    fixtures = scenario.get("fixtures")
+    manifest_value = fixtures.get("manifest") if isinstance(fixtures, dict) else None
+    try:
+        manifest_path = _scenario_relative_file(repo_root, resolved_id, manifest_value, "Fixture manifest")
+    except DemoContractError as exc:
+        return [str(exc)]
     manifest = read_json(manifest_path)
+    validation = load_validation_contract(repo_root, resolved_id)
+    fixture_rules = validation.get("fixture_contract")
+    expected_count = fixture_rules.get("document_count") if isinstance(fixture_rules, dict) else None
     failures: list[str] = []
     query = manifest.get("query")
     if not isinstance(query, dict):
         failures.append("Fixture query object is missing")
     else:
-        failures.extend(_validate_hash(root / "fixtures", query, "query"))
+        failures.extend(_validate_hash(manifest_path.parent, query, "query"))
     documents = manifest.get("documents")
-    if not isinstance(documents, list) or len(documents) != 4:
-        failures.append("Fixture manifest must contain exactly four reviewed documents")
+    if not isinstance(expected_count, int) or expected_count < 1:
+        failures.append("Scenario validation contract has no positive fixture document count")
+    elif not isinstance(documents, list) or len(documents) != expected_count:
+        failures.append(f"Fixture manifest must contain exactly {expected_count} reviewed documents")
     else:
         for index, document in enumerate(documents):
             if not isinstance(document, dict):
                 failures.append(f"Fixture document {index} is not an object")
                 continue
-            failures.extend(_validate_hash(root / "fixtures", document, f"document {index}"))
+            failures.extend(_validate_hash(manifest_path.parent, document, f"document {index}"))
     return failures
 
 
@@ -133,58 +155,74 @@ def _validate_hash(fixtures_root: Path, item: dict[str, Any], label: str) -> lis
     return []
 
 
-def validate_scenario(repo_root: Path, scenario_id: str = SCENARIO_ID) -> list[str]:
+def validate_scenario(repo_root: Path, scenario_id: str | None = None) -> list[str]:
+    resolved_id = resolve_scenario_id(repo_root, scenario_id)
     failures: list[str] = []
     try:
-        scenario = load_scenario(repo_root, scenario_id)
-    except DemoContractError as exc:
+        scenario = load_scenario(repo_root, resolved_id)
+        validation = load_validation_contract(repo_root, resolved_id)
+    except (DemoContractError, OSError, ValueError) as exc:
         return [str(exc)]
     if scenario.get("evidence_schema") != 1:
         failures.append("Evidence schema must be version 1")
     try:
-        require_reviewed_retrieval_contract(scenario)
+        require_reviewed_retrieval_contract(scenario, validation)
     except DemoContractError as exc:
         failures.append(str(exc))
     locales = scenario.get("locales")
-    if locales != {"default": "en-US", "available": ["en-US"]}:
-        failures.append("Official locale bundle must contain only en-US")
-    profile = read_json(scenario_root(repo_root, scenario_id) / "profiles" / "full-stack.json")
-    if profile.get("budget_usd") != 5.0:
-        failures.append("Full Stack budget must be USD 5.00")
-    if profile.get("max_full_stack_attempts") != 2:
-        failures.append("Full Stack attempts must be capped at two")
-    if profile.get("local_generative_llm") is not False:
-        failures.append("Local generative LLM must be disabled")
-    required_paths = profile.get("required_paths")
-    if not isinstance(required_paths, list) or set(required_paths) != REQUIRED_FULL_STACK_PATHS or len(required_paths) != len(REQUIRED_FULL_STACK_PATHS):
-        failures.append("Full Stack profile must declare the exact reviewed required paths")
-    failures.extend(validate_fixture_manifest(repo_root, scenario_id))
+    if not isinstance(locales, dict) or not isinstance(locales.get("default"), str) or locales.get("default") not in locales.get("available", []):
+        failures.append("Scenario locale bundle must include its default locale")
+    profile = read_json(scenario_root(repo_root, resolved_id) / "profiles" / "full-stack.json")
+    profile_rules = validation.get("full_stack_profile")
+    if not isinstance(profile_rules, dict):
+        failures.append("Scenario validation contract has no Full Stack profile rules")
+    else:
+        for key in ("budget_usd", "max_full_stack_attempts", "local_generative_llm"):
+            if profile.get(key) != profile_rules.get(key):
+                failures.append(f"Full Stack profile does not match the scenario contract for {key}")
+        required_paths = profile.get("required_paths")
+        expected_paths = profile_rules.get("required_paths")
+        if not isinstance(required_paths, list) or not isinstance(expected_paths, list) or len(required_paths) != len(set(required_paths)) or set(required_paths) != set(expected_paths):
+            failures.append("Full Stack profile does not declare the scenario's exact required paths")
+    failures.extend(validate_fixture_manifest(repo_root, resolved_id))
     try:
-        contract = load_assertion_contract(repo_root, scenario_id)
+        contract = load_assertion_contract(repo_root, resolved_id)
     except (DemoContractError, OSError, ValueError) as exc:
         failures.append(str(exc))
         return failures
     frozen = contract["frozen"]
-    fixture_manifest = read_json(scenario_root(repo_root, scenario_id) / "fixtures" / "manifest.json")
+    fixture_manifest = read_json(scenario_root(repo_root, resolved_id) / "fixtures" / "manifest.json")
     documents = fixture_manifest.get("documents")
     by_id = {item.get("document_id"): item for item in documents if isinstance(item, dict)} if isinstance(documents, list) else {}
-    expected_documents = (
-        ("run_a_dense_cosine_top_document_id", "run_a_dense_cosine_top_document_status"),
-        ("run_a_required_current_document_id", "run_a_required_current_document_status"),
-        ("run_b_final_top_document_id", "run_b_final_top_document_status"),
-    )
-    for document_key, status_key in expected_documents:
-        document = by_id.get(frozen.get(document_key))
-        if not isinstance(document, dict) or document.get("status") != frozen.get(status_key):
-            failures.append(f"Layered assertion {document_key} does not match a fixture document and status")
-    required_run_b_documents = frozen.get("run_b_required_document_ids")
-    if not isinstance(required_run_b_documents, list) or len(required_run_b_documents) != 2 or len(set(required_run_b_documents)) != 2 or any(document_id not in by_id for document_id in required_run_b_documents):
-        failures.append("Run B required document identities must name two distinct fixture documents")
-    if fixture_manifest.get("synthetic_data") is not True or fixture_manifest.get("construction_note") != EXPECTED_CONSTRUCTION_NOTE:
-        failures.append("Fixture manifest must disclose the reviewed synthetic construction boundary")
+    document_pairs = validation.get("document_assertion_pairs")
+    if not isinstance(document_pairs, list):
+        failures.append("Scenario validation contract has no document assertion pairs")
+    else:
+        for pair in document_pairs:
+            document_key = pair.get("document_key") if isinstance(pair, dict) else None
+            status_key = pair.get("status_key") if isinstance(pair, dict) else None
+            document = by_id.get(frozen.get(document_key))
+            if not isinstance(document_key, str) or not isinstance(status_key, str) or not isinstance(document, dict) or document.get("status") != frozen.get(status_key):
+                failures.append(f"Scenario document assertion does not match a fixture document: {document_key}")
+    list_rules = validation.get("document_list_assertions")
+    if isinstance(list_rules, list):
+        for rule in list_rules:
+            key = rule.get("key") if isinstance(rule, dict) else None
+            count = rule.get("count") if isinstance(rule, dict) else None
+            values = frozen.get(key)
+            if not isinstance(key, str) or not isinstance(count, int) or not isinstance(values, list) or len(values) != count or len(set(values)) != count or any(value not in by_id for value in values):
+                failures.append(f"Scenario document list assertion is invalid: {key}")
+    if fixture_manifest.get("synthetic_data") is not scenario.get("synthetic_data") or fixture_manifest.get("construction_note") != scenario.get("construction_note"):
+        failures.append("Fixture manifest does not match the scenario construction disclosure")
+    resolver_rules = validation.get("resolver_contract")
     resolver = fixture_manifest.get("resolver")
-    if not isinstance(resolver, dict) or resolver.get("expected_document_id") != frozen.get("resolver_selected_document_id") or resolver.get("expected_field") != frozen.get("resolver_selected_field"):
-        failures.append("Fixture resolver does not match the layered assertion contract")
-    if frozen.get("resolver_action") != "preserved_final_top1":
-        failures.append("Layered assertion resolver action must preserve the final top result")
+    if isinstance(resolver_rules, dict):
+        expected_document_key = resolver_rules.get("expected_document_assertion")
+        expected_field_key = resolver_rules.get("expected_field_assertion")
+        expected_action_key = resolver_rules.get("expected_action_assertion")
+        expected_action = resolver_rules.get("expected_action")
+        if not isinstance(resolver, dict) or resolver.get("expected_document_id") != frozen.get(expected_document_key) or resolver.get("expected_field") != frozen.get(expected_field_key):
+            failures.append("Fixture resolver does not match the scenario assertion contract")
+        if frozen.get(expected_action_key) != expected_action:
+            failures.append("Scenario resolver action does not match its validation contract")
     return failures

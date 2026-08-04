@@ -7,26 +7,28 @@ import subprocess
 import sys
 
 from .acceptance import record_screenshot, stage_accepted, verify_accepted
-from .catalog import describe_scenario, list_scenarios, load_external_call_policy, require_runnable_scenario, validate_catalog
+from .catalog import default_scenario_id, describe_scenario, list_scenarios, load_external_call_policy, require_runnable_scenario, validate_catalog
 from .errors import DemoContractError
 from .fresh_clone import verify_fresh_clone
 from .io import read_json, write_json
 from .live import execute_with_retry
-from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
+from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight, verify_runtime, verify_source
 from .resolver import apply_lifecycle_resolver
 from .safety import require_safe
-from .scenario import SCENARIO_ID, load_assertion_contract, scenario_root, validate_scenario
+from .runtime import ensure_image, require_scenario_image_provenance
+from .scenario import load_assertion_contract, load_scenario, resolve_scenario_id, scenario_root, validate_scenario
 from .walkthrough import abort_walkthrough, execute_run_a_step, execute_run_b_step, finalize_walkthrough, initialize_walkthrough, inspect_walkthrough, record_pricing_snapshot, walkthrough_status
 
 
 def command_validate(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    failures = validate_scenario(root, args.scenario)
+    scenario_id = resolve_scenario_id(root, args.scenario)
+    failures = validate_scenario(root, scenario_id)
     failures.extend(validate_catalog(root))
     require_safe(root)
     if failures:
         raise DemoContractError("Scenario validation failed:\n- " + "\n- ".join(failures))
-    print(json.dumps({"status": "pass", "scenario": args.scenario, "external_calls": 0}, indent=2))
+    print(json.dumps({"status": "pass", "scenario": scenario_id, "external_calls": 0}, indent=2))
 
 
 def command_list(args: argparse.Namespace) -> None:
@@ -46,12 +48,42 @@ def command_public_safety(args: argparse.Namespace) -> None:
 
 def command_preflight(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    require_runnable_scenario(root, args.scenario, args.profile)
+    scenario_id = resolve_scenario_id(root, args.scenario)
+    description = require_runnable_scenario(root, scenario_id, args.profile)
     if args.profile != "full-stack":
         raise DemoContractError("Only the full-stack live profile has a runtime preflight")
     policy = load_external_call_policy(root)
-    result = full_stack_preflight(args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), budget_usd=float(policy["budget_usd"]))
+    scenario = load_scenario(root, scenario_id)
+    provenance = require_scenario_image_provenance(scenario["requires"])
+    result = full_stack_preflight(
+        args.cortrix_source.resolve(),
+        args.pricing_snapshot.resolve(),
+        release_commit=scenario["requires"]["cortrix_release_commit"],
+        source_revision=scenario["requires"]["cortrix_source_revision"],
+        source_repository=provenance["source_repository"],
+        source_path=args.cortrix_source.as_posix(),
+        secret_env=description["technology_profile"]["llm"]["secret_env"],
+        budget_usd=float(policy["budget_usd"]),
+    )
     print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_prepare_image(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    scenario_id = resolve_scenario_id(root, args.scenario)
+    scenario = load_scenario(root, scenario_id)
+    provenance = require_scenario_image_provenance(scenario["requires"])
+    source = args.cortrix_source.resolve()
+    source_identity = verify_source(
+        source,
+        release_commit=scenario["requires"]["cortrix_release_commit"],
+        source_revision=scenario["requires"]["cortrix_source_revision"],
+        source_repository=provenance["source_repository"],
+        source_path=args.cortrix_source.as_posix(),
+    )
+    verify_runtime()
+    image = ensure_image(source, build_if_missing=True)
+    print(json.dumps({"status": "pass", "scenario": scenario_id, "source": source_identity, "image": image, "external_calls": 0}, ensure_ascii=True, indent=2))
 
 
 def command_resolve(args: argparse.Namespace) -> None:
@@ -66,8 +98,10 @@ def command_resolve(args: argparse.Namespace) -> None:
 
 
 def command_run_full_stack(args: argparse.Namespace) -> None:
-    require_runnable_scenario(args.root.resolve(), args.scenario, "full-stack")
-    result = execute_with_retry(args.root.resolve(), args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), args.reviewed_attempt_limit)
+    root = args.root.resolve()
+    scenario_id = resolve_scenario_id(root, args.scenario)
+    require_runnable_scenario(root, scenario_id, "full-stack")
+    result = execute_with_retry(root, args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), args.reviewed_attempt_limit, scenario_id=scenario_id)
     print(json.dumps({"status": result["state"], "run_id": result["run_id"], "external_calls": True, "human_review_required": True}, indent=2))
 
 
@@ -118,21 +152,22 @@ def command_walkthrough_abort(args: argparse.Namespace) -> None:
 
 
 def command_stage_accepted(args: argparse.Namespace) -> None:
-    result = stage_accepted(args.root.resolve(), args.run_id, args.clean_room_review_id, replace_accepted=args.replace_accepted)
+    result = stage_accepted(args.root.resolve(), args.run_id, args.clean_room_review_id, scenario_id=args.scenario, replace_accepted=args.replace_accepted)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
 def command_record_screenshot(args: argparse.Namespace) -> None:
-    result = record_screenshot(args.root.resolve(), args.run_id, args.file.resolve(), args.route, args.evidence_path)
+    result = record_screenshot(args.root.resolve(), args.run_id, args.file.resolve(), args.route, args.evidence_path, scenario_id=args.scenario)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
 def command_verify_accepted(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    run_id = args.run_id or describe_scenario(root, args.scenario)["accepted_evidence"]["run_id"]
+    scenario_id = resolve_scenario_id(root, args.scenario)
+    run_id = args.run_id or describe_scenario(root, scenario_id)["accepted_evidence"]["run_id"]
     if not isinstance(run_id, str) or not run_id:
         raise DemoContractError("Accepted evidence pointer does not identify a run")
-    print(json.dumps(verify_accepted(root, run_id), ensure_ascii=True, indent=2))
+    print(json.dumps(verify_accepted(root, run_id, scenario_id=scenario_id), ensure_ascii=True, indent=2))
 
 
 def command_fresh_clone_verify(args: argparse.Namespace) -> None:
@@ -156,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate")
     validate.add_argument("--root", type=Path, default=Path.cwd())
-    validate.add_argument("--scenario", default=SCENARIO_ID)
+    validate.add_argument("--scenario")
     validate.set_defaults(handler=command_validate)
 
     safety = subparsers.add_parser("public-safety")
@@ -165,15 +200,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     preflight = subparsers.add_parser("preflight")
     preflight.add_argument("--root", type=Path, default=Path.cwd())
-    preflight.add_argument("--scenario", default=SCENARIO_ID)
+    preflight.add_argument("--scenario")
     preflight.add_argument("--profile", default="full-stack")
     preflight.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     preflight.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
     preflight.set_defaults(handler=command_preflight)
 
+    prepare_image = subparsers.add_parser("prepare-image")
+    prepare_image.add_argument("--root", type=Path, default=Path.cwd())
+    prepare_image.add_argument("--scenario")
+    prepare_image.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
+    prepare_image.set_defaults(handler=command_prepare_image)
+
     resolve = subparsers.add_parser("resolve")
     resolve.add_argument("--root", type=Path, default=Path.cwd())
-    resolve.add_argument("--scenario", default=SCENARIO_ID)
+    resolve.add_argument("--scenario")
     resolve.add_argument("--response", type=Path, required=True)
     resolve.add_argument("--identity-map", type=Path, required=True)
     resolve.add_argument("--output", type=Path, required=True)
@@ -181,7 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     live = subparsers.add_parser("run-full-stack")
     live.add_argument("--root", type=Path, default=Path.cwd())
-    live.add_argument("--scenario", default=SCENARIO_ID)
+    live.add_argument("--scenario")
     live.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     live.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
     live.add_argument("--reviewed-attempt-limit", type=int, choices=REVIEWED_ATTEMPT_LIMITS, default=2, help="Use 3, 4, or 5 only when an explicit Human Review authorizes that exact cumulative limit.")
@@ -226,6 +267,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     accepted = subparsers.add_parser("stage-accepted")
     accepted.add_argument("--root", type=Path, default=Path.cwd())
+    accepted.add_argument("--scenario")
     accepted.add_argument("--run-id", required=True)
     accepted.add_argument("--clean-room-review-id", required=True)
     accepted.add_argument("--replace-accepted", action="store_true", help="Replace only the accepted pointer after a separately reviewed rerun; older accepted evidence remains immutable.")
@@ -233,6 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     screenshot = subparsers.add_parser("record-screenshot")
     screenshot.add_argument("--root", type=Path, default=Path.cwd())
+    screenshot.add_argument("--scenario")
     screenshot.add_argument("--run-id", required=True)
     screenshot.add_argument("--file", type=Path, required=True)
     screenshot.add_argument("--route", default="/packages/viewer/index.html")
@@ -241,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify = subparsers.add_parser("verify-accepted")
     verify.add_argument("--root", type=Path, default=Path.cwd())
-    verify.add_argument("--scenario", default=SCENARIO_ID)
+    verify.add_argument("--scenario")
     verify.add_argument("--run-id", help="Accepted run ID. Omit it to follow the scenario's accepted-run pointer.")
     verify.set_defaults(handler=command_verify_accepted)
 
@@ -264,11 +307,12 @@ def main() -> int:
             message = message.replace(path, "[local-path]")
         if isinstance(exc, DemoContractError):
             payload = exc.as_dict(message)
+            payload["error"]["structured_data"] = _sanitize_value(payload["error"]["structured_data"], paths)
         else:
             payload = {
                 "error": {
                     "code": "CX_DEMO_RUNTIME_ERROR",
-                    "category": "runtime",
+                    "category": "permanent",
                     "retryable": False,
                     "message": message,
                     "structured_data": {},
@@ -277,3 +321,16 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=True), file=sys.stderr)
         return 1
     return 0
+
+
+def _sanitize_value(value: object, paths: list[Path]) -> object:
+    if isinstance(value, str):
+        sanitized = value
+        for path in sorted({str(path) for path in paths}, key=len, reverse=True):
+            sanitized = sanitized.replace(path, "[local-path]")
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_value(item, paths) for item in value]
+    if isinstance(value, dict):
+        return {key: _sanitize_value(item, paths) for key, item in value.items()}
+    return value

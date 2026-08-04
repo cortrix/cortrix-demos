@@ -20,6 +20,7 @@
     "adapter_id": "deepseek-openai-compatible",
     "provider": "deepseek",
     "model": "deepseek-v4-flash",
+    "base_url": "https://api.deepseek.com/v1",
     "secret_env": "DEEPSEEK_API_KEY",
     "roles": ["ingestion", "query_fusion", "listwise_rerank"],
     "local_fallback_allowed": false

@@ -29,6 +29,7 @@ scenarios/<id>/
   scenario.json
   fixtures/
   expected/
+  expected/validation.json
   profiles/technology-profile.json
   docs/
   web/
@@ -39,6 +40,7 @@ scenarios/<id>/
 ## Ownership rules
 
 - A scenario owns one business question, fixtures, expected assertions, presentation text, and accepted evidence.
+- A scenario validation contract owns that scenario's sealed identity, assertion requirements, runtime paths, and accepted evidence rules. Shared packages load it instead of assuming the first scenario's values.
 - Scenario-specific Run A and Run B documentation stays in `scenarios/<id>/docs/`; repository-wide execution and policy documents stay in `docs/`.
 - A technology profile selects one baseline adapter, one Cortrix identity, and optional LLM adapters for that scenario.
 - An adapter owns reusable integration code and capability checks. It never owns a scenario answer.

@@ -4,9 +4,32 @@ This is a manual, cost-bearing workflow. The runner fails closed and does not us
 
 For the scenario-specific interpretation of each path, read [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) and [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md). The live command intentionally produces both paths as one evidence-bound candidate. The separate [Run A manual Runbook](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) and [Run B manual Runbook](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) expose the underlying Docker, HTTP, Python, and SQL operations for human learning; those direct commands do not create official candidate evidence.
 
-## 1. Supply the pinned Cortrix source
+## 1. Obtain the pinned Cortrix source and prepare the image
 
-Place a source checkout at `.runtime/cortrix-src` and verify that its `HEAD` is exactly `32b82f6f8f1d7a41349f408969ff03b7997b6c15`. The runner also verifies that release commit `e159974f936bd987d5718195d54cd70ff3acc2e5` is an ancestor of that source revision.
+The reviewed distribution method is a local source build. This repository does not publish or pull `cortrix-demo:32b82f6` from a registry. The machine-readable contract is [`runtime/image-provenance.json`](../runtime/image-provenance.json).
+
+From the `cortrix-demos` repository root, obtain the public Cortrix source and detach it at the required revision:
+
+```bash
+mkdir -p .runtime
+git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src
+git -C .runtime/cortrix-src checkout --detach 32b82f6f8f1d7a41349f408969ff03b7997b6c15
+test "$(git -C .runtime/cortrix-src rev-parse HEAD)" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+```
+
+If the ignored checkout already exists, do not clone over it. Fetch the required commit from its configured origin, check it out in detached mode, and run the same exact revision test.
+
+Prepare the image before preflight or live execution:
+
+```bash
+./democtl prepare-image \
+  --scenario order-api-field-migration \
+  --cortrix-source .runtime/cortrix-src
+```
+
+The command verifies the source checkout, Docker engine, Compose installation, image name, and required `org.opencontainers.image.revision` label. It reports `action: reused` when the matching local image exists and `action: built` only when it must build from `deploy/Dockerfile`. It makes zero external model calls and does not download BGE models.
+
+The first build compiles the Cortrix C++ service and should be planned in minutes rather than seconds; actual time depends on CPU, Docker cache, and network state. The validated pinned image is approximately 149 MiB, while source build cache and the approximately 1.2 GB BGE model assets require additional disk space. Plan several gigabytes of free Docker storage and enough memory for the Cortrix build and live services. A replay-only validation does not require this build.
 
 The source checkout is ignored. Its local path is never written to curated evidence.
 
@@ -58,6 +81,8 @@ The scenario contract sends both Run B queries with `granularity=chunk` and requ
 ## 4. Inspect the candidate
 
 Candidate evidence is written under ignored `.runs/<run_id>/`. A successful candidate includes Run A, Run B, two serialized query records, durable identity, resolver output, model checksums, runtime identity, a cleanup receipt, a pricing snapshot, partial usage visibility, and a candidate manifest.
+
+The pricing snapshot is a timestamped transcription from the official provider page, not an automated freshness proof. Partial usage is acceptable only as an explicitly disclosed limitation: the conservative reviewed budget contract must pass, `estimated_total_usd` remains unknown, and no public total cost claim is allowed.
 
 The candidate is not screenshot-eligible. Human review must accept it before curated evidence can be staged for the viewer. No public cost claim is allowed when usage visibility is partial.
 

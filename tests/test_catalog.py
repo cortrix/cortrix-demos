@@ -4,13 +4,16 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 
-from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy
+from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy, validate_catalog
 from cortrix_demo_runner.errors import DemoContractError
+from cortrix_demo_runner.io import write_json
+from cortrix_demo_runner.scenario import validate_scenario
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,10 +38,12 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("## Agent Bootstrap", instructions)
         for command in manifest["bootstrap"]["safe_default"]:
             self.assertIn(command, instructions)
+        self.assertEqual("./democtl prepare-image --scenario order-api-field-migration", manifest["gates"]["live_full_stack"]["image_preparation"])
+        self.assertEqual("runtime/image-provenance.json", manifest["catalogs"]["image_provenance"])
 
     def test_agent_can_discover_and_describe_the_accepted_scenario(self) -> None:
         scenarios = list_scenarios(ROOT)
-        self.assertEqual(["order-api-field-migration"], [item["id"] for item in scenarios])
+        self.assertIn("order-api-field-migration", [item["id"] for item in scenarios])
         description = describe_scenario(ROOT, "order-api-field-migration")
         self.assertEqual("accepted", description["accepted_evidence"]["status"])
         self.assertEqual("postgresql-pgvector", description["technology_profile"]["baseline"]["adapter_id"])
@@ -60,9 +65,62 @@ class CatalogTests(unittest.TestCase):
             describe_scenario(ROOT, "missing-scenario")
         payload = captured.exception.as_dict()
         self.assertEqual("CX_DEMO_SCENARIO_NOT_FOUND", payload["error"]["code"])
-        self.assertEqual("input", payload["error"]["category"])
+        self.assertEqual("permanent", payload["error"]["category"])
         self.assertFalse(payload["error"]["retryable"])
         self.assertEqual("missing-scenario", payload["error"]["structured_data"]["scenario_id"])
+        self.assertIn("next_action", payload["error"]["structured_data"])
+
+    def test_temporary_second_scenario_passes_catalog_and_scenario_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "cortrix-demos"
+            shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".runtime", ".runs", "__pycache__", "*.pyc"))
+            second_id = "support-api-field-migration"
+            source = root / "scenarios" / "order-api-field-migration"
+            target = root / "scenarios" / second_id
+            shutil.copytree(source, target)
+
+            registry_path = root / "scenarios" / "registry.json"
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            entry = dict(registry["scenarios"][0])
+            entry.update(
+                {
+                    "id": second_id,
+                    "display_name": "Support API Field Migration",
+                    "scenario_contract": f"{second_id}/scenario.json",
+                    "validation_contract": f"{second_id}/expected/validation.json",
+                    "technology_profile": f"{second_id}/profiles/technology-profile.json",
+                    "human_guide": f"{second_id}/README.md",
+                    "accepted_pointer": f"{second_id}/evidence/accepted-run.json",
+                }
+            )
+            registry["scenarios"].append(entry)
+            write_json(registry_path, registry)
+
+            scenario_path = target / "scenario.json"
+            scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+            scenario["id"] = second_id
+            scenario["display_name"] = "Support API Field Migration"
+            write_json(scenario_path, scenario)
+
+            validation_path = target / "expected" / "validation.json"
+            validation = json.loads(validation_path.read_text(encoding="utf-8"))
+            validation["scenario_id"] = second_id
+            validation["evidence_contract"]["run_id_pattern"] = rf"^{second_id}-[0-9]{{8}}T[0-9]{{6}}Z(?:-retry)?$"
+            write_json(validation_path, validation)
+
+            assertions_path = target / "expected" / "assertions.json"
+            assertions = json.loads(assertions_path.read_text(encoding="utf-8"))
+            assertions["scenario_id"] = second_id
+            write_json(assertions_path, assertions)
+
+            technology_path = target / "profiles" / "technology-profile.json"
+            technology = json.loads(technology_path.read_text(encoding="utf-8"))
+            technology["scenario_id"] = second_id
+            write_json(technology_path, technology)
+
+            self.assertEqual([], validate_scenario(root, second_id))
+            self.assertEqual([], validate_catalog(root))
+            self.assertEqual({"order-api-field-migration", second_id}, {item["id"] for item in list_scenarios(root)})
 
     def test_external_call_policy_is_fail_closed_at_one_dollar(self) -> None:
         policy = load_external_call_policy(ROOT)
@@ -73,7 +131,10 @@ class CatalogTests(unittest.TestCase):
         listing = subprocess.run([str(ROOT / "democtl"), "list", "--json"], cwd=ROOT, check=True, capture_output=True, text=True)
         self.assertEqual("order-api-field-migration", json.loads(listing.stdout)["scenarios"][0]["id"])
         accepted = subprocess.run([str(ROOT / "democtl"), "verify-accepted"], cwd=ROOT, check=True, capture_output=True, text=True)
-        self.assertEqual("pass", json.loads(accepted.stdout)["status"])
+        accepted_payload = json.loads(accepted.stdout)
+        self.assertEqual("pass", accepted_payload["status"])
+        self.assertEqual("archive_integrity", accepted_payload["proof_scope"])
+        self.assertFalse(accepted_payload["live_reexecution"])
         missing = subprocess.run([str(ROOT / "democtl"), "describe", "--scenario", "missing", "--json"], cwd=ROOT, check=False, capture_output=True, text=True)
         self.assertEqual(1, missing.returncode)
         self.assertEqual("CX_DEMO_SCENARIO_NOT_FOUND", json.loads(missing.stderr)["error"]["code"])

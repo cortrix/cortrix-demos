@@ -22,7 +22,8 @@
     "scenarios": "scenarios/registry.json",
     "adapters": "runtime/adapters/registry.json",
     "external_call_policy": "config/external-call-policy.json",
-    "evidence_schema": "packages/evidence-schema/run-manifest.schema.json"
+    "evidence_schema": "packages/evidence-schema/run-manifest.schema.json",
+    "image_provenance": "runtime/image-provenance.json"
   },
   "lifecycle": [
     "discover",
@@ -39,6 +40,8 @@
     "live_full_stack": {
       "manual_authorization_required": true,
       "external_calls": true,
+      "source_preparation": "git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src",
+      "image_preparation": "./democtl prepare-image --scenario order-api-field-migration",
       "command": "./democtl run-full-stack --scenario order-api-field-migration"
     },
     "accepted_promotion": "independent_clean_run_required",

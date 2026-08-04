@@ -8,6 +8,7 @@ The validator rejects:
 - private workspace names and local absolute paths
 - internal review or control-plane references
 - secret-like assignments and common private-key markers
+- private IPv4 literals outside the single governed local viewer default in `Makefile`; loopback addresses remain allowed
 - tracked runtime caches, logs, environment files, or candidate runs
 - a missing or non-Apache-2.0 root `LICENSE`, or a missing `NOTICE`
 - GitHub Actions workflow YAML in the initial bootstrap

@@ -40,7 +40,9 @@ The response resolves the business contract, baseline adapter, Cortrix identity,
 ./democtl public-safety
 ```
 
-Both commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`.
+Both commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`. Retryable failures also include `retry_after_ms`; `structured_data.next_action` gives a safe recovery action without exposing a secret or local absolute path.
+
+`verify-accepted` returns `proof_scope: archive_integrity` and `live_reexecution: false`. It verifies the tracked evidence package and does not claim that retrieval was rerun today.
 
 ## Agent lifecycle
 
@@ -56,6 +58,7 @@ The accepted replay requires no external model call. A live Full Stack run is ma
 agent.json
   -> scenarios/registry.json
   -> scenarios/<id>/scenario.json
+  -> scenarios/<id>/expected/validation.json
   -> scenarios/<id>/profiles/technology-profile.json
   -> runtime/adapters/registry.json
   -> scenarios/<id>/evidence/accepted-run.json
@@ -63,6 +66,8 @@ agent.json
 ```
 
 Use the scenario contract for the business question and assertions, the technology profile for scenario-specific database and LLM selection, the adapter registry for implemented capability, and the accepted pointer for immutable evidence identity. Never derive runtime support from prose or a `contract_only` adapter entry.
+
+Before an authorized live run, follow `gates.live_full_stack.source_preparation` and `gates.live_full_stack.image_preparation` in `agent.json`. Image provenance is machine-readable at `runtime/image-provenance.json`. Preparation makes no model call, reuses a matching local image, and otherwise builds from the pinned source revision.
 
 ## Extension boundary
 
