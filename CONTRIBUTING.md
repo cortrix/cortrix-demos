@@ -7,7 +7,7 @@ Contributions are welcome under Apache License 2.0. Unless explicitly stated oth
 1. Keep business questions, fixtures, assertions, and presentation under `scenarios/<scenario-id>/`.
 2. Keep reusable baseline and LLM integrations under `runtime/adapters/` and shared runner code.
 3. Register scenarios and adapters in their machine-readable registries.
-4. Add scenario-specific Run A and Run B guides under `scenarios/<scenario-id>/docs/` and link them from the root README.
+4. Add symmetric scenario-specific Run A and Run B entry guides plus symmetric pipeline step-by-step Runbooks under `scenarios/<scenario-id>/docs/`, then link all four from the root README.
 5. Keep `agent.json`, root `AGENTS.md`, and scenario discovery synchronized so a first-time Agent can start without private knowledge.
 6. Mark an adapter `implemented` only after fail-closed code, tests, cleanup, and fresh-clone validation exist.
 7. Use American English for every tracked surface on `main`.

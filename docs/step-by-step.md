@@ -6,6 +6,8 @@ For the detailed operation and evidence checks on each side, use:
 
 - [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md)
 - [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md)
+- [Run A Pipeline: Step-by-Step Runbook](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md)
+- [Run B Pipeline: Step-by-Step Runbook](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md)
 
 ## 1. Check the repository
 

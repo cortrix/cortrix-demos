@@ -23,12 +23,16 @@ scenarios/<scenario-id>/
   expected/
   docs/
     run-a-<baseline>.md
+    run-a-<baseline>-step-by-step.md
     run-b-cortrix-full-stack.md
+    run-b-cortrix-full-stack-step-by-step.md
   web/
   evidence/
 ```
 
 Compatibility profile files may remain when required to verify historical evidence, but new implementation choices belong in the technology profile.
+
+The two human entry guides must use the same numbered heading outline so readers can compare operating modes and results section by section. The two pipeline Runbooks must use the same Stage 0 through Stage 10 outline so developers and DBAs can compare intermediate operations without reading source.
 
 The root `agent.json` remains the repository bootstrap and should not be duplicated per scenario. A new scenario becomes Agent-discoverable through `scenarios/registry.json`; its scenario contract, technology profile, adapter support, human guides, and accepted pointer must all resolve from that registry entry.
 

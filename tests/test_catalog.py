@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -89,15 +90,32 @@ class CatalogTests(unittest.TestCase):
         for relative_path in (
             "scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md",
             "scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md",
+            "scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md",
+            "scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md",
         ):
             self.assertIn(relative_path, readme)
             self.assertTrue((ROOT / relative_path).is_file())
         run_a = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector.md").read_text(encoding="utf-8")
         run_b = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack.md").read_text(encoding="utf-8")
-        self.assertIn("The repository intentionally does not expose a separate live `run-a` command", run_a)
+        numbered_heading = re.compile(r"^## [0-9]+\. ")
+        self.assertEqual(
+            [line for line in run_a.splitlines() if numbered_heading.match(line)],
+            [line for line in run_b.splitlines() if numbered_heading.match(line)],
+        )
+        self.assertIn("The combined workflow executes Run A first and Run B second", run_a)
+        self.assertIn("The combined workflow executes Run A first and Run B second", run_b)
         self.assertIn("`account_id`", run_a)
         self.assertIn("`buyer_account_id`", run_b)
         self.assertIn("independent Clean Run acceptance", run_b)
+        run_a_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector-step-by-step.md").read_text(encoding="utf-8")
+        run_b_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack-step-by-step.md").read_text(encoding="utf-8")
+        stage_heading = re.compile(r"^## Stage [0-9]+ ")
+        self.assertEqual(
+            [line for line in run_a_pipeline.splitlines() if stage_heading.match(line)],
+            [line for line in run_b_pipeline.splitlines() if stage_heading.match(line)],
+        )
+        self.assertIn("pgvector exact cosine is the only retrieval and ranking signal", run_a_pipeline)
+        self.assertIn("Run B keeps the ranking layers separate", run_b_pipeline)
 
 
 if __name__ == "__main__":

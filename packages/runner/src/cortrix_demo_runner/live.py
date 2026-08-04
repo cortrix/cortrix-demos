@@ -307,8 +307,9 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
     return result
 
 
-def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any]) -> dict[str, Any]:
-    start("embedding-only")
+def run_a(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, Any], frozen_assertions: dict[str, Any], *, runtime_ready: bool = False) -> dict[str, Any]:
+    if not runtime_ready:
+        start("embedding-only")
     suffix = safe_run_suffix(run_id)
     documents_namespace = "order-a-docs-" + suffix
     query_namespace = "order-a-query-" + suffix
@@ -397,20 +398,21 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     phase = "image_identity"
     try:
         image = ensure_image(source)
-        phase = "runtime_start"
-        health = start("full-stack")
+        phase = "run_a_runtime_start"
+        start("embedding-only")
         phase = "model_verification"
         models = verify_models()
         write_json(run_dir / "model-checksums.json", models)
+        phase = "run_a"
+        run_a_result = run_a(run_id, run_dir, fixture_root, manifest, frozen_assertions, runtime_ready=True)
+        phase = "run_b_runtime_start"
+        health = start("full-stack")
         phase = "provider_contract_smoke"
         smoke = contract_smoke()
         write_json(run_dir / "contract-smoke.json", smoke)
         phase = "run_b"
         run_b_result = run_b(run_id, run_dir, fixture_root, manifest, frozen_assertions, scenario["retrieval_contract"])
-        phase = "run_a"
-        run_a_result = run_a(run_id, run_dir, fixture_root, manifest, frozen_assertions)
         phase = "runtime_identity"
-        health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
         source_identity = source_manifest(run_id, attempt, campaign_id, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
         cost = cost_record(pricing, smoke, run_b_result, bound, float(effective_profile["budget_usd"]))

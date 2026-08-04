@@ -40,6 +40,8 @@ Follow the two human-readable paths:
 
 - [Run A: PostgreSQL/pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) explains why the dense-only baseline selects the superseded v1 guide.
 - [Run B: Cortrix Full Stack](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md) explains how the Full Stack candidate is produced, checked, and replayed.
+- [Run A Pipeline: Step-by-Step Runbook](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) documents every embedding, vector-export, SQL, ranking, evidence, and cleanup stage.
+- [Run B Pipeline: Step-by-Step Runbook](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) documents every ingestion, retrieval, fusion, reranking, resolver, evidence, and cleanup stage.
 
 A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
 

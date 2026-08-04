@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import http.client
+import inspect
 from pathlib import Path
 import shutil
 import tempfile
@@ -24,6 +25,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LiveContractTests(unittest.TestCase):
+    def test_execute_once_runs_run_a_before_run_b(self) -> None:
+        source = inspect.getsource(execute_once)
+        self.assertLess(source.index("run_a_result = run_a"), source.index("run_b_result = run_b"))
+        self.assertLess(source.index('start("embedding-only")'), source.index('start("full-stack")'))
+
     def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
         payload = query_payload("example", "chunk")
         self.assertEqual("chunk", payload["granularity"])

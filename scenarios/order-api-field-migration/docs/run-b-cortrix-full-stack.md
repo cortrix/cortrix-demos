@@ -1,20 +1,29 @@
 # Run B: Cortrix Full Stack
 
-Run B uses the same question and frozen corpus as Run A, but executes the Cortrix Context Full Stack. It preserves evidence for ingestion enrichment, multi-path retrieval, fusion, cross-encoder scores, DeepSeek query expansion and listwise reranking, and the application lifecycle resolver.
+Run A and Run B are two comparison paths inside the same candidate. They share one `run_id`, question, fixture manifest, assertion contract, BGE-M3 embedding identity, source revision, and cleanup receipt. The combined workflow executes Run A first and Run B second.
 
-## What this path demonstrates
+Run B is the Cortrix Context Full Stack path. It adds LLM-backed ingestion, multi-path retrieval, RRF, BGE cross-encoder scoring, DeepSeek query fusion and listwise reranking, and an application lifecycle resolver.
 
-The shared query is:
+## 1. Confirm the shared comparison contract
+
+Both paths answer the same question:
 
 > Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?
 
-The accepted final response places the current v2 migration bulletin first and returns `buyer_account_id`. The BGE cross-encoder alone still gives its highest score to the superseded v1 guide. DeepSeek listwise reranking changes the final order, and the demo application independently verifies that the selected document is current.
+Both paths use the same four-document synthetic corpus. The frozen comparison expects Run A to place the superseded v1 guide first and Run B to place the current v2 migration bulletin first. This is a version-conflict mechanism demo, not a performance benchmark or a general database comparison.
 
-This layered result is the scenario contract. No single retrieval score, ranking layer, or LLM output is treated as business truth.
+## 2. Choose the operating mode
 
-## 1. Replay the accepted result first
+| Mode | External calls | What it does |
+| --- | ---: | --- |
+| Accepted replay | 0 | Validates and reads the already accepted Run B evidence. Use this by default. |
+| New candidate | Yes | Recreates both comparison paths under one new candidate. Requires explicit authorization. |
 
-From the repository root, run the safe path:
+There is no independent live `run-b` command. Keeping both paths in one candidate prevents fixture, query, model, source, or cleanup drift between the two sides.
+
+## 3. Discover and validate the scenario
+
+From the repository root, run:
 
 ```bash
 ./democtl list --json
@@ -23,79 +32,90 @@ From the repository root, run the safe path:
 ./democtl verify-accepted
 ```
 
-These commands make zero external model calls. Confirm that the accepted run ID is `order-api-field-migration-20260803T152219Z` and that accepted verification passes.
+Confirm that the LLM provider adapter is `deepseek-openai-compatible`, its support status is `implemented`, the accepted run is `order-api-field-migration-20260803T152219Z`, and every command passes without an external call.
 
-## 2. Inspect the technology contract
+## 4. Inspect the frozen inputs
 
-Read [`../profiles/technology-profile.json`](../profiles/technology-profile.json). The implemented Run B profile pins:
+Read these files in order:
 
-- Cortrix release `v1.0.0-rc.1`;
-- source revision `32b82f6f8f1d7a41349f408969ff03b7997b6c15`;
-- embedding model `BAAI/bge-m3`;
-- reranker model `BAAI/bge-reranker-v2-m3`;
-- provider/model `deepseek/deepseek-v4-flash`;
-- `DEEPSEEK_API_KEY` as the only accepted secret environment variable;
-- no local generative fallback.
+1. [`../fixtures/query.txt`](../fixtures/query.txt) contains the shared question.
+2. [`../fixtures/manifest.json`](../fixtures/manifest.json) freezes the four documents, versions, lifecycle status, and checksums.
+3. [`../expected/assertions.json`](../expected/assertions.json) freezes the Run A and Run B outcome contract.
+4. [`../profiles/technology-profile.json`](../profiles/technology-profile.json) pins Cortrix, BGE, DeepSeek, and adapter identity for this scenario.
+5. [`../calibration/baseline-2.0.0.json`](../calibration/baseline-2.0.0.json) proves that the Run A side was sealed before the accepted Full Stack attempt.
 
-The profile also declares the required capabilities. A missing or unsupported adapter fails before external work.
+The technology profile requires Cortrix `v1.0.0-rc.1`, source revision `32b82f6f8f1d7a41349f408969ff03b7997b6c15`, `BAAI/bge-m3`, `BAAI/bge-reranker-v2-m3`, and `deepseek/deepseek-v4-flash`, with no local generative fallback.
 
-## 3. Inspect the accepted layers
+## 5. Replay the accepted result
 
 Start at [`../evidence/accepted-run.json`](../evidence/accepted-run.json), follow its `manifest` and `resolver` pointers, and inspect `run-b/summary.json` inside the accepted run.
 
-The accepted evidence must show:
-
-1. All four documents and five durable text blocks completed ingestion.
-2. F03 enrichment, F35 contextualization, HyPE questions, and F41 document summaries completed without recorded failures.
-3. Both serial queries used dense, lexical, contextualized, HyPE, sparse, and RRF paths.
-4. Each candidate has a durable chunk identity and a finite BGE cross-encoder score.
-5. DeepSeek query fusion and listwise reranking were active and non-degraded.
-6. The final Full Stack order placed `order-api-release-v2.0` first.
-7. The application resolver selected the current v2 document and preserved that final top result.
-8. Repeated queries produced identical final order, scores, and resolver decision.
-
-The expected current field is `buyer_account_id`.
-
-## 4. View the accepted evidence
+For a visual replay, run:
 
 ```bash
 make viewer
 ```
 
-Open the URL printed for the local viewer. The Run B panel, technology profile, execution path, evidence identity, and screenshot all resolve from the accepted run. The viewer fails closed if those identities disagree.
+The viewer reads the same accepted evidence. It does not recompute, edit, or summarize the ranking independently.
 
-## 5. Prepare a live candidate only when authorized
+## 6. Understand the execution path
 
-A live run is manual, cost-bearing, and unnecessary for replay. Before running it:
+Run B performs this pipeline:
 
-1. Place the pinned Cortrix checkout at `.runtime/cortrix-src`.
-2. Record current official provider pricing in `.runs/pricing-snapshot.json` as described in the [Full Stack runbook](../../../docs/full-stack-runbook.md).
-3. Inject `DEEPSEEK_API_KEY` through the process environment. Never put its value in a file or command argument.
-4. Confirm that the explicit authorization covers a new attempt and that the conservative bound remains within the repository-wide `USD 1.00` ceiling.
-5. Run the fail-closed preflight:
-
-```bash
-./democtl preflight --scenario order-api-field-migration --profile full-stack
+```text
+shared fixtures and query
+  -> Cortrix Full Stack ingestion
+  -> F03 enrichment + F35 contextualization + F38 HyPE + F41 summaries
+  -> dense + lexical + contextualized + HyPE + sparse retrieval
+  -> RRF fusion
+  -> BGE cross-encoder scores
+  -> DeepSeek listwise final order
+  -> application lifecycle resolver
+  -> two-query repeatability check
+  -> run-b/summary.json
 ```
 
-Only after preflight passes and the action remains authorized, run:
+The BGE cross-encoder and DeepSeek listwise stage are intentionally observable as separate ranking layers. In the accepted run, the BGE leader remains the superseded v1 guide, while the final listwise order places the current v2 bulletin first.
+
+Read [Run B Pipeline: Step-by-Step Runbook](run-b-cortrix-full-stack-step-by-step.md) for every intermediate operation, retrieval path, ranking stage, evidence file, and validation gate.
+
+## 7. Inspect the evidence
+
+The accepted Run B result must show:
+
+- four documents and five durable text blocks completed ingestion;
+- F03, F35, F38, and F41 completion without recorded deterministic failures;
+- dense, lexical, contextualized, HyPE, sparse, and RRF path participation;
+- chunk-level durable result identity and finite BGE rerank scores;
+- active, non-degraded DeepSeek query fusion and listwise reranking;
+- `order-api-release-v2.0` at final response rank 1;
+- an application resolver that independently preserves that current result;
+- identical result order, rerank scores, and resolver decision across two serial queries.
+
+## 8. Read the result
+
+Run B returns the current v2 migration bulletin and therefore recommends `buyer_account_id`.
+
+The evidence preserves three separate responsibilities: the BGE cross-encoder scores candidates, DeepSeek establishes the final response order, and the application resolver independently enforces lifecycle eligibility. No single layer is treated as business truth.
+
+## 9. Run a new candidate only when authorized
+
+A new candidate always executes both Run A and Run B. Follow the repository-wide [Full Stack runbook](../../../docs/full-stack-runbook.md), pass preflight, and then run:
 
 ```bash
 ./democtl run-full-stack --scenario order-api-field-migration
 ```
 
-The combined workflow produces both Run A and Run B for one candidate. It allows no local generative fallback, does not print the secret, and does not promote its own result.
+The orchestrator runs Run A with the embedding-only profile, then restarts Cortrix with the Full Stack profile and runs Run B. Both results are bound into the same candidate manifest and cleanup receipt.
 
-## 6. Inspect and clean up the candidate
+## 10. Stop conditions and claim boundary
 
-Candidate evidence is written under ignored `.runs/<run_id>/`. Inspect the candidate manifest, Run A ranking, both serialized Run B queries, resolver outputs, model checksums, pricing snapshot, usage visibility, runtime identity, and cleanup receipt.
+A passing candidate still requires independent Clean Run acceptance before staging or screenshots.
 
-The workflow cleans only resources derived from its run ID and preserves shared model caches and Docker volumes. A rejected candidate remains rejected. A passing candidate still requires independent Clean Run acceptance before it can be staged under tracked accepted evidence or used for a screenshot.
+Stop if provider, model, source, fixture, assertion, or checksum identity drifts; an ingestion feature fails; a required retrieval path is absent; an LLM stage is degraded; a durable child identity or finite BGE score is missing; the final top result is superseded; repeatability or resolver checks fail; budget is exceeded; or cleanup fails.
 
-## Stop conditions
+Run B demonstrates this accepted Full Stack contract on a synthetic corpus. It is not a universal retrieval-quality, latency, database, or cost claim. Usage visibility is partial, so the accepted run is not evidence for a public total-cost claim.
 
-Stop and reject the candidate if provider or model identity drifts, a required retrieval path is absent, an LLM path is degraded, the resolver fails, the source revision or model checksum changes, cleanup is incomplete, a secret or private path leaks, or the budget gate fails. Deterministic assertion failures must not be automatically rerun.
+## 11. Compare with the paired run
 
-## Expected conclusion
-
-Run B returns the current v2 migration bulletin and recommends `buyer_account_id`. The evidence also shows why the outcome is layered: BGE cross-encoder scoring, DeepSeek final ordering, and application lifecycle validation remain separate, observable responsibilities.
+Read [Run A: PostgreSQL and pgvector](run-a-postgresql-pgvector.md) using the same numbered sections. The comparison changes the retrieval and ranking contract while holding the question, corpus, source identity, and evidence boundary constant.

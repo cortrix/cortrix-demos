@@ -4,6 +4,8 @@
 
 - [Run A: PostgreSQL and pgvector](docs/run-a-postgresql-pgvector.md)
 - [Run B: Cortrix Full Stack](docs/run-b-cortrix-full-stack.md)
+- [Run A Pipeline: Step-by-Step Runbook](docs/run-a-postgresql-pgvector-step-by-step.md)
+- [Run B Pipeline: Step-by-Step Runbook](docs/run-b-cortrix-full-stack-step-by-step.md)
 - [Repository-wide human step-by-step guide](../../docs/step-by-step.md)
 
 ## Business question
