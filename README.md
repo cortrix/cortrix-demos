@@ -45,6 +45,12 @@ Follow the two human-readable paths:
 
 A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
 
+## Demo observability versus production operation
+
+This repository is designed to let both Agents and humans understand why each result was produced, not merely see the final answer. The guided walkthrough therefore exposes additional phase summaries and evidence for the database version, retrieval paths, BGE ranking, DeepSeek final order, application resolver, repeatability, cost visibility, and cleanup state. The step-by-step Runbooks pair each command with a real output excerpt so readers can verify the mechanism without reading the runner source.
+
+That level of terminal output is a Demo and audit feature, not a required Cortrix production interface. A production application normally exposes only the business result and the operational telemetry required by its own reliability, privacy, and security policy. It should not copy these educational diagnostics into an end-user response, and it must never expose secrets, raw private content, local paths, or unnecessary provider internals. The guided commands deliberately project sanitized evidence and do not change the underlying Cortrix API.
+
 ## Inspect the evidence
 
 Start with:

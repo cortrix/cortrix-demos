@@ -1,6 +1,219 @@
 # Run A Pipeline: Step-by-Step Runbook
 
-This runbook explains what the runner does internally for Run A so a developer or DBA can understand the full path without reading Python source. It is explanatory: the supported live entry remains the combined `run-full-stack` command, which binds Run A and Run B into one candidate.
+This runbook lets a developer or DBA execute Run A command by command and then understand every internal operation without reading Python source. Run A and Run B remain bound to one candidate even though the guided interface pauses between them for inspection.
+
+The output excerpts below come from real candidate `order-api-field-migration-20260804T085505Z`. A later run receives a different `run_id` and may receive different opaque `block_id` values, but the frozen document identities, lifecycle statuses, ranking contract, and assertions must match.
+
+## Walkthrough step 1 — Validate the shared workspace
+
+Run every command from the repository root. These commands make no external model calls:
+
+```bash
+./democtl list --json
+./democtl describe --scenario order-api-field-migration --json
+./democtl validate --scenario order-api-field-migration
+./democtl verify-accepted
+```
+
+All four commands must exit with status `0`. `list` must contain `order-api-field-migration`, and `validate` must end with:
+
+```json
+{
+  "status": "pass",
+  "scenario": "order-api-field-migration",
+  "external_calls": 0
+}
+```
+
+## Walkthrough step 2 — Confirm the shared comparison
+
+Print the exact question used by both paths:
+
+```bash
+python3 -c 'from pathlib import Path; print(Path("scenarios/order-api-field-migration/fixtures/query.txt").read_text().strip())'
+```
+
+Expected output:
+
+```text
+Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?
+```
+
+Validate the frozen fixtures and assertions again immediately before a cost-bearing candidate:
+
+```bash
+./democtl validate --scenario order-api-field-migration
+```
+
+Run A and Run B must use this same question and the same fixture checksums. Do not edit either after initialization.
+
+## Walkthrough step 3 — Prepare the shared candidate
+
+The complete candidate requires the pinned Cortrix source at `.runtime/cortrix-src`. From a fresh Demo clone, prepare it with:
+
+```bash
+mkdir -p .runtime
+git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src
+git -C .runtime/cortrix-src checkout --detach 32b82f6f8f1d7a41349f408969ff03b7997b6c15
+test "$(git -C .runtime/cortrix-src rev-parse HEAD)" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+```
+
+Inject `DEEPSEEK_API_KEY` through your shell or secret manager. Never paste its value into a tracked file or command argument. Confirm only that it is present:
+
+```bash
+test -n "${DEEPSEEK_API_KEY:-}" && echo "DEEPSEEK_API_KEY is set"
+```
+
+Run A makes zero external calls, but initialization checks the secret and budget because it reserves one shared candidate that must continue into Run B.
+
+Immediately before execution, verify the current official DeepSeek prices and record them. The following values were observed for `DeepSeek-V4-Flash` on 2026-08-04:
+
+```bash
+./democtl record-pricing \
+  --input-cache-hit 0.0028 \
+  --input-cache-miss 0.14 \
+  --output-price 0.28
+```
+
+Initialize one walkthrough:
+
+```bash
+./democtl walkthrough init --reviewed-attempt-limit 2
+```
+
+The real reference run returned:
+
+```json
+{
+  "status": "initialized",
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "phase": "initialized",
+  "scenario_version": "2.0.0",
+  "campaign_slot": 2,
+  "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
+  "budget_usd": 1.0,
+  "next_command": "./democtl walkthrough run-a"
+}
+```
+
+Your campaign slot can differ. The command must still report `phase=initialized`, the pinned source identity, and a budget no greater than USD 1.00.
+
+## Walkthrough step 4 — Execute this path
+
+Run the PostgreSQL/pgvector baseline first:
+
+```bash
+./democtl walkthrough run-a
+```
+
+Docker Compose may print local service lifecycle lines before the JSON summary. The stable result is the final JSON object. The real reference run reported:
+
+```json
+{
+  "status": "pass",
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "phase": "run_a_complete",
+  "runtime_profile": "embedding-only",
+  "external_calls": 0,
+  "postgresql_version": "16.14 (Debian 16.14-1.pgdg12+1)",
+  "pgvector_version": "0.8.6",
+  "inserted_block_count": 5,
+  "top1": {
+    "document_id": "order-api-guide-v1.0",
+    "version": "v1.0",
+    "lifecycle_status": "superseded",
+    "cosine_similarity": 0.7531767425327823
+  },
+  "current_document_rank": 3
+}
+```
+
+Do not start another candidate after this command. Run B must continue from this exact session.
+
+## Walkthrough step 5 — Inspect the real result
+
+Read the sanitized evidence projection:
+
+```bash
+./democtl walkthrough inspect --component run-a
+```
+
+Verify these key rows in the output:
+
+```json
+{
+  "search": "exact cosine; no ANN index and no lifecycle metadata in ORDER BY",
+  "inserted_block_count": 5,
+  "ranking": [
+    {
+      "rank": 1,
+      "document_id": "order-api-guide-v1.0",
+      "version": "v1.0",
+      "lifecycle_status": "superseded",
+      "cosine_similarity": 0.7531767425327823
+    },
+    {
+      "rank": 3,
+      "document_id": "order-api-release-v2.0",
+      "version": "v2.0",
+      "lifecycle_status": "current",
+      "cosine_similarity": 0.5937288161355068
+    }
+  ],
+  "assertions": {
+    "expected_dense_document_is_top1": true,
+    "required_current_document_is_present": true,
+    "strict_dense_top1": true,
+    "exact_cosine_without_ann": true,
+    "lifecycle_not_used_in_ranking": true
+  },
+  "pass": true
+}
+```
+
+The complete output contains all five ranked blocks. The excerpt keeps only the two rows that establish the version conflict.
+
+## Walkthrough step 6 — Interpret the real result
+
+Run A uses BGE-M3 embeddings plus PostgreSQL/pgvector exact cosine. The old guide is rank 1 because it is the closest semantic match to the failing `account_id` payload. The current v2 release bulletin is retrievable at rank 3, but lifecycle status is intentionally absent from `WHERE` and `ORDER BY`.
+
+The baseline therefore returns the retired `account_id` guidance. This is a profile-specific mechanism result, not a claim that PostgreSQL or pgvector cannot filter metadata or support richer retrieval.
+
+## Walkthrough step 7 — Continue or close the candidate
+
+Confirm that the walkthrough is waiting for Run B:
+
+```bash
+./democtl walkthrough status
+```
+
+Expected key fields:
+
+```json
+{
+  "status": "run_a_complete",
+  "next_command": "./democtl walkthrough run-b"
+}
+```
+
+Continue immediately with [Run B Pipeline: Step-by-Step Runbook](run-b-cortrix-full-stack-step-by-step.md). Do not run `finalize` yet; it correctly fails closed until Run B is complete.
+
+## Walkthrough step 8 — Recover safely
+
+If your shell closes after Run A, return to the same clean checkout, restore `DEEPSEEK_API_KEY` from your secret manager, and run:
+
+```bash
+./democtl walkthrough status
+./democtl walkthrough inspect --component run-a
+```
+
+If the session still reports `run_a_complete`, continue with Run B. If you cannot continue, reject and clean up the active candidate:
+
+```bash
+./democtl walkthrough abort
+```
+
+Never create screenshots or stage evidence from an aborted or rejected candidate.
 
 ## Pipeline at a glance
 
@@ -17,7 +230,7 @@ frozen inputs
   -> evidence and shared cleanup
 ```
 
-Run A and Run B share one candidate. The orchestrator completes Run A before starting Run B.
+Run A and Run B share one candidate. The orchestrator completes Run A before starting Run B. The walkthrough output is intentionally more verbose than a production application response because it is an educational and audit surface.
 
 ## Stage 0 — Freeze shared inputs
 

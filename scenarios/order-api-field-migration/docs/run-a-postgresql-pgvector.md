@@ -19,7 +19,7 @@ Both paths use the same four-document synthetic corpus. The frozen comparison ex
 | Accepted replay | 0 | Validates and reads the already accepted Run A evidence. Use this by default. |
 | New candidate | Yes, because the combined workflow also executes Run B | Recreates both comparison paths under one new candidate. Requires explicit authorization. |
 
-There is no independent live `run-a` command. Keeping both paths in one candidate prevents fixture, query, model, source, or cleanup drift between the two sides.
+The guided walkthrough provides a separate live `run-a` command for human-readable observation, but it remains inside the same candidate as Run B. This preserves one fixture, query, model, source, attempt, and cleanup identity across both sides.
 
 ## 3. Discover and validate the scenario
 
@@ -98,13 +98,15 @@ The result demonstrates a specific failure mode: semantic similarity alone can f
 
 ## 9. Run a new candidate only when authorized
 
-A new candidate always executes both Run A and Run B. Follow the repository-wide [Full Stack runbook](../../../docs/full-stack-runbook.md), pass preflight, and then run:
+A new candidate always executes both Run A and Run B. Follow the repository-wide [Full Stack runbook](../../../docs/full-stack-runbook.md), initialize one walkthrough, and execute Run A first:
 
 ```bash
-./democtl run-full-stack --scenario order-api-field-migration
+./democtl walkthrough init --reviewed-attempt-limit 2
+./democtl walkthrough run-a
+./democtl walkthrough inspect --component run-a
 ```
 
-The orchestrator runs Run A with the embedding-only profile, then restarts Cortrix with the Full Stack profile and runs Run B. Both results are bound into the same candidate manifest and cleanup receipt.
+Continue with the paired Run B Runbook. Do not start another walkthrough between the two paths. Both results are bound into the same candidate manifest and cleanup receipt.
 
 ## 10. Stop conditions and claim boundary
 

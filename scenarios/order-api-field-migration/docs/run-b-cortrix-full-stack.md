@@ -19,7 +19,7 @@ Both paths use the same four-document synthetic corpus. The frozen comparison ex
 | Accepted replay | 0 | Validates and reads the already accepted Run B evidence. Use this by default. |
 | New candidate | Yes | Recreates both comparison paths under one new candidate. Requires explicit authorization. |
 
-There is no independent live `run-b` command. Keeping both paths in one candidate prevents fixture, query, model, source, or cleanup drift between the two sides.
+The guided walkthrough provides a separate live `run-b` command for human-readable observation, but it can run only after Run A in the same candidate. This preserves one fixture, query, model, source, attempt, and cleanup identity across both sides.
 
 ## 3. Discover and validate the scenario
 
@@ -100,13 +100,16 @@ The evidence preserves three separate responsibilities: the BGE cross-encoder sc
 
 ## 9. Run a new candidate only when authorized
 
-A new candidate always executes both Run A and Run B. Follow the repository-wide [Full Stack runbook](../../../docs/full-stack-runbook.md), pass preflight, and then run:
+A new candidate always executes both Run A and Run B. After completing Run A in the guided walkthrough, execute and inspect Run B, then finalize shared evidence and cleanup:
 
 ```bash
-./democtl run-full-stack --scenario order-api-field-migration
+./democtl walkthrough run-b
+./democtl walkthrough inspect --component run-b
+./democtl walkthrough finalize
+./democtl walkthrough inspect --component candidate
 ```
 
-The orchestrator runs Run A with the embedding-only profile, then restarts Cortrix with the Full Stack profile and runs Run B. Both results are bound into the same candidate manifest and cleanup receipt.
+The runner restarts Cortrix with the Full Stack profile for Run B. `finalize` binds both results into the candidate manifest, removes run namespaces and containers, removes the runtime secret materialization, and records the cleanup receipt.
 
 ## 10. Stop conditions and claim boundary
 

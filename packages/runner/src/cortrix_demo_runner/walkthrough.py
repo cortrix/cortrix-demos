@@ -1,3 +1,11 @@
+"""Evidence-rich, guided execution for the educational demo surface.
+
+The summaries returned here intentionally expose pipeline stages, ranking layers,
+runtime identity, cleanup, and cost visibility so Agents and humans can audit the
+comparison without reading implementation code. They are not a production
+Cortrix API contract, and production clients do not need to expose this detail.
+"""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -211,6 +219,9 @@ def execute_run_a_step(root: Path, run_id: str | None = None) -> dict[str, Any]:
         result = run_a(session["run_id"], root / ".runs" / session["run_id"], fixture_root, manifest, frozen, runtime_ready=True)
         session["phase"] = "run_a_complete"
         save_session(root, session)
+        # Keep the educational boundary observable without exposing raw vectors
+        # or local runtime paths. A production client would normally return only
+        # the application result and its own required operational telemetry.
         return {
             "status": "pass",
             "run_id": session["run_id"],
@@ -248,6 +259,9 @@ def execute_run_b_step(root: Path, run_id: str | None = None) -> dict[str, Any]:
         session["phase"] = "run_b_complete"
         save_session(root, session)
         resolver = result["resolver"]
+        # Show each ranking responsibility separately for the demo. These fields
+        # are evidence projections, not fields that production applications must
+        # copy into their user-facing responses.
         return {
             "status": "pass",
             "run_id": session["run_id"],
@@ -331,6 +345,8 @@ def walkthrough_status(root: Path, run_id: str | None = None) -> dict[str, Any]:
 
 
 def inspect_walkthrough(root: Path, component: str, run_id: str | None = None) -> dict[str, Any]:
+    # Inspection is intentionally verbose and reads persisted evidence only. It
+    # never recomputes a result or turns diagnostic detail into a production API.
     session = load_session(root, run_id)
     run_dir = root / ".runs" / session["run_id"]
     if component == "run-a":

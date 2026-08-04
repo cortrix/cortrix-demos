@@ -12,35 +12,34 @@ The source checkout is ignored. Its local path is never written to curated evide
 
 ## 2. Record current official pricing
 
-Immediately before a live run, read the official [DeepSeek pricing page](https://api-docs.deepseek.com/quick_start/pricing) and create `.runs/pricing-snapshot.json` with this shape:
+Immediately before a live run, read the official [DeepSeek pricing page](https://api-docs.deepseek.com/quick_start/pricing) and record the observed values without manually editing JSON:
 
-```json
-{
-  "schema_version": 1,
-  "observed_at": "RFC-3339 timestamp",
-  "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
-  "provider": "deepseek",
-  "model": "deepseek-v4-flash",
-  "currency": "USD",
-  "unit": "per_million_tokens",
-  "prices_per_million_tokens": {
-    "input_cache_hit": 0.0,
-    "input_cache_miss": 0.0,
-    "output": 0.0
-  },
-  "notes": "Replace zero placeholders with the prices observed on the official page."
-}
+```bash
+./democtl record-pricing \
+  --input-cache-hit 0.0028 \
+  --input-cache-miss 0.14 \
+  --output-price 0.28
 ```
+
+The values above were observed for `DeepSeek-V4-Flash` on 2026-08-04. Recheck the official page and replace all three values when running later.
 
 The runner computes a conservative cumulative-attempt cost bound from the current prices. The repository policy caps all new authorized execution at USD 1.00. A price change never expands that budget. Historical accepted evidence may retain the earlier reviewed USD 5.00 contract as immutable run identity.
 
 ## 3. Inject the secret and run
 
-Provide `DEEPSEEK_API_KEY` through the process environment without putting its value in a tracked file or command argument. Then run:
+Provide `DEEPSEEK_API_KEY` through the process environment without putting its value in a tracked file or command argument. The guided mode exposes both comparison paths in their natural order:
 
 ```bash
-make full-stack
+./democtl walkthrough init --reviewed-attempt-limit 2
+./democtl walkthrough run-a
+./democtl walkthrough inspect --component run-a
+./democtl walkthrough run-b
+./democtl walkthrough inspect --component run-b
+./democtl walkthrough finalize
+./democtl walkthrough inspect --component candidate
 ```
+
+`make full-stack` remains the supported non-interactive equivalent when staged observation is unnecessary.
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 

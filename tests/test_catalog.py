@@ -116,6 +116,20 @@ class CatalogTests(unittest.TestCase):
         )
         self.assertIn("pgvector exact cosine is the only retrieval and ranking signal", run_a_pipeline)
         self.assertIn("Run B keeps the ranking layers separate", run_b_pipeline)
+        for command in (
+            "./democtl walkthrough run-a",
+            "./democtl walkthrough inspect --component run-a",
+        ):
+            self.assertIn(command, run_a_pipeline)
+        for command in (
+            "./democtl walkthrough run-b",
+            "./democtl walkthrough inspect --component run-b",
+            "./democtl walkthrough finalize",
+        ):
+            self.assertIn(command, run_b_pipeline)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("## Demo observability versus production operation", readme)
+        self.assertIn("not a required Cortrix production interface", readme)
 
 
 if __name__ == "__main__":
