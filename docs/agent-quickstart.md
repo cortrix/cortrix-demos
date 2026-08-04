@@ -35,6 +35,6 @@ discover -> describe -> validate -> preflight -> provision -> run -> inspect -> 
 
 The accepted replay requires no external model call. A live Full Stack run is manual, reads its secret only from the named environment variable, and produces a candidate rather than accepted evidence.
 
-## Human intervention boundary
+## Review boundary
 
-An Agent can discover, validate, run, inspect, verify, and clean up. Independent Clean Run acceptance and remote publication remain explicit human-governed boundaries. The Web viewer renders the same accepted evidence contract for human readers.
+An Agent can discover, validate, run, inspect, verify, and clean up. Independent Clean Run acceptance remains a separate review gate; remote publication remains human-governed. The Web viewer renders the same accepted evidence contract for human readers.
