@@ -364,6 +364,101 @@ def source_manifest(run_id: str, attempt: int, campaign_id: str, image: dict[str
     }
 
 
+def finalize_candidate(
+    root: Path,
+    run_id: str,
+    scenario: dict[str, Any],
+    attempt: int,
+    image: dict[str, str],
+    demo_checkout: dict[str, str],
+    pricing: dict[str, Any],
+    bound: float,
+    budget_usd: float,
+    preflight: dict[str, Any],
+    health: dict[str, Any],
+    smoke: dict[str, Any],
+    models: dict[str, Any],
+    run_a_result: dict[str, Any],
+    run_b_result: dict[str, Any],
+) -> dict[str, Any]:
+    campaign_id = scenario["execution_contract"]["campaign_id"]
+    fixture_manifest_path = scenario_root(root) / "fixtures" / "manifest.json"
+    assertion_path = assertion_contract_path(root)
+    run_dir = root / ".runs" / run_id
+    receipt_path = run_dir / "cleanup-receipt.json"
+    runtime = sanitized_runtime(run_id, health, image)
+    source_identity = source_manifest(run_id, attempt, campaign_id, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
+    cost = cost_record(pricing, smoke, run_b_result, bound, budget_usd)
+    write_json(run_dir / "preflight.json", preflight)
+    write_json(run_dir / "runtime.json", runtime)
+    write_json(run_dir / "source-manifest.json", source_identity)
+    cleanup_result = cleanup(run_id, receipt_path)
+    required_paths = {
+        "bge_m3_embedding": models["all_match"],
+        "bm25_recall": all(item["checks"]["bm25_recall"] for item in run_b_result["query_attempts"]),
+        "contextualized_recall": all(item["checks"]["contextualized_recall"] for item in run_b_result["query_attempts"]),
+        "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
+        "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
+        "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
+        "f41_document_summary_ingestion": run_b_result["ingestion"]["completion"]["checks"]["f41_all_documents"],
+        "chunk_only_result_identity": all(item["checks"]["chunk_only_result_identity"] for item in run_b_result["query_attempts"]),
+        "deepseek_ingestion": run_b_result["ingestion"]["completion"]["pass"],
+        "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),
+        "deepseek_listwise_rerank": all(item["checks"]["deepseek_listwise_rerank"] for item in run_b_result["query_attempts"]),
+        "application_lifecycle_resolver": run_b_result["resolver"]["pass"],
+    }
+    assertions = {
+        "run_a": run_a_result["pass"],
+        "run_b": run_b_result["pass"],
+        "required_paths": all(required_paths.values()),
+        "resolver": run_b_result["resolver"]["pass"],
+        "cleanup": cleanup_result["namespaces_removed"] and cleanup_result["containers_removed"] and cleanup_result["ports_released"] and cleanup_result["runtime_secret_removed"],
+        "budget": cost["within_budget_contract"],
+        "model_checksums": models["all_match"],
+    }
+    state = "candidate" if all(assertions.values()) else "rejected"
+    run_manifest = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "scenario_id": SCENARIO_ID,
+        "scenario_version": scenario["scenario_version"],
+        "campaign_id": campaign_id,
+        "campaign_slot": attempt,
+        "state": state,
+        "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
+        "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
+        "assertion_contract_sha256": source_identity["assertion_contract_sha256"],
+        "provider_identity": source_identity["provider"],
+        "required_paths": required_paths,
+        "run_a": {"path": "run-a/pgvector-result.json", "pass": run_a_result["pass"]},
+        "run_b": {
+            "path": "run-b/summary.json",
+            "pass": run_b_result["pass"],
+            "serial_query_count": 2,
+            "query_granularity": run_b_result["query_granularity"],
+            "document_summary_role": run_b_result["document_summary_role"],
+        },
+        "resolver": {"path": "run-b/resolver-01.json", "pass": run_b_result["resolver"]["pass"]},
+        "cleanup": {"path": "cleanup-receipt.json", **cleanup_result},
+        "cost": cost,
+        "assertions": {**assertions, "all_passed": all(assertions.values())},
+        "disclosed_gaps": [
+            {"id": "usage-visibility-partial", "blocking_public_cost_claim": True, "note": "Internal ingestion and listwise calls do not expose complete token usage; only observable usage and a conservative budget bound are recorded."},
+            {"id": "hype-provider-attribution", "blocking_runtime_acceptance": False, "note": "HyPE attribution relies on the sole configured external provider endpoint, exact runtime revision, durable HyPE blocks, and no-local-LLM contract because rc.1 durable labels are not authoritative provider identity."},
+            {"id": "result-source-identity", "blocking_runtime_acceptance": False, "note": "The application resolver uses the durable child_id to doc_id to fixture document_id map instead of trusting source_doc_id."},
+        ],
+        "claim_boundary": run_b_result["resolver"]["claim_boundary"],
+        "screenshot_eligible": False,
+        "human_review_required": True,
+    }
+    write_json(run_dir / "run-manifest.json", run_manifest)
+    if state != "candidate":
+        raise DemoContractError("Candidate manifest assertions failed")
+    record_state(run_dir, "candidate")
+    update_attempt(root, run_id, "candidate", campaign_id=campaign_id)
+    return run_manifest
+
+
 def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
     scenario_failures = validate_scenario(root)
     if scenario_failures:
@@ -371,12 +466,10 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     scenario = load_scenario(root)
     execution_contract = scenario["execution_contract"]
     campaign_id = execution_contract["campaign_id"]
-    assertion_path = assertion_contract_path(root)
     assertion_contract = load_assertion_contract(root)
     frozen_assertions = assertion_contract["frozen"]
     fixture_root = scenario_root(root) / "fixtures"
-    fixture_manifest_path = fixture_root / "manifest.json"
-    manifest = read_json(fixture_manifest_path)
+    manifest = read_json(fixture_root / "manifest.json")
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
     external_policy = load_external_call_policy(root)
     effective_profile = dict(profile)
@@ -412,70 +505,24 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         write_json(run_dir / "contract-smoke.json", smoke)
         phase = "run_b"
         run_b_result = run_b(run_id, run_dir, fixture_root, manifest, frozen_assertions, scenario["retrieval_contract"])
-        phase = "runtime_identity"
-        runtime = sanitized_runtime(run_id, health, image)
-        source_identity = source_manifest(run_id, attempt, campaign_id, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
-        cost = cost_record(pricing, smoke, run_b_result, bound, float(effective_profile["budget_usd"]))
-        write_json(run_dir / "preflight.json", preflight)
-        write_json(run_dir / "runtime.json", runtime)
-        write_json(run_dir / "source-manifest.json", source_identity)
-        cleanup_result = cleanup(run_id, receipt_path)
-        required_paths = {
-            "bge_m3_embedding": models["all_match"],
-            "bm25_recall": all(item["checks"]["bm25_recall"] for item in run_b_result["query_attempts"]),
-            "contextualized_recall": all(item["checks"]["contextualized_recall"] for item in run_b_result["query_attempts"]),
-            "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
-            "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
-            "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
-            "f41_document_summary_ingestion": run_b_result["ingestion"]["completion"]["checks"]["f41_all_documents"],
-            "chunk_only_result_identity": all(item["checks"]["chunk_only_result_identity"] for item in run_b_result["query_attempts"]),
-            "deepseek_ingestion": run_b_result["ingestion"]["completion"]["pass"],
-            "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),
-            "deepseek_listwise_rerank": all(item["checks"]["deepseek_listwise_rerank"] for item in run_b_result["query_attempts"]),
-            "application_lifecycle_resolver": run_b_result["resolver"]["pass"],
-        }
-        assertions = {"run_a": run_a_result["pass"], "run_b": run_b_result["pass"], "required_paths": all(required_paths.values()), "resolver": run_b_result["resolver"]["pass"], "cleanup": cleanup_result["namespaces_removed"] and cleanup_result["containers_removed"] and cleanup_result["ports_released"] and cleanup_result["runtime_secret_removed"], "budget": cost["within_budget_contract"], "model_checksums": models["all_match"]}
-        state = "candidate" if all(assertions.values()) else "rejected"
-        run_manifest = {
-            "schema_version": 1,
-            "run_id": run_id,
-            "scenario_id": SCENARIO_ID,
-            "scenario_version": scenario["scenario_version"],
-            "campaign_id": campaign_id,
-            "campaign_slot": attempt,
-            "state": state,
-            "target_identity": {"release": RELEASE, "release_commit": RELEASE_COMMIT, "source_revision": SOURCE_REVISION, "container_digest": image["digest"], "demo_commit": demo_checkout["commit"]},
-            "fixture_manifest_sha256": source_identity["fixture_manifest_sha256"],
-            "assertion_contract_sha256": source_identity["assertion_contract_sha256"],
-            "provider_identity": source_identity["provider"],
-            "required_paths": required_paths,
-            "run_a": {"path": "run-a/pgvector-result.json", "pass": run_a_result["pass"]},
-            "run_b": {
-                "path": "run-b/summary.json",
-                "pass": run_b_result["pass"],
-                "serial_query_count": 2,
-                "query_granularity": run_b_result["query_granularity"],
-                "document_summary_role": run_b_result["document_summary_role"],
-            },
-            "resolver": {"path": "run-b/resolver-01.json", "pass": run_b_result["resolver"]["pass"]},
-            "cleanup": {"path": "cleanup-receipt.json", **cleanup_result},
-            "cost": cost,
-            "assertions": {**assertions, "all_passed": all(assertions.values())},
-            "disclosed_gaps": [
-                {"id": "usage-visibility-partial", "blocking_public_cost_claim": True, "note": "Internal ingestion and listwise calls do not expose complete token usage; only observable usage and a conservative budget bound are recorded."},
-                {"id": "hype-provider-attribution", "blocking_runtime_acceptance": False, "note": "HyPE attribution relies on the sole configured external provider endpoint, exact runtime revision, durable HyPE blocks, and no-local-LLM contract because rc.1 durable labels are not authoritative provider identity."},
-                {"id": "result-source-identity", "blocking_runtime_acceptance": False, "note": "The application resolver uses the durable child_id to doc_id to fixture document_id map instead of trusting source_doc_id."},
-            ],
-            "claim_boundary": run_b_result["resolver"]["claim_boundary"],
-            "screenshot_eligible": False,
-            "human_review_required": True,
-        }
-        write_json(run_dir / "run-manifest.json", run_manifest)
-        if state != "candidate":
-            raise DemoContractError("Candidate manifest assertions failed")
-        record_state(run_dir, "candidate")
-        update_attempt(root, run_id, "candidate", campaign_id=campaign_id)
-        return run_manifest
+        phase = "candidate_finalize"
+        return finalize_candidate(
+            root,
+            run_id,
+            scenario,
+            attempt,
+            image,
+            demo_checkout,
+            pricing,
+            bound,
+            float(effective_profile["budget_usd"]),
+            preflight,
+            health,
+            smoke,
+            models,
+            run_a_result,
+            run_b_result,
+        )
     except Exception as exc:
         if not receipt_path.exists():
             try:

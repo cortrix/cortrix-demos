@@ -302,7 +302,7 @@ def validate_curated_safety(destination: Path) -> None:
                 raise DemoContractError("Curated staging failed public-safety validation: " + "; ".join(failures))
 
 
-def stage_accepted(root: Path, run_id: str, clean_room_review_id: str) -> dict[str, Any]:
+def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, replace_accepted: bool = False) -> dict[str, Any]:
     if not CLEAN_ROOM_REVIEW_PATTERN.fullmatch(clean_room_review_id):
         raise DemoContractError("Clean Room review ID must be a REVIEW identifier")
     manifest = validate_candidate(root, run_id)
@@ -319,8 +319,8 @@ def stage_accepted(root: Path, run_id: str, clean_room_review_id: str) -> dict[s
     if staging.exists():
         raise DemoContractError("Ignored accepted-evidence staging directory already exists")
     pointer_path = scenario_root(root) / "evidence" / "accepted-run.json"
-    if pointer_path.exists() and read_json(pointer_path).get("status") == "accepted":
-        raise DemoContractError("Accepted-run pointer already names an accepted run; replacement requires a separate review")
+    if pointer_path.exists() and read_json(pointer_path).get("status") == "accepted" and not replace_accepted:
+        raise DemoContractError("Accepted-run pointer already names an accepted run; use the separately reviewed replacement gate")
     staging.mkdir(parents=True)
     accepted_at = dt.datetime.now(dt.timezone.utc).isoformat()
     accepted_manifest = dict(manifest)

@@ -12,6 +12,7 @@ from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.io import read_json, write_json
 from cortrix_demo_runner.live import attempt_ledger, execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
 from cortrix_demo_runner.runtime import request
+from cortrix_demo_runner.walkthrough import inspect_walkthrough, record_pricing_snapshot, walkthrough_status
 
 
 PRICING = {
@@ -29,6 +30,61 @@ class LiveContractTests(unittest.TestCase):
         source = inspect.getsource(execute_once)
         self.assertLess(source.index("run_a_result = run_a"), source.index("run_b_result = run_b"))
         self.assertLess(source.index('start("embedding-only")'), source.index('start("full-stack")'))
+
+    def test_walkthrough_pricing_snapshot_is_copy_paste_ready(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = record_pricing_snapshot(root, Path(".runs/pricing-snapshot.json"), 0.0028, 0.14, 0.28, "2026-08-04T08:00:00Z")
+            snapshot = read_json(root / ".runs" / "pricing-snapshot.json")
+            self.assertEqual("recorded", result["status"])
+            self.assertEqual("deepseek-v4-flash", snapshot["model"])
+            self.assertEqual(0.14, snapshot["prices_per_million_tokens"]["input_cache_miss"])
+
+    def test_walkthrough_status_uses_the_current_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_id = "order-api-field-migration-20260804T080000Z"
+            write_json(root / ".runs" / "walkthrough-current.json", {"schema_version": 1, "run_id": run_id})
+            write_json(
+                root / ".runs" / run_id / "walkthrough-session.json",
+                {
+                    "schema_version": 1,
+                    "run_id": run_id,
+                    "phase": "run_a_complete",
+                    "scenario_version": "2.0.0",
+                    "campaign_slot": 2,
+                    "demo_checkout": {"commit": "a" * 40},
+                },
+            )
+            status = walkthrough_status(root)
+            self.assertEqual(run_id, status["run_id"])
+            self.assertEqual("./democtl walkthrough run-b", status["next_command"])
+
+    def test_walkthrough_inspection_reports_real_run_a_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_id = "order-api-field-migration-20260804T080000Z"
+            run_dir = root / ".runs" / run_id
+            write_json(root / ".runs" / "walkthrough-current.json", {"schema_version": 1, "run_id": run_id})
+            write_json(
+                run_dir / "walkthrough-session.json",
+                {
+                    "schema_version": 1,
+                    "run_id": run_id,
+                    "phase": "run_a_complete",
+                    "scenario_version": "2.0.0",
+                    "campaign_slot": 2,
+                    "demo_checkout": {"commit": "a" * 40},
+                },
+            )
+            (run_dir / "run-a").mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(
+                ROOT / "scenarios" / "order-api-field-migration" / "evidence" / "runs" / "order-api-field-migration-20260803T152219Z" / "run-a" / "pgvector-result.json",
+                run_dir / "run-a" / "pgvector-result.json",
+            )
+            result = inspect_walkthrough(root, "run-a")
+            self.assertTrue(result["pass"])
+            self.assertEqual("order-api-guide-v1.0", result["ranking"][0]["document_id"])
 
     def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
         payload = query_payload("example", "chunk")

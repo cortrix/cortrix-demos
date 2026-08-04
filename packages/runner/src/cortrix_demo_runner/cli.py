@@ -16,6 +16,7 @@ from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
 from .resolver import apply_lifecycle_resolver
 from .safety import require_safe
 from .scenario import SCENARIO_ID, load_assertion_contract, scenario_root, validate_scenario
+from .walkthrough import abort_walkthrough, execute_run_a_step, execute_run_b_step, finalize_walkthrough, initialize_walkthrough, inspect_walkthrough, record_pricing_snapshot, walkthrough_status
 
 
 def command_validate(args: argparse.Namespace) -> None:
@@ -70,8 +71,54 @@ def command_run_full_stack(args: argparse.Namespace) -> None:
     print(json.dumps({"status": result["state"], "run_id": result["run_id"], "external_calls": True, "human_review_required": True}, indent=2))
 
 
+def command_record_pricing(args: argparse.Namespace) -> None:
+    result = record_pricing_snapshot(
+        args.root.resolve(),
+        args.output,
+        args.input_cache_hit,
+        args.input_cache_miss,
+        args.output_price,
+        args.observed_at,
+    )
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_init(args: argparse.Namespace) -> None:
+    result = initialize_walkthrough(
+        args.root.resolve(),
+        args.cortrix_source.resolve(),
+        args.pricing_snapshot.resolve(),
+        args.reviewed_attempt_limit,
+    )
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_run_a(args: argparse.Namespace) -> None:
+    print(json.dumps(execute_run_a_step(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_run_b(args: argparse.Namespace) -> None:
+    print(json.dumps(execute_run_b_step(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_finalize(args: argparse.Namespace) -> None:
+    print(json.dumps(finalize_walkthrough(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_status(args: argparse.Namespace) -> None:
+    print(json.dumps(walkthrough_status(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_inspect(args: argparse.Namespace) -> None:
+    print(json.dumps(inspect_walkthrough(args.root.resolve(), args.component, args.run_id), ensure_ascii=True, indent=2))
+
+
+def command_walkthrough_abort(args: argparse.Namespace) -> None:
+    print(json.dumps(abort_walkthrough(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+
+
 def command_stage_accepted(args: argparse.Namespace) -> None:
-    result = stage_accepted(args.root.resolve(), args.run_id, args.clean_room_review_id)
+    result = stage_accepted(args.root.resolve(), args.run_id, args.clean_room_review_id, replace_accepted=args.replace_accepted)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
@@ -140,10 +187,48 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--reviewed-attempt-limit", type=int, choices=REVIEWED_ATTEMPT_LIMITS, default=2, help="Use 3, 4, or 5 only when an explicit Human Review authorizes that exact cumulative limit.")
     live.set_defaults(handler=command_run_full_stack)
 
+    pricing = subparsers.add_parser("record-pricing")
+    pricing.add_argument("--root", type=Path, default=Path.cwd())
+    pricing.add_argument("--output", type=Path, default=Path(".runs/pricing-snapshot.json"))
+    pricing.add_argument("--input-cache-hit", type=float, required=True)
+    pricing.add_argument("--input-cache-miss", type=float, required=True)
+    pricing.add_argument("--output-price", type=float, required=True)
+    pricing.add_argument("--observed-at")
+    pricing.set_defaults(handler=command_record_pricing)
+
+    walkthrough = subparsers.add_parser("walkthrough")
+    walkthrough_subparsers = walkthrough.add_subparsers(dest="walkthrough_command", required=True)
+
+    walkthrough_init = walkthrough_subparsers.add_parser("init")
+    walkthrough_init.add_argument("--root", type=Path, default=Path.cwd())
+    walkthrough_init.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
+    walkthrough_init.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
+    walkthrough_init.add_argument("--reviewed-attempt-limit", type=int, choices=REVIEWED_ATTEMPT_LIMITS, default=2)
+    walkthrough_init.set_defaults(handler=command_walkthrough_init)
+
+    for name, handler in (
+        ("run-a", command_walkthrough_run_a),
+        ("run-b", command_walkthrough_run_b),
+        ("finalize", command_walkthrough_finalize),
+        ("status", command_walkthrough_status),
+        ("abort", command_walkthrough_abort),
+    ):
+        walkthrough_command = walkthrough_subparsers.add_parser(name)
+        walkthrough_command.add_argument("--root", type=Path, default=Path.cwd())
+        walkthrough_command.add_argument("--run-id")
+        walkthrough_command.set_defaults(handler=handler)
+
+    walkthrough_inspect = walkthrough_subparsers.add_parser("inspect")
+    walkthrough_inspect.add_argument("--root", type=Path, default=Path.cwd())
+    walkthrough_inspect.add_argument("--run-id")
+    walkthrough_inspect.add_argument("--component", choices=("run-a", "run-b", "candidate"), required=True)
+    walkthrough_inspect.set_defaults(handler=command_walkthrough_inspect)
+
     accepted = subparsers.add_parser("stage-accepted")
     accepted.add_argument("--root", type=Path, default=Path.cwd())
     accepted.add_argument("--run-id", required=True)
     accepted.add_argument("--clean-room-review-id", required=True)
+    accepted.add_argument("--replace-accepted", action="store_true", help="Replace only the accepted pointer after a separately reviewed rerun; older accepted evidence remains immutable.")
     accepted.set_defaults(handler=command_stage_accepted)
 
     screenshot = subparsers.add_parser("record-screenshot")
