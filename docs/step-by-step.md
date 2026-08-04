@@ -28,7 +28,7 @@ The comparison shows the same question on both sides:
 - Run B selects the current v2 bulletin and `buyer_account_id`.
 - The application resolver independently validates lifecycle status.
 
-[Open the accepted viewer screenshot](../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/screenshots/cortrix-demo-viewer-final-20260803T1600Z.png).
+[Open the Agent-first accepted viewer screenshot](../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/screenshots/cortrix-demo-agent-first-final.png).
 
 ## 4. Inspect the evidence
 

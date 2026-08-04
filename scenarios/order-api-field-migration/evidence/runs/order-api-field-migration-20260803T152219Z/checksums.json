@@ -55,12 +55,16 @@
       "sha256": "800094c080bd6157b9512923334de4986f8b14be85c3d6859f71c336d1c014e4"
     },
     {
+      "path": "screenshots/cortrix-demo-agent-first-final.png",
+      "sha256": "c5ac5e7943f075aa28d952b4ba812fbaabe418d174f68801ab1dee10099ead94"
+    },
+    {
       "path": "screenshots/cortrix-demo-viewer-final-20260803T1600Z.png",
       "sha256": "82312510e6301eb9676f6b7b6a03d9aa24594eef9e0378470b9b9e502fce0b47"
     },
     {
       "path": "screenshots/screenshot-manifest.json",
-      "sha256": "132cf427268169156dffd29cada8f846210795e3addc66b62e06d5e4a9569433"
+      "sha256": "5b4018af9c88d987d14b29a68340ee3a645cde67042e15f7be9a0cb2f50414e7"
     },
     {
       "path": "state-history.json",

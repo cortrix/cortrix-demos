@@ -11,6 +11,15 @@
       "width": 1440,
       "height": 2700,
       "captured_at": "2026-08-03T15:58:31.946615+00:00"
+    },
+    {
+      "file": "screenshots/cortrix-demo-agent-first-final.png",
+      "route": "/packages/viewer/index.html",
+      "evidence_path": "run-b/resolver-01.json",
+      "sha256": "c5ac5e7943f075aa28d952b4ba812fbaabe418d174f68801ab1dee10099ead94",
+      "width": 1440,
+      "height": 2950,
+      "captured_at": "2026-08-04T01:24:04.273269+00:00"
     }
   ]
 }
