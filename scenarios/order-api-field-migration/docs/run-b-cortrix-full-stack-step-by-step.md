@@ -186,13 +186,13 @@ docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d po
 docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d --force-recreate cortrix
 ```
 
-Wait for the API and metrics endpoints independently, then save the metrics baseline before ingestion. API readiness does not guarantee that the separate metrics listener is already returning complete responses:
+Wait for the API and metrics endpoints independently, then save the metrics baseline before ingestion. API readiness does not guarantee that the separate metrics listener is already returning complete responses. The pinned Cortrix metrics server intentionally listens on loopback inside the Cortrix container, so read it with `docker-compose exec` rather than through a host port:
 
 ```bash
 until curl -fsS http://127.0.0.1:18420/api/v1/system/health/ready >/dev/null; do sleep 2; done
 METRICS_READY=0
 for _ in $(seq 1 60); do
-  if curl -fsS --max-time 10 http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-before-ingest.prom.tmp; then
+  if docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix curl -fsS --max-time 10 http://127.0.0.1:9091/metrics > .runs/manual-cortrix/metrics-before-ingest.prom.tmp; then
     METRICS_READY=1
     break
   fi
@@ -320,7 +320,7 @@ done
 test "$READY" = 1
 METRICS_AFTER_READY=0
 for _ in $(seq 1 60); do
-  if curl -fsS --max-time 10 http://127.0.0.1:19091/metrics > .runs/manual-cortrix/metrics-after-ingest.prom.tmp; then
+  if docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix curl -fsS --max-time 10 http://127.0.0.1:9091/metrics > .runs/manual-cortrix/metrics-after-ingest.prom.tmp; then
     METRICS_AFTER_READY=1
     break
   fi

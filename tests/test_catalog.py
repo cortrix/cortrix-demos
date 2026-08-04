@@ -132,11 +132,14 @@ class CatalogTests(unittest.TestCase):
         for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "config/external-call-policy.json", "math.isfinite", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
             self.assertIn(fragment, run_b_pipeline)
         self.assertIn("API readiness does not guarantee", run_b_pipeline)
+        self.assertIn("listens on loopback inside the Cortrix container", run_b_pipeline)
         self.assertIn("METRICS_READY=0", run_b_pipeline)
         self.assertIn("METRICS_AFTER_READY=0", run_b_pipeline)
         self.assertIn("metrics-before-ingest.prom.tmp", run_b_pipeline)
         self.assertIn("metrics-after-ingest.prom.tmp", run_b_pipeline)
-        self.assertEqual(2, run_b_pipeline.count("curl -fsS --max-time 10 http://127.0.0.1:19091/metrics"))
+        metrics_command = "docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix curl -fsS --max-time 10 http://127.0.0.1:9091/metrics"
+        self.assertEqual(2, run_b_pipeline.count(metrics_command))
+        self.assertNotIn("curl -fsS --max-time 10 http://127.0.0.1:19091/metrics", run_b_pipeline)
         self.assertEqual(2, run_b_pipeline.count("for _ in $(seq 1 60); do"))
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Demo observability versus production operation", readme)
@@ -215,7 +218,7 @@ class CatalogTests(unittest.TestCase):
         block_start = runbook.rfind("```bash\n", 0, needle_position) + len("```bash\n")
         block_end = runbook.index("\n```", needle_position)
         block = runbook[block_start:block_end]
-        metrics_command = "curl -fsS --max-time 10 http://127.0.0.1:19091/metrics"
+        metrics_command = "docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix curl -fsS --max-time 10 http://127.0.0.1:9091/metrics"
         self.assertIn(metrics_command, block)
         block = block[block.index(needle):]
         block = block.replace(metrics_command, "fake_curl").replace("sleep 2", ":")
