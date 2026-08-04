@@ -109,27 +109,24 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("independent Clean Run acceptance", run_b)
         run_a_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector-step-by-step.md").read_text(encoding="utf-8")
         run_b_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack-step-by-step.md").read_text(encoding="utf-8")
-        stage_heading = re.compile(r"^## Stage [0-9]+ ")
+        manual_heading = re.compile(r"^## [0-9]+\. ")
         self.assertEqual(
-            [line for line in run_a_pipeline.splitlines() if stage_heading.match(line)],
-            [line for line in run_b_pipeline.splitlines() if stage_heading.match(line)],
+            [line for line in run_a_pipeline.splitlines() if manual_heading.match(line)],
+            [line for line in run_b_pipeline.splitlines() if manual_heading.match(line)],
         )
-        self.assertIn("pgvector exact cosine is the only retrieval and ranking signal", run_a_pipeline)
-        self.assertIn("Run B keeps the ranking layers separate", run_b_pipeline)
-        for command in (
-            "./democtl walkthrough run-a",
-            "./democtl walkthrough inspect --component run-a",
-        ):
-            self.assertIn(command, run_a_pipeline)
-        for command in (
-            "./democtl walkthrough run-b",
-            "./democtl walkthrough inspect --component run-b",
-            "./democtl walkthrough finalize",
-        ):
-            self.assertIn(command, run_b_pipeline)
+        self.assertNotIn("./democtl", run_a_pipeline)
+        self.assertNotIn("./democtl", run_b_pipeline)
+        query_command = "python3 -c 'from pathlib import Path; print(Path(\"scenarios/order-api-field-migration/fixtures/query.txt\").read_text().strip())'"
+        self.assertIn(query_command, run_a_pipeline)
+        self.assertIn(query_command, run_b_pipeline)
+        for fragment in ("docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
+            self.assertIn(fragment, run_a_pipeline)
+        for fragment in ("cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py"):
+            self.assertIn(fragment, run_b_pipeline)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("## Demo observability versus production operation", readme)
         self.assertIn("not a required Cortrix production interface", readme)
+        self.assertIn("Humans can use the paired manual Runbooks", readme)
 
 
 if __name__ == "__main__":

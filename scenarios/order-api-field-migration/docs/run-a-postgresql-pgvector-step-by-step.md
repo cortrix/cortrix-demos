@@ -1,33 +1,14 @@
-# Run A Pipeline: Step-by-Step Runbook
+# Run A Manual Runbook: PostgreSQL and pgvector
 
-This runbook lets a developer or DBA execute Run A command by command and then understand every internal operation without reading Python source. Run A and Run B remain bound to one candidate even though the guided interface pauses between them for inspection.
+This Runbook reproduces Run A with direct Docker, HTTP, Python, and SQL commands. It does not use `democtl` to execute the path.
 
-The output excerpts below come from real candidate `order-api-field-migration-20260804T085505Z`. A later run receives a different `run_id` and may receive different opaque `block_id` values, but the frozen document identities, lifecycle statuses, ranking contract, and assertions must match.
+PostgreSQL and pgvector own storage and ranking. The embedding-only Cortrix runtime is used only to generate the same pinned BGE-M3 vectors used by Run B. It makes zero DeepSeek calls and does not use Cortrix retrieval, RRF, reranking, listwise ordering, or lifecycle resolution. Replacing that embedding step with another model would no longer reproduce the accepted comparison.
 
-## Walkthrough step 1 — Validate the shared workspace
+The output excerpts come from candidate `order-api-field-migration-20260804T085505Z`. Opaque block IDs and a later run timestamp may differ, but the document order and assertions must match.
 
-Run every command from the repository root. These commands make no external model calls:
+## 1. Confirm the shared contract
 
-```bash
-./democtl list --json
-./democtl describe --scenario order-api-field-migration --json
-./democtl validate --scenario order-api-field-migration
-./democtl verify-accepted
-```
-
-All four commands must exit with status `0`. `list` must contain `order-api-field-migration`, and `validate` must end with:
-
-```json
-{
-  "status": "pass",
-  "scenario": "order-api-field-migration",
-  "external_calls": 0
-}
-```
-
-## Walkthrough step 2 — Confirm the shared comparison
-
-Print the exact question used by both paths:
+Run all commands from the repository root. Confirm the frozen question:
 
 ```bash
 python3 -c 'from pathlib import Path; print(Path("scenarios/order-api-field-migration/fixtures/query.txt").read_text().strip())'
@@ -39,311 +20,416 @@ Expected output:
 Create order now rejects a payload with account_id as an unknown field. Which request field should replace it?
 ```
 
-Validate the frozen fixtures and assertions again immediately before a cost-bearing candidate:
+Confirm that the fixture manifest contains four documents and that all declared checksums match:
 
 ```bash
-./democtl validate --scenario order-api-field-migration
+python3 - <<'PY'
+import hashlib
+import json
+from pathlib import Path
+
+root = Path("scenarios/order-api-field-migration/fixtures")
+manifest = json.loads((root / "manifest.json").read_text())
+items = [manifest["query"], *manifest["documents"]]
+for item in items:
+    actual = hashlib.sha256((root / item["path"]).read_bytes()).hexdigest()
+    assert actual == item["sha256"], item["path"]
+print({"documents": len(manifest["documents"]), "checksums": "pass"})
+PY
 ```
 
-Run A and Run B must use this same question and the same fixture checksums. Do not edit either after initialization.
+Expected output:
 
-## Walkthrough step 3 — Prepare the shared candidate
+```text
+{'documents': 4, 'checksums': 'pass'}
+```
 
-The complete candidate requires the pinned Cortrix source at `.runtime/cortrix-src`. From a fresh Demo clone, prepare it with:
+## 2. Prepare the pinned runtime
+
+The Cortrix image must come from source revision `32b82f6f8f1d7a41349f408969ff03b7997b6c15`. If the image is not already present, prepare it from a local source checkout:
 
 ```bash
 mkdir -p .runtime
-git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src
+if [ ! -d .runtime/cortrix-src/.git ]; then
+  git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src
+fi
 git -C .runtime/cortrix-src checkout --detach 32b82f6f8f1d7a41349f408969ff03b7997b6c15
-test "$(git -C .runtime/cortrix-src rev-parse HEAD)" = "32b82f6f8f1d7a41349f408969ff03b7997b6c15"
+if ! docker image inspect cortrix-demo:32b82f6 >/dev/null 2>&1; then
+  docker build \
+    --tag cortrix-demo:32b82f6 \
+    --file .runtime/cortrix-src/deploy/Dockerfile \
+    --build-arg CORTRIX_SOURCE_REVISION=32b82f6f8f1d7a41349f408969ff03b7997b6c15 \
+    .runtime/cortrix-src
+fi
 ```
 
-Inject `DEEPSEEK_API_KEY` through your shell or secret manager. Never paste its value into a tracked file or command argument. Confirm only that it is present:
+Materialize the tracked embedding-only configuration. It contains no API key:
 
 ```bash
-test -n "${DEEPSEEK_API_KEY:-}" && echo "DEEPSEEK_API_KEY is set"
+mkdir -p .runtime/config .runs/manual-postgresql
+cp runtime/config/cortrix.embedding-only.yaml .runtime/config/cortrix.yaml
+chmod 600 .runtime/config/cortrix.yaml
+export CORTRIX_LLM_ENABLED=false
 ```
 
-Run A makes zero external calls, but initialization checks the secret and budget because it reserves one shared candidate that must continue into Run B.
-
-Immediately before execution, verify the current official DeepSeek prices and record them. The following values were observed for `DeepSeek-V4-Flash` on 2026-08-04:
+Create unique namespace names for this manual session:
 
 ```bash
-./democtl record-pricing \
-  --input-cache-hit 0.0028 \
-  --input-cache-miss 0.14 \
-  --output-price 0.28
+MANUAL_SUFFIX="manual-$(date -u +%Y%m%dT%H%M%SZ | tr '[:upper:]' '[:lower:]')"
+DOC_NS="order-a-docs-${MANUAL_SUFFIX}"
+QUERY_NS="order-a-query-${MANUAL_SUFFIX}"
+export DOC_NS QUERY_NS
+printf 'DOC_NS=%s\nQUERY_NS=%s\n' "$DOC_NS" "$QUERY_NS"
 ```
 
-Initialize one walkthrough:
+## 3. Start the services
+
+Start PostgreSQL first, then the embedding-only Cortrix service:
 
 ```bash
-./democtl walkthrough init --reviewed-attempt-limit 2
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d postgres
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml up -d --force-recreate cortrix
 ```
 
-The real reference run returned:
-
-```json
-{
-  "status": "initialized",
-  "run_id": "order-api-field-migration-20260804T085505Z",
-  "phase": "initialized",
-  "scenario_version": "2.0.0",
-  "campaign_slot": 2,
-  "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
-  "budget_usd": 1.0,
-  "next_command": "./democtl walkthrough run-a"
-}
-```
-
-Your campaign slot can differ. The command must still report `phase=initialized`, the pinned source identity, and a budget no greater than USD 1.00.
-
-## Walkthrough step 4 — Execute this path
-
-Run the PostgreSQL/pgvector baseline first:
+Wait for both health checks:
 
 ```bash
-./democtl walkthrough run-a
+until docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T postgres pg_isready -U cortrix_demo -d cortrix_demo >/dev/null; do sleep 2; done
+until curl -fsS http://127.0.0.1:18420/api/v1/system/health/ready >/dev/null; do sleep 2; done
 ```
 
-Docker Compose may print local service lifecycle lines before the JSON summary. The stable result is the final JSON object. The real reference run reported:
-
-```json
-{
-  "status": "pass",
-  "run_id": "order-api-field-migration-20260804T085505Z",
-  "phase": "run_a_complete",
-  "runtime_profile": "embedding-only",
-  "external_calls": 0,
-  "postgresql_version": "16.14 (Debian 16.14-1.pgdg12+1)",
-  "pgvector_version": "0.8.6",
-  "inserted_block_count": 5,
-  "top1": {
-    "document_id": "order-api-guide-v1.0",
-    "version": "v1.0",
-    "lifecycle_status": "superseded",
-    "cosine_similarity": 0.7531767425327823
-  },
-  "current_document_rank": 3
-}
-```
-
-Do not start another candidate after this command. Run B must continue from this exact session.
-
-## Walkthrough step 5 — Inspect the real result
-
-Read the sanitized evidence projection:
+Inspect the actual database versions:
 
 ```bash
-./democtl walkthrough inspect --component run-a
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T postgres \
+  psql -X -U cortrix_demo -d cortrix_demo -At -F ',' \
+  -c "SELECT current_setting('server_version'), extversion FROM pg_extension WHERE extname = 'vector';"
 ```
 
-Verify these key rows in the output:
-
-```json
-{
-  "search": "exact cosine; no ANN index and no lifecycle metadata in ORDER BY",
-  "inserted_block_count": 5,
-  "ranking": [
-    {
-      "rank": 1,
-      "document_id": "order-api-guide-v1.0",
-      "version": "v1.0",
-      "lifecycle_status": "superseded",
-      "cosine_similarity": 0.7531767425327823
-    },
-    {
-      "rank": 3,
-      "document_id": "order-api-release-v2.0",
-      "version": "v2.0",
-      "lifecycle_status": "current",
-      "cosine_similarity": 0.5937288161355068
-    }
-  ],
-  "assertions": {
-    "expected_dense_document_is_top1": true,
-    "required_current_document_is_present": true,
-    "strict_dense_top1": true,
-    "exact_cosine_without_ann": true,
-    "lifecycle_not_used_in_ranking": true
-  },
-  "pass": true
-}
-```
-
-The complete output contains all five ranked blocks. The excerpt keeps only the two rows that establish the version conflict.
-
-## Walkthrough step 6 — Interpret the real result
-
-Run A uses BGE-M3 embeddings plus PostgreSQL/pgvector exact cosine. The old guide is rank 1 because it is the closest semantic match to the failing `account_id` payload. The current v2 release bulletin is retrievable at rank 3, but lifecycle status is intentionally absent from `WHERE` and `ORDER BY`.
-
-The baseline therefore returns the retired `account_id` guidance. This is a profile-specific mechanism result, not a claim that PostgreSQL or pgvector cannot filter metadata or support richer retrieval.
-
-## Walkthrough step 7 — Continue or close the candidate
-
-Confirm that the walkthrough is waiting for Run B:
-
-```bash
-./democtl walkthrough status
-```
-
-Expected key fields:
-
-```json
-{
-  "status": "run_a_complete",
-  "next_command": "./democtl walkthrough run-b"
-}
-```
-
-Continue immediately with [Run B Pipeline: Step-by-Step Runbook](run-b-cortrix-full-stack-step-by-step.md). Do not run `finalize` yet; it correctly fails closed until Run B is complete.
-
-## Walkthrough step 8 — Recover safely
-
-If your shell closes after Run A, return to the same clean checkout, restore `DEEPSEEK_API_KEY` from your secret manager, and run:
-
-```bash
-./democtl walkthrough status
-./democtl walkthrough inspect --component run-a
-```
-
-If the session still reports `run_a_complete`, continue with Run B. If you cannot continue, reject and clean up the active candidate:
-
-```bash
-./democtl walkthrough abort
-```
-
-Never create screenshots or stage evidence from an aborted or rejected candidate.
-
-## Pipeline at a glance
+The reference run returned:
 
 ```text
-frozen inputs
-  -> common preflight and candidate reservation
-  -> embedding-only Cortrix runtime
-  -> two isolated namespaces
-  -> BGE-M3 vector generation
-  -> vector export
-  -> PostgreSQL/pgvector load
-  -> exact-cosine query
-  -> deterministic assertions
-  -> evidence and shared cleanup
+16.14 (Debian 16.14-1.pgdg12+1),0.8.6
 ```
 
-Run A and Run B share one candidate. The orchestrator completes Run A before starting Run B. The walkthrough output is intentionally more verbose than a production application response because it is an educational and audit surface.
+Verify the exact BGE-M3 files used to create both document and query vectors:
 
-## Stage 0 — Freeze shared inputs
+```bash
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix sh -c '
+printf "%s  %s\n" \
+  2237f770aad5c71bbc1fc2d361a57f9a37400574cc9eff32626f0cdb49234730 /data/models/bge-m3/model.onnx \
+  249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4 /data/models/bge-m3/tokenizer.json \
+  | sha256sum -c -
+'
+```
 
-The runner loads the scenario contract, fixture manifest, query, and frozen assertions. It verifies every fixture checksum before runtime work and verifies that the demo checkout is clean, on `main`, and attributable to a full commit.
+Expected output:
 
-Run A consumes the same four fixture documents and the same query as Run B. The fixture metadata includes `document_id`, version, lifecycle status, effective date, and source path. The frozen assertion contract names the expected Run A top document and requires the current v2 document to remain observable in the ranking.
+```text
+/data/models/bge-m3/model.onnx: OK
+/data/models/bge-m3/tokenizer.json: OK
+```
 
-Evidence: `fixtures/manifest.json`, `expected/assertions.json`, `calibration/baseline-2.0.0.json`, and the candidate `source-manifest.json`.
+## 4. Load the comparison data
 
-## Stage 1 — Pass preflight and reserve the candidate
+Create a Cortrix namespace, upload the four fixtures, and wait for the embedding-only document tasks. This is a direct call to the Cortrix HTTP API, not a Demo runner command:
 
-The combined workflow validates source identity, Docker, Docker Compose, pricing, secret presence, attempt limit, and the USD budget before reserving a campaign slot. Although Run A itself makes no external LLM call, it shares this preflight because its evidence must be paired with Run B under one candidate.
+```bash
+python3 - <<'PY'
+import json
+import os
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
 
-The attempt ledger records the `run_id`, scenario version, demo commit, and reserved state before runtime work begins. A deterministic failure consumes the reserved slot and cannot silently become accepted evidence.
+base = "http://127.0.0.1:18420/api/v1"
+namespace = os.environ["DOC_NS"]
+fixture_root = Path("scenarios/order-api-field-migration/fixtures")
+manifest = json.loads((fixture_root / "manifest.json").read_text())
 
-Evidence: `.runs/campaigns/<campaign_id>.json`, `state-history.json`, and `preflight.json` in a local candidate.
+def call(method, path, payload=None, expected=(200,)):
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(base + path, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=180) as response:
+            status = response.status
+            value = json.loads(response.read().decode() or "{}")
+    except urllib.error.HTTPError as error:
+        status = error.code
+        value = json.loads(error.read().decode() or "{}")
+    if status not in expected:
+        raise RuntimeError({"status": status, "response": value})
+    return status, value
 
-## Stage 2 — Start the runtime
+status, _ = call("GET", "/namespaces/" + urllib.parse.quote(namespace), expected=(200, 404))
+if status == 404:
+    call("POST", "/namespaces", {"name": namespace, "display_name": namespace}, expected=(201,))
 
-The runner starts with the embedding-only profile. It materializes a local runtime config with `CORTRIX_LLM_ENABLED=false`, starts the PostgreSQL service, and force-recreates the Cortrix service.
+for item in manifest["documents"]:
+    metadata = {key: value for key, value in item.items() if key != "sha256"}
+    metadata.update({"manual_run": True, "fixture_sha256": item["sha256"]})
+    _, accepted = call(
+        "POST",
+        "/documents",
+        {
+            "namespace": namespace,
+            "filename": item["path"],
+            "content": (fixture_root / item["path"]).read_text(),
+            "metadata": metadata,
+        },
+        expected=(202,),
+    )
+    task_id = accepted["task_id"]
+    for _ in range(900):
+        _, progress = call("GET", "/documents/tasks/" + urllib.parse.quote(task_id) + "/progress")
+        state = str(progress.get("status", "")).lower()
+        if state in {"ready", "completed", "success", "succeeded"}:
+            if progress.get("error_code") or progress.get("error_msg"):
+                raise RuntimeError(progress)
+            print({"document": item["document_id"], "status": state})
+            break
+        if state in {"failed", "cancelled", "canceled", "error"}:
+            raise RuntimeError(progress)
+        time.sleep(1)
+    else:
+        raise TimeoutError(task_id)
+PY
+```
 
-The Cortrix service uses pinned BGE-M3 assets with 1024-dimensional embeddings. The PostgreSQL service uses the pgvector PostgreSQL 16 image and initializes the `semantic_blocks` table. All listeners bind to loopback addresses.
+Expected document-level result:
 
-No DeepSeek request, query fusion, contextual enrichment, HyPE generation, document summary, listwise rerank, or local generative fallback is part of Run A.
+```text
+{'document': 'order-api-guide-v1.0', 'status': 'completed'}
+{'document': 'order-api-release-v2.0', 'status': 'completed'}
+{'document': 'order-api-list-pagination-v2.0', 'status': 'completed'}
+{'document': 'order-api-cancellation-v2.0', 'status': 'completed'}
+```
 
-Evidence: `runtime/config/cortrix.embedding-only.yaml`, `runtime/docker-compose.yml`, and the candidate runtime identity.
+The exact successful terminal word may be `ready`, `completed`, `success`, or `succeeded` on a compatible runtime.
 
-## Stage 3 — Prepare data for this path
+## 5. Read and submit the query
 
-The runner derives two namespace names from the shared `run_id`:
+Read the same query again and keep it in the shell:
 
-- `order-a-docs-<suffix>` stores the four fixture documents;
-- `order-a-query-<suffix>` stores a single `query-anchor.txt` document.
+```bash
+python3 -c 'from pathlib import Path; print(Path("scenarios/order-api-field-migration/fixtures/query.txt").read_text().strip())'
+QUERY="$(python3 -c 'from pathlib import Path; print(Path("scenarios/order-api-field-migration/fixtures/query.txt").read_text().strip())')"
+export QUERY
+```
 
-Each fixture is uploaded with its frozen metadata and checksum. The runner waits for each asynchronous document task to report a successful terminal state. The query text is uploaded separately with `document_id=query-anchor` and `role=query_embedding_anchor` so its vector cannot be confused with a corpus block.
+Create a separate query namespace and upload the query text as one embedding anchor:
 
-Evidence: document task responses in local candidate processing and the cleanup receipt's namespace list.
+```bash
+python3 - <<'PY'
+import json
+import os
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
-## Stage 4 — Produce retrieval inputs
+base = "http://127.0.0.1:18420/api/v1"
+namespace = os.environ["QUERY_NS"]
 
-Cortrix's embedding-only runtime chunks the fixture documents and applies the pinned BGE-M3 model. The accepted corpus produces five durable text blocks from four documents. It also embeds the single query anchor.
+def call(method, path, payload=None, expected=(200,)):
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(base + path, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=180) as response:
+            status = response.status
+            value = json.loads(response.read().decode() or "{}")
+    except urllib.error.HTTPError as error:
+        status = error.code
+        value = json.loads(error.read().decode() or "{}")
+    if status not in expected:
+        raise RuntimeError({"status": status, "response": value})
+    return status, value
 
-The runner exports vectors from each namespace's durable Cortrix store and WAL using the repository helper. It selects only text blocks, orders them by chunk index and block ID, and requires exactly one query-anchor vector.
+status, _ = call("GET", "/namespaces/" + urllib.parse.quote(namespace), expected=(200, 404))
+if status == 404:
+    call("POST", "/namespaces", {"name": namespace, "display_name": namespace}, expected=(201,))
+_, accepted = call(
+    "POST",
+    "/documents",
+    {
+        "namespace": namespace,
+        "filename": "query-anchor.txt",
+        "content": os.environ["QUERY"],
+        "metadata": {"document_id": "query-anchor", "role": "query_embedding_anchor", "manual_run": True},
+    },
+    expected=(202,),
+)
+task_id = accepted["task_id"]
+for _ in range(900):
+    _, progress = call("GET", "/documents/tasks/" + urllib.parse.quote(task_id) + "/progress")
+    state = str(progress.get("status", "")).lower()
+    if state in {"ready", "completed", "success", "succeeded"}:
+        if progress.get("error_code") or progress.get("error_msg"):
+            raise RuntimeError(progress)
+        print({"query_anchor": state})
+        break
+    if state in {"failed", "cancelled", "canceled", "error"}:
+        raise RuntimeError(progress)
+    time.sleep(1)
+else:
+    raise TimeoutError(task_id)
+PY
+```
 
-Every selected embedding must contain 1024 numeric dimensions. The query vector checksum is carried into Run A evidence.
+Export the document and query vectors from the two durable namespaces:
 
-Evidence in a local candidate: `run-a/document-vectors.json` and `run-a/query-vectors.json`. These raw exports are not part of the curated accepted public evidence; the sanitized ranking result is.
+```bash
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix \
+  python3 /demo-helpers/extract_vectors.py \
+  --db "/data/units/unit-${DOC_NS}/store.db" \
+  --wal "/data/units/unit-${DOC_NS}/hnsw.wal" \
+  --dimension 1024 \
+  --output /data/manual-document-vectors.json
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml cp \
+  cortrix:/data/manual-document-vectors.json .runs/manual-postgresql/document-vectors.json
 
-## Stage 5 — Execute retrieval
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix \
+  python3 /demo-helpers/extract_vectors.py \
+  --db "/data/units/unit-${QUERY_NS}/store.db" \
+  --wal "/data/units/unit-${QUERY_NS}/hnsw.wal" \
+  --dimension 1024 \
+  --output /data/manual-query-vectors.json
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml cp \
+  cortrix:/data/manual-query-vectors.json .runs/manual-postgresql/query-vectors.json
+```
 
-The runner converts every vector to a pgvector literal and creates one SQL transaction:
+Build the SQL from the exported vectors. This step stores version and lifecycle metadata for observation, but neither field participates in ranking:
 
-1. `TRUNCATE semantic_blocks` removes data from a prior local attempt inside the dedicated demo database.
-2. `INSERT` writes block identity, document identity, chunk index, title, version, lifecycle status, effective date, source URI, content, and embedding.
-3. A version query records PostgreSQL and pgvector versions.
-4. A `SELECT` computes `1 - (embedding <=> query_vector)` as cosine similarity.
-5. `ORDER BY embedding <=> query_vector, doc_id, chunk_index` establishes deterministic dense order and tie-breaking.
+```bash
+python3 - <<'PY' > .runs/manual-postgresql/load-and-query.sql
+import json
+from pathlib import Path
 
-There is no ANN index. `version`, `lifecycle_status`, and `effective_at` are stored for observation but are not used in `WHERE` or `ORDER BY`.
+fixture_root = Path("scenarios/order-api-field-migration/fixtures")
+manifest = json.loads((fixture_root / "manifest.json").read_text())
+document_records = json.loads(Path(".runs/manual-postgresql/document-vectors.json").read_text())["records"]
+query_records = json.loads(Path(".runs/manual-postgresql/query-vectors.json").read_text())["records"]
 
-## Stage 6 — Apply ranking
+def quote(value):
+    return "'" + str(value).replace("'", "''") + "'"
 
-pgvector exact cosine is the only retrieval and ranking signal. The runner enumerates every returned block and records rank, block ID, document ID, chunk index, version, lifecycle status, and cosine similarity.
+def vector(values):
+    return "[" + ",".join(format(float(value), ".9g") for value in values) + "]"
 
-There is no BM25, contextualized recall, HyPE recall, sparse recall, RRF fusion, BGE cross-encoder reranking, DeepSeek listwise reranking, or lifecycle boost in Run A.
+query_matches = [item for item in query_records if item.get("document_id") == "query-anchor" and item.get("block_type") == 1]
+assert len(query_matches) == 1
+query_vector = quote(vector(query_matches[0]["embedding"])) + "::vector"
+rows = []
+for fixture in manifest["documents"]:
+    matches = [item for item in document_records if item.get("document_id") == fixture["document_id"] and item.get("block_type") == 1]
+    assert matches, fixture["document_id"]
+    for item in sorted(matches, key=lambda value: (value["chunk_index"], value["block_id"])):
+        assert len(item["embedding"]) == 1024
+        rows.append(
+            "(" + ",".join(
+                [
+                    quote(item["block_id"]),
+                    quote(fixture["document_id"]),
+                    str(int(item["chunk_index"])),
+                    quote(fixture["document_id"]),
+                    quote(fixture["version"]),
+                    quote(fixture["status"]),
+                    quote(fixture["effective_at"]),
+                    quote(fixture["path"]),
+                    quote(item.get("content", "")),
+                    quote(vector(item["embedding"])) + "::vector",
+                ]
+            ) + ")"
+        )
 
-In the accepted result, the detailed v1 guide receives the highest cosine similarity because it repeats the failing payload and error wording.
+print("TRUNCATE TABLE semantic_blocks;")
+print("INSERT INTO semantic_blocks (block_id, doc_id, chunk_index, title, version, lifecycle_status, effective_at, source_uri, content, embedding) VALUES " + ",".join(rows) + ";")
+print(
+    "SELECT row_number() OVER (ORDER BY embedding <=> {query}, doc_id, chunk_index) AS rank, "
+    "doc_id, chunk_index, version, lifecycle_status, 1 - (embedding <=> {query}) AS cosine_similarity "
+    "FROM semantic_blocks ORDER BY embedding <=> {query}, doc_id, chunk_index;".format(query=query_vector)
+)
+PY
+```
 
-## Stage 7 — Resolve result
+Execute the SQL directly in PostgreSQL:
 
-Run A has no application lifecycle resolver. Its output is intentionally the raw dense top result.
+```bash
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T postgres \
+  psql -X -v ON_ERROR_STOP=1 -U cortrix_demo -d cortrix_demo \
+  < .runs/manual-postgresql/load-and-query.sql
+```
 
-Instead, deterministic assertions verify that:
+## 6. Inspect the ranking
 
-- the frozen superseded v1 document is top 1;
-- its similarity is strictly greater than rank 2;
-- the current v2 migration bulletin is still present;
-- exact cosine and no-lifecycle-ranking boundaries are declared.
+The reference run returned this order:
 
-This is the core contrast: Run A exposes what the chosen dense-only contract returns before any business lifecycle policy is applied.
+| Rank | Document | Version | Lifecycle | Cosine similarity |
+| ---: | --- | --- | --- | ---: |
+| 1 | `order-api-guide-v1.0` | `v1.0` | `superseded` | `0.7531767425327823` |
+| 2 | `order-api-guide-v1.0` | `v1.0` | `superseded` | `0.6072149968938516` |
+| 3 | `order-api-release-v2.0` | `v2.0` | `current` | `0.5937288161355068` |
+| 4 | `order-api-cancellation-v2.0` | `v2.0` | `current` | `0.5611662007073772` |
+| 5 | `order-api-list-pagination-v2.0` | `v2.0` | `current` | `0.49156024800547193` |
 
-## Stage 8 — Persist evidence
+Opaque block IDs may differ. The important observation is that the detailed superseded v1 guide is the strict dense top result, while the current v2 release bulletin is present but lower.
 
-The runner writes `run-a/pgvector-result.json`. The candidate run manifest references that file and records its pass state alongside the paired Run B result, shared source identity, provider identity, model checksums, cleanup receipt, budget record, and claim boundary.
+## 7. Verify the expected result
 
-The curated accepted Run A evidence retains the ranking result but not local runtime paths, raw secrets, or ignored transient files.
+The SQL contains only this ranking expression:
 
-## Stage 9 — Clean up
+```sql
+ORDER BY embedding <=> query_vector, doc_id, chunk_index
+```
 
-Cleanup removes the two Run A namespaces and the paired Run B namespace derived from the same `run_id`, stops the dedicated Compose project, deletes the runtime config that could contain the injected Run B secret, and verifies that ports `18420`, `19091`, and `15432` no longer have listeners.
+It does not use `version`, `lifecycle_status`, `effective_at`, or `superseded_by`. Therefore the baseline answer follows the rank-1 v1 guide and points to the retired `account_id` field.
 
-Model caches and Docker volumes are intentionally preserved. The cleanup receipt must confirm namespace removal, container removal, port release, and runtime-secret removal.
+This is the intended Run A result:
 
-## Stage 10 — Verify acceptance conditions
+```text
+Selected document: order-api-guide-v1.0
+Selected field: account_id
+Lifecycle: superseded
+```
 
-Run A passes only when its deterministic assertions pass. The whole candidate still requires Run B, required-path, resolver, cleanup, budget, and model-checksum assertions to pass before it can reach `candidate` state.
+## 8. Clean up
 
-A candidate is not accepted evidence and is not screenshot-eligible. Independent Clean Run acceptance is required before staging. The accepted pointer, run manifest, Run A result, resolver, screenshot manifest, and checksums must remain one identity chain.
+Remove only the two namespaces created by this manual Run A, stop the dedicated services, and delete the materialized runtime config:
 
-## Evidence map
+```bash
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml exec -T cortrix \
+  python3 /demo-helpers/cleanup_namespaces.py "$DOC_NS" "$QUERY_NS"
+docker-compose -p cortrix_demos_order_api -f runtime/docker-compose.yml down --remove-orphans
+python3 -c 'from pathlib import Path; Path(".runtime/config/cortrix.yaml").unlink(missing_ok=True)'
+```
 
-| Question | Evidence |
-| --- | --- |
-| Which inputs were used? | `fixtures/manifest.json` and candidate `source-manifest.json` |
-| Which query vector was used? | `query_embedding_sha256` in `run-a/pgvector-result.json` |
-| Which database versions ran? | `environment` in `run-a/pgvector-result.json` |
-| Was lifecycle used for ranking? | `search`, SQL contract, and `lifecycle_not_used_in_ranking` assertion |
-| What was the complete dense order? | `ranking[]` in `run-a/pgvector-result.json` |
-| Did cleanup finish? | `cleanup-receipt.json` referenced by the run manifest |
+Model caches and Docker volumes remain available for Run B.
 
-## Operational boundaries
+## 9. Understand what happened
 
-- Do not execute the internal stages manually and present them as an official candidate; use the combined runner.
-- Do not add lifecycle filtering to Run A without creating a new scenario/profile contract and recalibrating before any LLM-backed attempt.
-- Do not describe this baseline as the maximum capability of PostgreSQL or pgvector.
-- Do not compare latency or cost from this mechanism demo.
+```text
+four frozen documents
+  -> embedding-only Cortrix ingestion
+  -> pinned BGE-M3 document vectors
+shared query text
+  -> embedding-only Cortrix query anchor
+  -> pinned BGE-M3 query vector
+document and query vectors
+  -> PostgreSQL semantic_blocks
+  -> pgvector exact cosine
+  -> superseded v1 guide at rank 1
+```
+
+The verbose commands and intermediate files are educational diagnostics for this Demo. A production application would normally automate vector generation, ingestion, observability, and cleanup, and would expose only the business result and required operational telemetry.
+
+## 10. Keep the claim boundary
+
+PostgreSQL and pgvector can filter metadata and support more advanced retrieval designs. This baseline intentionally does not. Run A proves only that this frozen BGE-M3 dense-only exact-cosine profile prefers the more similar outdated guide on this synthetic corpus. It is not a performance benchmark or a statement about PostgreSQL's maximum capability.

@@ -2,7 +2,7 @@
 
 This is a manual, cost-bearing workflow. The runner fails closed and does not use a local generative LLM.
 
-For the scenario-specific interpretation of each path, read [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) and [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md). The live command intentionally produces both paths as one evidence-bound candidate.
+For the scenario-specific interpretation of each path, read [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) and [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md). The live command intentionally produces both paths as one evidence-bound candidate. The separate [Run A manual Runbook](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) and [Run B manual Runbook](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) expose the underlying Docker, HTTP, Python, and SQL operations for human learning; those direct commands do not create official candidate evidence.
 
 ## 1. Supply the pinned Cortrix source
 

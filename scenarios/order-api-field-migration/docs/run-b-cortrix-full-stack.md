@@ -77,7 +77,7 @@ shared fixtures and query
 
 The BGE cross-encoder and DeepSeek listwise stage are intentionally observable as separate ranking layers. In the accepted run, the BGE leader remains the superseded v1 guide, while the final listwise order places the current v2 bulletin first.
 
-Read [Run B Pipeline: Step-by-Step Runbook](run-b-cortrix-full-stack-step-by-step.md) for every intermediate operation, retrieval path, ranking stage, evidence file, and validation gate.
+Read [Run B Manual Runbook: Cortrix Full Stack](run-b-cortrix-full-stack-step-by-step.md) to reproduce the path with copy-and-paste Docker, HTTP, and Python commands. It configures and queries the underlying Cortrix service directly and does not use `democtl`.
 
 ## 7. Inspect the evidence
 

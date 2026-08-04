@@ -75,7 +75,7 @@ shared fixtures and query
 
 The embedding-only Cortrix runtime is used only to produce the same pinned BGE-M3 embeddings used by the comparison. It does not execute Cortrix Full Stack retrieval, RRF, reranking, lifecycle resolution, or any LLM call for Run A.
 
-Read [Run A Pipeline: Step-by-Step Runbook](run-a-postgresql-pgvector-step-by-step.md) for every intermediate operation, database action, evidence file, and validation gate.
+Read [Run A Manual Runbook: PostgreSQL and pgvector](run-a-postgresql-pgvector-step-by-step.md) to reproduce the path with copy-and-paste Docker, HTTP, Python, and SQL commands. It operates the underlying services directly and does not use `democtl`.
 
 ## 7. Inspect the evidence
 

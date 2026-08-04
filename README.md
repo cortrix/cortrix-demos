@@ -40,16 +40,16 @@ Follow the two human-readable paths:
 
 - [Run A: PostgreSQL/pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) explains why the dense-only baseline selects the superseded v1 guide.
 - [Run B: Cortrix Full Stack](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md) explains how the Full Stack candidate is produced, checked, and replayed.
-- [Run A Pipeline: Step-by-Step Runbook](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) documents every embedding, vector-export, SQL, ranking, evidence, and cleanup stage.
-- [Run B Pipeline: Step-by-Step Runbook](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) documents every ingestion, retrieval, fusion, reranking, resolver, evidence, and cleanup stage.
+- [Run A Manual Runbook: PostgreSQL and pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) provides copy-and-paste Docker, HTTP, Python, and SQL commands for operating the baseline directly, without `democtl`.
+- [Run B Manual Runbook: Cortrix Full Stack](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) provides the matching copy-and-paste Docker, HTTP, and Python commands for configuring and querying Cortrix directly, without `democtl`.
 
 A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
 
 ## Demo observability versus production operation
 
-This repository is designed to let both Agents and humans understand why each result was produced, not merely see the final answer. The guided walkthrough therefore exposes additional phase summaries and evidence for the database version, retrieval paths, BGE ranking, DeepSeek final order, application resolver, repeatability, cost visibility, and cleanup state. The step-by-step Runbooks pair each command with a real output excerpt so readers can verify the mechanism without reading the runner source.
+This repository is designed to let both Agents and humans understand why each result was produced, not merely see the final answer. Agents use the structured `democtl` lifecycle for discovery, reproducibility, fail-closed execution, and evidence generation. Humans can use the paired manual Runbooks to operate the underlying components directly: Run A exposes PostgreSQL/pgvector storage and exact-cosine SQL, while Run B exposes Cortrix configuration, ingestion, retrieval, ranking layers, and lifecycle validation through direct APIs. Both Runbooks use the same frozen fixtures and query and pair copyable commands with real output excerpts.
 
-That level of terminal output is a Demo and audit feature, not a required Cortrix production interface. A production application normally exposes only the business result and the operational telemetry required by its own reliability, privacy, and security policy. It should not copy these educational diagnostics into an end-user response, and it must never expose secrets, raw private content, local paths, or unnecessary provider internals. The guided commands deliberately project sanitized evidence and do not change the underlying Cortrix API.
+That level of terminal output is a Demo and audit feature, not a required Cortrix production interface. A production application normally automates embedding, ingestion, vector transfer, query construction, policy validation, and cleanup, and exposes only the business result and the operational telemetry required by its own reliability, privacy, and security policy. It should not copy these educational diagnostics into an end-user response, and it must never expose secrets, raw private content, local paths, or unnecessary provider internals. The manual commands use the underlying PostgreSQL and Cortrix interfaces; the Agent path adds orchestration and sanitized evidence projection without changing those interfaces.
 
 ## Inspect the evidence
 
