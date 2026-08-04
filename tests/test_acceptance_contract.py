@@ -8,11 +8,21 @@ import tempfile
 import unittest
 import zlib
 
-from cortrix_demo_runner.acceptance import REQUIRED_PATH_NAMES, png_dimensions, png_dimensions_from_header, record_screenshot, stage_accepted, validate_manifest_contract, validate_run_id, verify_accepted
+from cortrix_demo_runner.acceptance import png_dimensions, png_dimensions_from_header, record_screenshot, stage_accepted, validate_manifest_contract, validate_run_id, verify_accepted
 from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.fresh_clone import verify_readme
 from cortrix_demo_runner.io import sha256_file, write_json
-from cortrix_demo_runner.scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION
+from cortrix_demo_runner.scenario import load_scenario, load_validation_contract
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCENARIO_ID = "order-api-field-migration"
+SCENARIO = load_scenario(ROOT, SCENARIO_ID)
+RELEASE = SCENARIO["requires"]["cortrix_release"]
+RELEASE_COMMIT = SCENARIO["requires"]["cortrix_release_commit"]
+SOURCE_REVISION = SCENARIO["requires"]["cortrix_source_revision"]
+VALIDATION = load_validation_contract(ROOT, SCENARIO_ID)
+REQUIRED_PATH_NAMES = set(VALIDATION["full_stack_profile"]["required_paths"])
 
 
 class AcceptanceContractTests(unittest.TestCase):
@@ -85,13 +95,13 @@ class AcceptanceContractTests(unittest.TestCase):
         }
 
     def test_frozen_run_id_accepts_initial_and_retry_attempts(self) -> None:
-        validate_run_id("order-api-field-migration-20260803T120000Z")
-        validate_run_id("order-api-field-migration-20260803T120000Z-retry")
+        validate_run_id(ROOT, SCENARIO_ID, "order-api-field-migration-20260803T120000Z")
+        validate_run_id(ROOT, SCENARIO_ID, "order-api-field-migration-20260803T120000Z-retry")
 
     def test_run_id_rejects_path_or_scenario_changes(self) -> None:
         for value in ("../run", "other-scenario-20260803T120000Z", "order-api-field-migration-latest"):
             with self.subTest(value=value), self.assertRaises(DemoContractError):
-                validate_run_id(value)
+                validate_run_id(ROOT, SCENARIO_ID, value)
 
     def test_png_contract_reads_ihdr_dimensions(self) -> None:
         header = b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", 1600, 900)
@@ -145,30 +155,31 @@ class AcceptanceContractTests(unittest.TestCase):
 
     def test_manifest_contract_requires_the_exact_frozen_paths(self) -> None:
         manifest = self.accepted_contract_manifest()
-        self.assertEqual("a" * 40, validate_manifest_contract(manifest))
+        self.assertEqual("a" * 40, validate_manifest_contract(ROOT, SCENARIO_ID, manifest))
         manifest["required_paths"] = {**manifest["required_paths"], "substitute_path": True}
         with self.assertRaises(DemoContractError):
-            validate_manifest_contract(manifest)
+            validate_manifest_contract(ROOT, SCENARIO_ID, manifest)
 
     def test_manifest_contract_requires_scenario_and_assertion_contract_identity(self) -> None:
         for key in ("scenario_version", "assertion_contract_sha256"):
             manifest = self.accepted_contract_manifest()
             del manifest[key]
             with self.subTest(key=key), self.assertRaisesRegex(DemoContractError, "scenario version or assertion contract"):
-                validate_manifest_contract(manifest)
+                validate_manifest_contract(ROOT, SCENARIO_ID, manifest)
 
     def test_manifest_contract_rejects_non_chunk_query_identity(self) -> None:
         manifest = self.accepted_contract_manifest()
         manifest["run_b"]["query_granularity"] = "both"
         with self.assertRaisesRegex(DemoContractError, "chunk-only retrieval contract"):
-            validate_manifest_contract(manifest)
+            validate_manifest_contract(ROOT, SCENARIO_ID, manifest)
 
     def test_evidence_schemas_preserve_acceptance_and_screenshot_gates(self) -> None:
         root = Path(__file__).resolve().parents[1]
         run_schema = json.loads((root / "packages" / "evidence-schema" / "run-manifest.schema.json").read_text(encoding="utf-8"))
         screenshot_schema = json.loads((root / "packages" / "evidence-schema" / "screenshot-manifest.schema.json").read_text(encoding="utf-8"))
         self.assertIn("acceptance", run_schema["properties"])
-        self.assertEqual("secondscott_clean_room", run_schema["properties"]["acceptance"]["properties"]["method"]["const"])
+        self.assertEqual("string", run_schema["properties"]["acceptance"]["properties"]["method"]["type"])
+        self.assertEqual("secondscott_clean_room", VALIDATION["evidence_contract"]["acceptance_method"])
         self.assertIn("post_screenshot_human_review_required", run_schema["properties"])
         self.assertIn("required_paths", run_schema["required"])
         self.assertIn("scenario_version", run_schema["required"])
@@ -188,6 +199,7 @@ class AcceptanceContractTests(unittest.TestCase):
             write_json(
                 scenario_root / "scenario.json",
                 {
+                    "schema_version": 1,
                     "id": SCENARIO_ID,
                     "scenario_version": "2.0.0",
                     "synthetic_data": True,
@@ -195,7 +207,18 @@ class AcceptanceContractTests(unittest.TestCase):
                     "execution_contract": {"sealed": True, "campaign_id": "order-api-field-migration-2.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0},
                     "requires": {"cortrix_release": RELEASE, "cortrix_release_commit": RELEASE_COMMIT, "cortrix_source_revision": SOURCE_REVISION},
                     "assertions": "expected/assertions.json",
+                    "validation_contract": "expected/validation.json",
                     "retrieval_contract": {"query_granularity": "chunk", "document_summary_role": "ingestion_evidence_only"},
+                },
+            )
+            write_json(root / "scenarios" / "registry.json", {"schema_version": 1, "default_scenario": SCENARIO_ID, "scenarios": [{"id": SCENARIO_ID}]})
+            write_json(scenario_root / "expected" / "validation.json", VALIDATION)
+            write_json(
+                scenario_root / "profiles" / "technology-profile.json",
+                {
+                    "schema_version": 1,
+                    "scenario_id": SCENARIO_ID,
+                    "llm": {"provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1"},
                 },
             )
             write_json(assertion_contract, {"schema_version": 1, "scenario_id": SCENARIO_ID, "frozen": frozen})

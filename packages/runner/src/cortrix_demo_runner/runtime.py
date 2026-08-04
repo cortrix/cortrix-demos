@@ -14,14 +14,13 @@ import urllib.request
 
 from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
-from .scenario import SOURCE_REVISION
 
 
 ROOT = Path(__file__).resolve().parents[4]
 COMPOSE_PROJECT = "cortrix_demos_order_api"
 COMPOSE_FILE = ROOT / "runtime" / "docker-compose.yml"
 API_BASE = "http://127.0.0.1:18420/api/v1"
-IMAGE = "cortrix-demo:32b82f6"
+IMAGE_PROVENANCE_PATH = ROOT / "runtime" / "image-provenance.json"
 SUCCESS_STATES = {"ready", "completed", "success", "succeeded"}
 FAILURE_STATES = {"failed", "cancelled", "canceled", "error"}
 
@@ -47,7 +46,12 @@ def compose_environment(profile: str) -> dict[str, str]:
 def require_key() -> str:
     api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
     if len(api_key) < 20:
-        raise DemoContractError("DEEPSEEK_API_KEY is missing; no external call was made")
+        raise DemoContractError(
+            "DEEPSEEK_API_KEY is missing; no external call was made",
+            code="CX_DEMO_SECRET_MISSING",
+            category="auth",
+            structured_data={"secret_env": "DEEPSEEK_API_KEY", "external_calls_made": False, "next_action": "Inject DEEPSEEK_API_KEY through the process environment before live execution."},
+        )
     return api_key
 
 
@@ -62,32 +66,97 @@ def compose(arguments: list[str], profile: str = "embedding-only", capture: bool
     )
 
 
-def ensure_image(source: Path) -> dict[str, str]:
-    found = subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True, text=True, check=False)
+def load_image_provenance() -> dict[str, Any]:
+    provenance = read_json(IMAGE_PROVENANCE_PATH)
+    required_strings = (
+        "distribution",
+        "image",
+        "source_repository",
+        "cortrix_release",
+        "release_commit",
+        "source_revision",
+        "dockerfile",
+        "source_revision_build_arg",
+        "required_oci_revision_label",
+    )
+    if provenance.get("schema_version") != 1 or any(not isinstance(provenance.get(key), str) or not provenance[key] for key in required_strings):
+        raise DemoContractError("Image provenance contract is incomplete")
+    if provenance["distribution"] != "local_source_build" or provenance.get("registry_source") is not None:
+        raise DemoContractError("Image provenance must use the reviewed local source build distribution")
+    compose_text = COMPOSE_FILE.read_text(encoding="utf-8")
+    if f"image: {provenance['image']}" not in compose_text:
+        raise DemoContractError("Compose image does not match the image provenance contract")
+    if f"CORTRIX_SOURCE_REVISION: {provenance['source_revision']}" not in compose_text:
+        raise DemoContractError("Compose source revision does not match the image provenance contract")
+    return provenance
+
+
+def require_scenario_image_provenance(requires: dict[str, Any]) -> dict[str, Any]:
+    provenance = load_image_provenance()
+    expected = {
+        "cortrix_release": requires.get("cortrix_release"),
+        "release_commit": requires.get("cortrix_release_commit"),
+        "source_revision": requires.get("cortrix_source_revision"),
+    }
+    if any(provenance.get(key) != value for key, value in expected.items()):
+        raise DemoContractError(
+            "Scenario source identity does not match the image provenance contract",
+            code="CX_DEMO_IMAGE_PROVENANCE_MISMATCH",
+            structured_data={"next_action": "Align the scenario source requirements, image provenance manifest, and Compose runtime before preparing or running the image."},
+        )
+    return provenance
+
+
+def ensure_image(source: Path, *, build_if_missing: bool = False) -> dict[str, str]:
+    provenance = load_image_provenance()
+    image_name = provenance["image"]
+    source_revision = provenance["source_revision"]
+    dockerfile = source / provenance["dockerfile"]
+    found = subprocess.run(["docker", "image", "inspect", image_name], capture_output=True, text=True, check=False)
+    action = "reused"
     if found.returncode != 0:
+        if not build_if_missing:
+            raise DemoContractError(
+                "Pinned Cortrix image is missing",
+                code="CX_DEMO_IMAGE_MISSING",
+                structured_data={"image": image_name, "next_action": "Run ./democtl prepare-image for the selected scenario before live execution."},
+            )
+        action = "built"
         subprocess.run(
             [
                 "docker",
                 "build",
                 "--tag",
-                IMAGE,
+                image_name,
                 "--file",
-                str(source / "deploy" / "Dockerfile"),
+                str(dockerfile),
                 "--build-arg",
-                f"CORTRIX_SOURCE_REVISION={SOURCE_REVISION}",
+                f"{provenance['source_revision_build_arg']}={source_revision}",
                 str(source),
             ],
             check=True,
         )
     inspect = subprocess.run(
-        ["docker", "image", "inspect", IMAGE, "--format", "{{.Id}} {{index .Config.Labels \"org.opencontainers.image.revision\"}}"],
+        ["docker", "image", "inspect", image_name, "--format", f"{{{{.Id}}}} {{{{index .Config.Labels \"{provenance['required_oci_revision_label']}\"}}}}"],
         check=True,
         capture_output=True,
         text=True,
     ).stdout.strip().split()
-    if len(inspect) != 2 or inspect[1] != SOURCE_REVISION:
-        raise DemoContractError("Cortrix container image source revision is missing or mismatched")
-    return {"image": IMAGE, "digest": inspect[0], "source_revision": inspect[1]}
+    if len(inspect) != 2 or inspect[1] != source_revision:
+        raise DemoContractError(
+            "Cortrix container image source revision is missing or mismatched",
+            code="CX_DEMO_IMAGE_REVISION_MISMATCH",
+            structured_data={"image": image_name, "expected_revision": source_revision, "next_action": "Remove or retag the mismatched local image, then run democtl prepare-image from the pinned source checkout."},
+        )
+    return {
+        "image": image_name,
+        "digest": inspect[0],
+        "source_revision": inspect[1],
+        "distribution": provenance["distribution"],
+        "source_repository": provenance["source_repository"],
+        "dockerfile": provenance["dockerfile"],
+        "action": action,
+    }
 
 
 def materialize_config(profile: str) -> Path:

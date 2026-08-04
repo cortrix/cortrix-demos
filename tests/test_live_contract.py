@@ -100,7 +100,7 @@ class LiveContractTests(unittest.TestCase):
             scenario = read_json(path)
             scenario["retrieval_contract"]["query_granularity"] = "both"
             write_json(path, scenario)
-            with self.assertRaisesRegex(DemoContractError, "Scenario validation failed.*chunk-only"):
+            with self.assertRaisesRegex(DemoContractError, "Scenario validation failed.*retrieval_contract"):
                 execute_once(root, root / "missing-source", root / "missing-pricing.json", "order-api-field-migration-20260803T120000Z")
             self.assertFalse((root / ".runs").exists())
 

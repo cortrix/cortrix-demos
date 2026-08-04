@@ -14,26 +14,12 @@ from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .live import verify_demo_checkout
 from .safety import scan_text
-from .scenario import RELEASE, RELEASE_COMMIT, SCENARIO_ID, SOURCE_REVISION, assertion_contract_path, load_assertion_contract, load_scenario, require_reviewed_retrieval_contract, scenario_root
+from .scenario import assertion_contract_path, load_assertion_contract, load_scenario, load_validation_contract, require_reviewed_retrieval_contract, resolve_scenario_id, scenario_root
 
 
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 CLEAN_ROOM_REVIEW_PATTERN = re.compile(r"^REVIEW-[A-Z0-9-]+$")
 SCREENSHOT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.png$")
-REQUIRED_PATH_NAMES = {
-    "bge_m3_embedding",
-    "bm25_recall",
-    "contextualized_recall",
-    "hype_recall",
-    "rrf_fusion",
-    "bge_cross_encoder_rerank",
-    "f41_document_summary_ingestion",
-    "chunk_only_result_identity",
-    "deepseek_ingestion",
-    "deepseek_query_fusion",
-    "deepseek_listwise_rerank",
-    "application_lifecycle_resolver",
-}
 REQUIRED_CANDIDATE_FILES = (
     "run-manifest.json",
     "source-manifest.json",
@@ -86,67 +72,87 @@ def candidate_root(root: Path, run_id: str) -> Path:
     return root / ".runs" / run_id
 
 
-def accepted_root(root: Path, run_id: str) -> Path:
-    return scenario_root(root) / "evidence" / "runs" / run_id
+def accepted_root(root: Path, run_id: str, scenario_id: str | None = None) -> Path:
+    return scenario_root(root, scenario_id) / "evidence" / "runs" / run_id
 
 
-def validate_run_id(run_id: str) -> None:
-    if not re.fullmatch(r"order-api-field-migration-[0-9]{8}T[0-9]{6}Z(?:-retry)?", run_id):
-        raise DemoContractError("Run ID does not match the frozen scenario format")
+def validate_run_id(root: Path, scenario_id: str, run_id: str) -> None:
+    validation = load_validation_contract(root, scenario_id)
+    evidence = validation.get("evidence_contract")
+    pattern = evidence.get("run_id_pattern") if isinstance(evidence, dict) else None
+    if not isinstance(pattern, str) or not re.fullmatch(pattern, run_id):
+        raise DemoContractError(
+            "Run ID does not match the selected scenario format",
+            code="CX_DEMO_RUN_ID_INVALID",
+            structured_data={"scenario_id": scenario_id, "run_id": run_id, "next_action": "Use a run ID produced by the selected scenario executor."},
+        )
 
 
-def validate_manifest_contract(manifest: dict[str, Any]) -> str:
-    if manifest.get("schema_version") != 1 or manifest.get("scenario_id") != SCENARIO_ID:
+def validate_manifest_contract(root: Path, scenario_id: str, manifest: dict[str, Any]) -> str:
+    scenario = load_scenario(root, scenario_id)
+    validation = load_validation_contract(root, scenario_id)
+    evidence = require_object(validation.get("evidence_contract"), "Scenario evidence contract")
+    technology = read_json(scenario_root(root, scenario_id) / "profiles" / "technology-profile.json")
+    llm = require_object(technology.get("llm"), "Scenario LLM profile")
+    if manifest.get("schema_version") != 1 or manifest.get("scenario_id") != scenario_id:
         raise DemoContractError("Run schema or scenario identity is invalid")
     assertions = manifest.get("assertions")
-    assertion_names = {"run_a", "run_b", "required_paths", "resolver", "cleanup", "budget", "model_checksums", "all_passed"}
+    assertion_names = evidence.get("required_manifest_assertions")
+    if not isinstance(assertion_names, list) or not all(isinstance(name, str) for name in assertion_names):
+        raise DemoContractError("Scenario evidence assertion requirements are invalid")
     if not isinstance(assertions, dict) or not all(assertions.get(name) is True for name in assertion_names):
         raise DemoContractError("Run assertions are incomplete or failed")
     required_paths = manifest.get("required_paths")
-    if not isinstance(required_paths, dict) or set(required_paths) != REQUIRED_PATH_NAMES or not all(value is True for value in required_paths.values()):
+    profile_rules = require_object(validation.get("full_stack_profile"), "Scenario Full Stack profile rules")
+    required_path_names = profile_rules.get("required_paths")
+    if not isinstance(required_path_names, list) or not isinstance(required_paths, dict) or set(required_paths) != set(required_path_names) or not all(value is True for value in required_paths.values()):
         raise DemoContractError("Run required-path evidence is incomplete, substituted, or failed")
     target = manifest.get("target_identity")
     demo_commit = target.get("demo_commit") if isinstance(target, dict) else None
     if not isinstance(demo_commit, str) or not COMMIT_PATTERN.fullmatch(demo_commit):
         raise DemoContractError("Run has no valid demo commit identity")
-    if target.get("release") != RELEASE or target.get("release_commit") != RELEASE_COMMIT or target.get("source_revision") != SOURCE_REVISION or not isinstance(target.get("container_digest"), str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", target["container_digest"]):
+    requires = scenario["requires"]
+    if target.get("release") != requires["cortrix_release"] or target.get("release_commit") != requires["cortrix_release_commit"] or target.get("source_revision") != requires["cortrix_source_revision"] or not isinstance(target.get("container_digest"), str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", target["container_digest"]):
         raise DemoContractError("Run Cortrix source or container identity is invalid")
     if not isinstance(manifest.get("fixture_manifest_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", manifest["fixture_manifest_sha256"]):
         raise DemoContractError("Run fixture manifest checksum is invalid")
     if not isinstance(manifest.get("scenario_version"), str) or not manifest["scenario_version"] or not isinstance(manifest.get("assertion_contract_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", manifest["assertion_contract_sha256"]):
         raise DemoContractError("Run scenario version or assertion contract identity is invalid")
-    if manifest.get("campaign_id") != "order-api-field-migration-2.x" or not isinstance(manifest.get("campaign_slot"), int) or not 1 <= manifest["campaign_slot"] <= 4:
+    execution = scenario["execution_contract"]
+    if manifest.get("campaign_id") != execution["campaign_id"] or not isinstance(manifest.get("campaign_slot"), int) or not 1 <= manifest["campaign_slot"] <= int(execution["campaign_attempt_cap"]):
         raise DemoContractError("Run campaign identity or slot is invalid")
     provider = manifest.get("provider_identity")
-    if not isinstance(provider, dict) or provider.get("provider") != "deepseek" or provider.get("model") != "deepseek-v4-flash" or provider.get("base_url") != "https://api.deepseek.com/v1" or provider.get("local_generative_llm") is not False:
+    if not isinstance(provider, dict) or provider.get("provider") != llm.get("provider") or provider.get("model") != llm.get("model") or provider.get("base_url") != llm.get("base_url", "https://api.deepseek.com/v1") or provider.get("local_generative_llm") is not False:
         raise DemoContractError("Run provider identity is not accepted")
     cleanup = manifest.get("cleanup")
     if not isinstance(cleanup, dict) or not all(cleanup.get(key) is True for key in ("namespaces_removed", "containers_removed", "ports_released", "runtime_secret_removed")):
         raise DemoContractError("Run cleanup receipt is not complete")
     cost = manifest.get("cost")
-    if not isinstance(cost, dict) or cost.get("budget_usd") not in {1.0, 5.0} or cost.get("within_budget_contract") is not True or cost.get("public_cost_claim_allowed") is not False or cost.get("usage_visibility") not in {"complete", "partial"} or cost.get("model") != "deepseek-v4-flash":
+    if not isinstance(cost, dict) or not isinstance(cost.get("budget_usd"), (int, float)) or cost["budget_usd"] <= 0 or cost.get("within_budget_contract") is not True or cost.get("public_cost_claim_allowed") is not False or cost.get("usage_visibility") not in {"complete", "partial"} or cost.get("model") != llm.get("model"):
         raise DemoContractError("Run cost contract is not accepted")
     for name in ("observable_input_tokens", "observable_output_tokens", "observable_call_count_minimum"):
         if not isinstance(cost.get(name), int) or cost[name] < 0:
             raise DemoContractError("Run observable usage fields are invalid")
-    if cost["observable_call_count_minimum"] < 5:
+    minimum_call_count = evidence.get("minimum_external_call_count")
+    if not isinstance(minimum_call_count, int) or cost["observable_call_count_minimum"] < minimum_call_count:
         raise DemoContractError("Run does not prove the minimum external call count")
     if not isinstance(cost.get("pricing_snapshot"), dict):
         raise DemoContractError("Run cost contract has no pricing snapshot")
     pricing = cost["pricing_snapshot"]
-    if pricing.get("official_url") != "https://api-docs.deepseek.com/quick_start/pricing" or pricing.get("model") != "deepseek-v4-flash" or pricing.get("currency") != "USD" or not pricing.get("observed_at"):
+    if pricing.get("official_url") != "https://api-docs.deepseek.com/quick_start/pricing" or pricing.get("model") != llm.get("model") or pricing.get("currency") != "USD" or not pricing.get("observed_at"):
         raise DemoContractError("Run pricing snapshot identity is invalid")
     expected_outputs = {
-        "run_a": ("run-a/pgvector-result.json", True),
-        "run_b": ("run-b/summary.json", True),
-        "resolver": ("run-b/resolver-01.json", True),
+        "run_a": (evidence.get("run_a_path"), True),
+        "run_b": (evidence.get("run_b_path"), True),
+        "resolver": (evidence.get("resolver_path"), True),
     }
     for name, (path, passed) in expected_outputs.items():
         output = manifest.get(name)
         if not isinstance(output, dict) or output.get("path") != path or output.get("pass") is not passed:
             raise DemoContractError(f"Run {name} output contract is invalid")
     run_b = manifest["run_b"]
-    if run_b.get("serial_query_count") != 2 or run_b.get("query_granularity") != "chunk" or run_b.get("document_summary_role") != "ingestion_evidence_only":
+    retrieval = scenario["retrieval_contract"]
+    if run_b.get("serial_query_count") != evidence.get("serial_query_count") or run_b.get("query_granularity") != retrieval["query_granularity"] or run_b.get("document_summary_role") != retrieval["document_summary_role"]:
         raise DemoContractError("Run B does not record the two-query chunk-only retrieval contract")
     gaps = manifest.get("disclosed_gaps")
     if not isinstance(gaps, list) or not gaps or not all(isinstance(item, dict) and isinstance(item.get("id"), str) and isinstance(item.get("note"), str) for item in gaps):
@@ -200,27 +206,29 @@ def validate_run_b_retrieval_contract(run_b: dict[str, Any]) -> None:
         raise DemoContractError("Run B does not prove two chunk-only result identity checks")
 
 
-def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
-    validate_run_id(run_id)
-    scenario = load_scenario(root)
-    require_reviewed_retrieval_contract(scenario)
-    assertion_path = assertion_contract_path(root)
-    frozen_assertions = load_assertion_contract(root)["frozen"]
+def validate_candidate(root: Path, run_id: str, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(root, scenario_id)
+    validate_run_id(root, resolved_id, run_id)
+    scenario = load_scenario(root, resolved_id)
+    validation = load_validation_contract(root, resolved_id)
+    require_reviewed_retrieval_contract(scenario, validation)
+    assertion_path = assertion_contract_path(root, resolved_id)
+    frozen_assertions = load_assertion_contract(root, resolved_id)["frozen"]
     source = candidate_root(root, run_id)
     for relative in REQUIRED_CANDIDATE_FILES:
         if not (source / relative).is_file():
             raise DemoContractError(f"Candidate evidence is missing {relative}")
     manifest = require_object(read_json(source / "run-manifest.json"), "Candidate run manifest")
-    if manifest.get("run_id") != run_id or manifest.get("scenario_id") != SCENARIO_ID:
+    if manifest.get("run_id") != run_id or manifest.get("scenario_id") != resolved_id:
         raise DemoContractError("Candidate manifest identity is inconsistent")
     if manifest.get("state") != "candidate":
         raise DemoContractError("Only a candidate run can enter human acceptance")
     if manifest.get("screenshot_eligible") is not False or manifest.get("human_review_required") is not True:
         raise DemoContractError("Candidate manifest bypasses the human-review screenshot gate")
-    demo_commit = validate_manifest_contract(manifest)
+    demo_commit = validate_manifest_contract(root, resolved_id, manifest)
     if manifest.get("scenario_version") != scenario.get("scenario_version") or manifest.get("assertion_contract_sha256") != sha256_file(assertion_path):
         raise DemoContractError("Candidate scenario version or assertion contract does not match the tracked scenario")
-    fixture_manifest = scenario_root(root) / "fixtures" / "manifest.json"
+    fixture_manifest = scenario_root(root, resolved_id) / "fixtures" / "manifest.json"
     if sha256_file(fixture_manifest) != manifest.get("fixture_manifest_sha256"):
         raise DemoContractError("Candidate fixture manifest checksum does not match the tracked fixture")
     target = require_object(manifest.get("target_identity"), "Candidate target identity")
@@ -240,11 +248,12 @@ def validate_candidate(root: Path, run_id: str) -> dict[str, Any]:
     if source_manifest.get("provider") != manifest.get("provider_identity") or source_manifest.get("private_source_paths_recorded") is not False or source_manifest.get("secret_recorded") is not False:
         raise DemoContractError("Candidate source manifest provider or safety boundary is invalid")
     smoke = require_object(read_json(source / "contract-smoke.json"), "Candidate contract smoke")
-    if smoke.get("provider") != "deepseek" or smoke.get("model") != "deepseek-v4-flash" or smoke.get("call_count") != 1 or smoke.get("response_content_recorded") is not False:
+    provider_identity = manifest["provider_identity"]
+    if smoke.get("provider") != provider_identity["provider"] or smoke.get("model") != provider_identity["model"] or smoke.get("call_count") != 1 or smoke.get("response_content_recorded") is not False:
         raise DemoContractError("Candidate contract smoke identity is invalid")
     runtime = require_object(read_json(source / "runtime.json"), "Candidate runtime identity")
     runtime_llm = runtime.get("llm")
-    if runtime.get("run_id") != run_id or not isinstance(runtime_llm, dict) or runtime_llm.get("provider") != "deepseek" or runtime_llm.get("model") != "deepseek-v4-flash" or runtime_llm.get("local_generative_llm") is not False or runtime_llm.get("secret_persisted_in_evidence") is not False:
+    if runtime.get("run_id") != run_id or not isinstance(runtime_llm, dict) or runtime_llm.get("provider") != provider_identity["provider"] or runtime_llm.get("model") != provider_identity["model"] or runtime_llm.get("local_generative_llm") is not False or runtime_llm.get("secret_persisted_in_evidence") is not False:
         raise DemoContractError("Candidate runtime provider or secret boundary is invalid")
     models = require_object(read_json(source / "model-checksums.json"), "Candidate model checksums")
     cleanup_receipt = require_object(read_json(source / "cleanup-receipt.json"), "Candidate cleanup receipt")
@@ -302,23 +311,24 @@ def validate_curated_safety(destination: Path) -> None:
                 raise DemoContractError("Curated staging failed public-safety validation: " + "; ".join(failures))
 
 
-def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, replace_accepted: bool = False) -> dict[str, Any]:
+def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, scenario_id: str | None = None, replace_accepted: bool = False) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(root, scenario_id)
     if not CLEAN_ROOM_REVIEW_PATTERN.fullmatch(clean_room_review_id):
         raise DemoContractError("Clean Room review ID must be a REVIEW identifier")
-    manifest = validate_candidate(root, run_id)
+    manifest = validate_candidate(root, run_id, resolved_id)
     checkout = verify_demo_checkout(root)
     demo_commit = manifest["target_identity"]["demo_commit"]
     ancestor = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", demo_commit, checkout["commit"]], capture_output=True, check=False)
     if ancestor.returncode != 0:
         raise DemoContractError("Candidate demo commit must be an ancestor of the clean acceptance-tooling commit")
     source = candidate_root(root, run_id)
-    destination = accepted_root(root, run_id)
+    destination = accepted_root(root, run_id, resolved_id)
     staging = root / ".runs" / f"{run_id}.accepted-stage"
     if destination.exists():
         raise DemoContractError("Accepted evidence destination already exists")
     if staging.exists():
         raise DemoContractError("Ignored accepted-evidence staging directory already exists")
-    pointer_path = scenario_root(root) / "evidence" / "accepted-run.json"
+    pointer_path = scenario_root(root, resolved_id) / "evidence" / "accepted-run.json"
     if pointer_path.exists() and read_json(pointer_path).get("status") == "accepted" and not replace_accepted:
         raise DemoContractError("Accepted-run pointer already names an accepted run; use the separately reviewed replacement gate")
     staging.mkdir(parents=True)
@@ -347,8 +357,8 @@ def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, replac
     pricing_snapshot = require_object(cost.get("pricing_snapshot"), "Candidate pricing snapshot")
     write_json(staging / "target-identity.json", public_source_identity)
     write_json(staging / "pricing-snapshot.json", pricing_snapshot)
-    shutil.copyfile(scenario_root(root) / "fixtures" / "manifest.json", staging / "fixture-manifest.json")
-    shutil.copyfile(assertion_contract_path(root), staging / "assertion-contract.json")
+    shutil.copyfile(scenario_root(root, resolved_id) / "fixtures" / "manifest.json", staging / "fixture-manifest.json")
+    shutil.copyfile(assertion_contract_path(root, resolved_id), staging / "assertion-contract.json")
     copy_json(source / "model-checksums.json", staging / "model-checksums.json")
     copy_json(source / "runtime.json", staging / "runtime.json")
     copy_json(source / "contract-smoke.json", staging / "contract-smoke.json")
@@ -357,7 +367,7 @@ def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, replac
     append_accepted_state(source / "state-history.json", staging / "state-history.json")
     for relative in ("run-a/pgvector-result.json", "run-b/summary.json", "run-b/resolver-01.json", "run-b/resolver-02.json"):
         copy_json(source / relative, staging / relative)
-    pointer_prefix = f"../../scenarios/{SCENARIO_ID}/evidence/runs/{run_id}"
+    pointer_prefix = f"../../scenarios/{resolved_id}/evidence/runs/{run_id}"
     pointer = {
         "schema_version": 1,
         "status": "accepted",
@@ -439,13 +449,14 @@ def png_dimensions(path: Path) -> tuple[int, int]:
         return width, height
 
 
-def record_screenshot(root: Path, run_id: str, source_file: Path, route: str, evidence_path: str) -> dict[str, Any]:
-    validate_run_id(run_id)
+def record_screenshot(root: Path, run_id: str, source_file: Path, route: str, evidence_path: str, *, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(root, scenario_id)
+    validate_run_id(root, resolved_id, run_id)
     if not SCREENSHOT_PATTERN.fullmatch(source_file.name):
         raise DemoContractError("Screenshot filename is not public-safe")
     if route != "/packages/viewer/index.html":
         raise DemoContractError("Screenshot route must be the accepted evidence viewer")
-    destination = accepted_root(root, run_id)
+    destination = accepted_root(root, run_id, resolved_id)
     destination_resolved = destination.resolve()
     manifest = require_object(read_json(destination / "run-manifest.json"), "Accepted run manifest")
     if manifest.get("state") != "accepted" or manifest.get("screenshot_eligible") is not True:
@@ -500,20 +511,22 @@ def verify_checksum_manifest(destination: Path) -> None:
         raise DemoContractError("Accepted evidence checksums do not match the curated files")
 
 
-def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
-    validate_run_id(run_id)
-    scenario = load_scenario(root)
-    require_reviewed_retrieval_contract(scenario)
-    tracked_assertion_path = assertion_contract_path(root)
-    frozen_assertions = load_assertion_contract(root)["frozen"]
-    destination = accepted_root(root, run_id)
-    pointer = read_json(scenario_root(root) / "evidence" / "accepted-run.json")
+def verify_accepted(root: Path, run_id: str, *, scenario_id: str | None = None) -> dict[str, Any]:
+    resolved_id = resolve_scenario_id(root, scenario_id)
+    validate_run_id(root, resolved_id, run_id)
+    scenario = load_scenario(root, resolved_id)
+    validation = load_validation_contract(root, resolved_id)
+    require_reviewed_retrieval_contract(scenario, validation)
+    tracked_assertion_path = assertion_contract_path(root, resolved_id)
+    frozen_assertions = load_assertion_contract(root, resolved_id)["frozen"]
+    destination = accepted_root(root, run_id, resolved_id)
+    pointer = read_json(scenario_root(root, resolved_id) / "evidence" / "accepted-run.json")
     manifest = read_json(destination / "run-manifest.json")
     resolver = read_json(destination / "run-b" / "resolver-01.json")
     if not all(isinstance(value, dict) for value in (pointer, manifest, resolver)):
         raise DemoContractError("Accepted pointer, manifest, and resolver must be JSON objects")
     validate_layered_resolver_contract(resolver, frozen_assertions)
-    pointer_prefix = f"../../scenarios/{SCENARIO_ID}/evidence/runs/{run_id}"
+    pointer_prefix = f"../../scenarios/{resolved_id}/evidence/runs/{run_id}"
     expected_pointer = {
         "manifest": f"{pointer_prefix}/run-manifest.json",
         "run_a": f"{pointer_prefix}/run-a/pgvector-result.json",
@@ -527,13 +540,14 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     assertions = manifest.get("assertions")
     if not isinstance(assertions, dict) or assertions.get("all_passed") is not True or resolver.get("pass") is not True:
         raise DemoContractError("Accepted evidence assertions are not all passing")
-    demo_commit = validate_manifest_contract(manifest)
+    demo_commit = validate_manifest_contract(root, resolved_id, manifest)
     if manifest.get("scenario_version") != scenario.get("scenario_version") or manifest.get("assertion_contract_sha256") != sha256_file(tracked_assertion_path):
         raise DemoContractError("Accepted scenario version or assertion contract does not match the tracked scenario")
     target_identity = require_object(manifest.get("target_identity"), "Accepted target identity")
     acceptance = manifest.get("acceptance")
     tooling_commit = acceptance.get("acceptance_tooling_commit") if isinstance(acceptance, dict) else None
-    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or manifest.get("post_screenshot_human_review_required") is not True or not isinstance(acceptance, dict) or acceptance.get("method") != "secondscott_clean_room" or acceptance.get("verdict") != "pass" or acceptance.get("demo_commit") != demo_commit or not isinstance(tooling_commit, str) or not COMMIT_PATTERN.fullmatch(tooling_commit) or acceptance.get("private_review_reference_recorded") is not False:
+    expected_acceptance_method = validation["evidence_contract"]["acceptance_method"]
+    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or manifest.get("post_screenshot_human_review_required") is not True or not isinstance(acceptance, dict) or acceptance.get("method") != expected_acceptance_method or acceptance.get("verdict") != "pass" or acceptance.get("demo_commit") != demo_commit or not isinstance(tooling_commit, str) or not COMMIT_PATTERN.fullmatch(tooling_commit) or acceptance.get("private_review_reference_recorded") is not False:
         raise DemoContractError("Accepted manifest does not preserve the Clean Room and post-screenshot Human Review gates")
     if pointer.get("demo_commit") != demo_commit:
         raise DemoContractError("Accepted-run pointer commit does not match the run manifest")
@@ -558,9 +572,10 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
     smoke = require_object(read_json(destination / "contract-smoke.json"), "Curated contract smoke")
     runtime = require_object(read_json(destination / "runtime.json"), "Curated runtime identity")
     runtime_llm = runtime.get("llm")
-    if smoke.get("provider") != "deepseek" or smoke.get("model") != "deepseek-v4-flash" or smoke.get("call_count") != 1 or smoke.get("response_content_recorded") is not False:
+    provider_identity = manifest["provider_identity"]
+    if smoke.get("provider") != provider_identity["provider"] or smoke.get("model") != provider_identity["model"] or smoke.get("call_count") != 1 or smoke.get("response_content_recorded") is not False:
         raise DemoContractError("Curated contract smoke identity is invalid")
-    if runtime.get("run_id") != run_id or not isinstance(runtime_llm, dict) or runtime_llm.get("provider") != "deepseek" or runtime_llm.get("model") != "deepseek-v4-flash" or runtime_llm.get("local_generative_llm") is not False or runtime_llm.get("secret_persisted_in_evidence") is not False:
+    if runtime.get("run_id") != run_id or not isinstance(runtime_llm, dict) or runtime_llm.get("provider") != provider_identity["provider"] or runtime_llm.get("model") != provider_identity["model"] or runtime_llm.get("local_generative_llm") is not False or runtime_llm.get("secret_persisted_in_evidence") is not False:
         raise DemoContractError("Curated runtime provider or secret boundary is invalid")
     pricing = require_object(read_json(destination / "pricing-snapshot.json"), "Curated pricing snapshot")
     fixture = destination / "fixture-manifest.json"
@@ -610,4 +625,4 @@ def verify_accepted(root: Path, run_id: str) -> dict[str, Any]:
             if failures:
                 raise DemoContractError("Accepted evidence failed public-safety validation: " + "; ".join(failures))
     verify_checksum_manifest(destination)
-    return {"status": "pass", "run_id": run_id, "demo_commit": demo_commit, "screenshot_count": len(screenshots), "checksums": "pass", "public_safety": "pass"}
+    return {"status": "pass", "scenario_id": resolved_id, "run_id": run_id, "demo_commit": demo_commit, "proof_scope": "archive_integrity", "live_reexecution": False, "screenshot_count": len(screenshots), "checksums": "pass", "public_safety": "pass"}

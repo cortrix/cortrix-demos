@@ -18,6 +18,11 @@ class PublicSafetyTests(unittest.TestCase):
         failures = scan_text(unsafe_text, Path("unsafe.txt"))
         self.assertTrue(any("secret-like assignment" in failure for failure in failures))
 
+    def test_rejects_unintended_private_ipv4_literals(self) -> None:
+        failures = scan_text("Bind to " + "192." + "168.1.44" + " for local access.\n", Path("docs/example.md"))
+        self.assertTrue(any("private IPv4 literal" in failure for failure in failures))
+        self.assertEqual([], scan_text("VIEWER_BIND ?= " + "192.168." + "50.75" + "\n", Path("Makefile")))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,7 +26,7 @@ You should see one accepted scenario. Its technology profile identifies PostgreS
 make viewer
 ```
 
-Open `http://192.168.50.75:18765/packages/viewer/index.html`. If that address is unavailable, bind the server to `127.0.0.1` and use the same path.
+Open the URL printed by `make viewer` and append `/packages/viewer/index.html`. The server tries the repository's preferred local preview address first and automatically falls back to `127.0.0.1` when that address is unavailable.
 
 ## 3. Read the result
 

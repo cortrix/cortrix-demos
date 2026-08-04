@@ -21,6 +21,7 @@ scenarios/<scenario-id>/
   profiles/technology-profile.json
   fixtures/
   expected/
+    validation.json
   docs/
     run-a-<baseline>.md
     run-a-<baseline>-step-by-step.md
@@ -34,7 +35,7 @@ Compatibility profile files may remain when required to verify historical eviden
 
 The two human entry guides must use the same numbered heading outline so readers can compare operating modes and results section by section. The two pipeline Runbooks must use the same Stage 0 through Stage 10 outline so developers and DBAs can compare intermediate operations without reading source.
 
-The root `agent.json` remains the repository bootstrap and should not be duplicated per scenario. A new scenario becomes Agent-discoverable through `scenarios/registry.json`; its scenario contract, technology profile, adapter support, human guides, and accepted pointer must all resolve from that registry entry.
+The root `agent.json` remains the repository bootstrap and should not be duplicated per scenario. A new scenario becomes Agent-discoverable through `scenarios/registry.json`; its scenario contract, validation contract, technology profile, adapter support, human guides, and accepted pointer must all resolve from that registry entry. The validation contract owns scenario-specific version, construction disclosure, fixture count, assertion keys, runtime paths, run ID format, and acceptance method. Do not add those values to shared runner constants.
 
 ## Acceptance
 

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-api-field-migration",
+  "scenario_identity": {
+    "scenario_version": "2.0.0",
+    "synthetic_data": true,
+    "construction_note": "Synthetic scenario designed to isolate a common API version-conflict failure mode.",
+    "retrieval_contract": {
+      "query_granularity": "chunk",
+      "document_summary_role": "ingestion_evidence_only"
+    },
+    "execution_contract": {
+      "sealed": true,
+      "campaign_id": "order-api-field-migration-2.x",
+      "campaign_attempt_cap": 4,
+      "calibration_external_calls": 0
+    }
+  },
+  "fixture_contract": {
+    "document_count": 4
+  },
+  "assertion_contract": {
+    "required_keys": [
+      "run_a_dense_cosine_top_document_id",
+      "run_a_dense_cosine_top_document_status",
+      "run_a_required_current_document_id",
+      "run_a_required_current_document_status",
+      "run_b_required_document_ids",
+      "run_b_final_top_document_id",
+      "run_b_final_top_document_status",
+      "resolver_selected_document_id",
+      "resolver_selected_field",
+      "resolver_action"
+    ]
+  },
+  "document_assertion_pairs": [
+    {
+      "document_key": "run_a_dense_cosine_top_document_id",
+      "status_key": "run_a_dense_cosine_top_document_status"
+    },
+    {
+      "document_key": "run_a_required_current_document_id",
+      "status_key": "run_a_required_current_document_status"
+    },
+    {
+      "document_key": "run_b_final_top_document_id",
+      "status_key": "run_b_final_top_document_status"
+    }
+  ],
+  "document_list_assertions": [
+    {
+      "key": "run_b_required_document_ids",
+      "count": 2
+    }
+  ],
+  "resolver_contract": {
+    "expected_document_assertion": "resolver_selected_document_id",
+    "expected_field_assertion": "resolver_selected_field",
+    "expected_action_assertion": "resolver_action",
+    "expected_action": "preserved_final_top1"
+  },
+  "full_stack_profile": {
+    "budget_usd": 5.0,
+    "max_full_stack_attempts": 2,
+    "local_generative_llm": false,
+    "required_paths": [
+      "bge_m3_embedding",
+      "bm25_recall",
+      "contextualized_recall",
+      "hype_recall",
+      "rrf_fusion",
+      "bge_cross_encoder_rerank",
+      "f41_document_summary_ingestion",
+      "chunk_only_result_identity",
+      "deepseek_ingestion",
+      "deepseek_query_fusion",
+      "deepseek_listwise_rerank",
+      "application_lifecycle_resolver"
+    ]
+  },
+  "evidence_contract": {
+    "run_id_pattern": "^order-api-field-migration-[0-9]{8}T[0-9]{6}Z(?:-retry)?$",
+    "minimum_external_call_count": 5,
+    "required_manifest_assertions": [
+      "run_a",
+      "run_b",
+      "required_paths",
+      "resolver",
+      "cleanup",
+      "budget",
+      "model_checksums",
+      "all_passed"
+    ],
+    "run_a_path": "run-a/pgvector-result.json",
+    "run_b_path": "run-b/summary.json",
+    "resolver_path": "run-b/resolver-01.json",
+    "serial_query_count": 2,
+    "acceptance_method": "secondscott_clean_room"
+  }
+}

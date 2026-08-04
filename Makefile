@@ -1,6 +1,8 @@
 .PHONY: validate test public-safety full-stack fresh-clone-verify viewer
 
 PYTHON ?= python3.14
+VIEWER_BIND ?= 192.168.50.75
+VIEWER_PORT ?= 18765
 
 validate: test public-safety
 
@@ -17,4 +19,4 @@ fresh-clone-verify:
 	PYTHONPATH=packages/runner/src $(PYTHON) -m cortrix_demo_runner fresh-clone-verify --root .
 
 viewer:
-	$(PYTHON) -m http.server 18765 --bind 192.168.50.75
+	$(PYTHON) packages/viewer/serve.py --bind $(VIEWER_BIND) --port $(VIEWER_PORT)

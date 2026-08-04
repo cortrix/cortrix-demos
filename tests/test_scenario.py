@@ -52,7 +52,7 @@ class ScenarioTests(unittest.TestCase):
             scenario = json.loads(path.read_text(encoding="utf-8"))
             scenario["retrieval_contract"]["query_granularity"] = "both"
             write_json(path, scenario)
-            self.assertTrue(any("sealed chunk-only" in failure for failure in validate_scenario(root)))
+            self.assertTrue(any("retrieval_contract" in failure for failure in validate_scenario(root)))
 
     def test_scenario_validation_rejects_synthetic_disclosure_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -62,7 +62,7 @@ class ScenarioTests(unittest.TestCase):
             scenario = json.loads(path.read_text(encoding="utf-8"))
             scenario["construction_note"] = ""
             write_json(path, scenario)
-            self.assertTrue(any("synthetic construction" in failure for failure in validate_scenario(root)))
+            self.assertTrue(any("construction_note" in failure for failure in validate_scenario(root)))
 
     def test_web_projection_matches_the_reviewed_scenario_contract(self) -> None:
         scenario = load_scenario(ROOT)
@@ -86,6 +86,11 @@ class ScenarioTests(unittest.TestCase):
     def test_shared_runner_does_not_hardcode_business_document_identity(self) -> None:
         source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "packages" / "runner" / "src").rglob("*.py"))
         for value in ("order-api-guide-v1.0", "order-api-release-v2.0", "buyer_account_id"):
+            self.assertNotIn(value, source)
+
+    def test_shared_scenario_validator_loads_identity_from_contracts(self) -> None:
+        source = (ROOT / "packages" / "runner" / "src" / "cortrix_demo_runner" / "scenario.py").read_text(encoding="utf-8")
+        for value in ("order-api-field-migration", "32b82f6f8f1d7a41349f408969ff03b7997b6c15", "Synthetic scenario designed to isolate"):
             self.assertNotIn(value, source)
 
 

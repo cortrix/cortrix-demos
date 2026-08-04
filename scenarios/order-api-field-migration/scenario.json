@@ -20,6 +20,7 @@
   "profiles": ["full-stack", "replay"],
   "fixtures": {"manifest": "fixtures/manifest.json"},
   "assertions": "expected/assertions.json",
+  "validation_contract": "expected/validation.json",
   "retrieval_contract": {
     "query_granularity": "chunk",
     "document_summary_role": "ingestion_evidence_only"

@@ -17,8 +17,8 @@ from .errors import DemoContractError
 from .io import read_json, write_json
 from .live import failure_category, finalize_candidate, new_run_id, record_state, require_budget_bound, reserve_attempt, run_a, run_b, sanitized_error, update_attempt, validate_reviewed_attempt_limit, verify_demo_checkout
 from .preflight import full_stack_preflight
-from .runtime import cleanup, contract_smoke, ensure_image, start, verify_fixture_hashes, verify_models
-from .scenario import SCENARIO_ID, load_assertion_contract, load_scenario, scenario_root, validate_scenario
+from .runtime import cleanup, contract_smoke, ensure_image, load_image_provenance, start, verify_fixture_hashes, verify_models
+from .scenario import load_assertion_contract, load_scenario, scenario_root, validate_scenario
 
 
 CURRENT_POINTER = ".runs/walkthrough-current.json"
@@ -157,14 +157,25 @@ def initialize_walkthrough(root: Path, source: Path, pricing_path: Path, reviewe
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
     policy = load_external_call_policy(root)
     budget_usd = min(float(profile["budget_usd"]), float(policy["budget_usd"]))
-    preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit, budget_usd=budget_usd)
+    provenance = load_image_provenance()
+    technology = read_json(scenario_root(root, scenario["id"]) / "profiles" / "technology-profile.json")
+    preflight = full_stack_preflight(
+        source,
+        pricing_path,
+        release_commit=scenario["requires"]["cortrix_release_commit"],
+        source_revision=scenario["requires"]["cortrix_source_revision"],
+        source_repository=provenance["source_repository"],
+        secret_env=technology["llm"]["secret_env"],
+        reviewed_attempt_limit=reviewed_attempt_limit,
+        budget_usd=budget_usd,
+    )
     pricing = read_json(pricing_path)
     bound = require_budget_bound({**profile, "budget_usd": budget_usd}, pricing, reviewed_attempt_limit)
     fixture_root = scenario_root(root) / "fixtures"
     fixture_manifest = read_json(fixture_root / "manifest.json")
     verify_fixture_hashes(fixture_root, fixture_manifest)
     demo_checkout = verify_demo_checkout(root)
-    run_id = new_run_id()
+    run_id = new_run_id(scenario["id"])
     run_dir = root / ".runs" / run_id
     if run_dir.exists():
         raise DemoContractError("A walkthrough with the generated run ID already exists")
@@ -174,7 +185,7 @@ def initialize_walkthrough(root: Path, source: Path, pricing_path: Path, reviewe
     session: dict[str, Any] = {
         "schema_version": 1,
         "run_id": run_id,
-        "scenario_id": SCENARIO_ID,
+        "scenario_id": scenario["id"],
         "scenario_version": scenario["scenario_version"],
         "campaign_id": campaign_id,
         "campaign_slot": attempt,
