@@ -10,6 +10,7 @@ from .io import read_json
 REGISTRY_PATH = Path("scenarios/registry.json")
 ADAPTER_REGISTRY_PATH = Path("runtime/adapters/registry.json")
 EXTERNAL_POLICY_PATH = Path("config/external-call-policy.json")
+AGENT_MANIFEST_PATH = Path("agent.json")
 
 
 def _require_relative_file(root: Path, value: object, label: str) -> Path:
@@ -105,6 +106,31 @@ def load_external_call_policy(root: Path) -> dict[str, Any]:
     return policy
 
 
+def load_agent_manifest(root: Path) -> dict[str, Any]:
+    manifest = read_json(root / AGENT_MANIFEST_PATH)
+    agent_first = manifest.get("agent_first")
+    bootstrap = manifest.get("bootstrap")
+    catalogs = manifest.get("catalogs")
+    gates = manifest.get("gates")
+    if manifest.get("schema_version") != 1 or manifest.get("project") != "cortrix-demos":
+        raise DemoContractError("Agent manifest identity is invalid")
+    if not isinstance(agent_first, dict) or agent_first.get("default_mode") != "accepted_replay" or agent_first.get("default_external_calls") is not False or agent_first.get("fail_closed") is not True:
+        raise DemoContractError("Agent manifest safe default is invalid")
+    commands = bootstrap.get("safe_default") if isinstance(bootstrap, dict) else None
+    if not isinstance(commands, list) or not commands or any(not isinstance(command, str) or not command.startswith("./democtl ") for command in commands):
+        raise DemoContractError("Agent manifest bootstrap commands are invalid")
+    for key in ("human_entry", "agent_guide"):
+        _require_relative_file(root, bootstrap.get(key), f"Agent manifest {key}")
+    if not isinstance(catalogs, dict):
+        raise DemoContractError("Agent manifest catalogs are invalid")
+    for key in ("scenarios", "adapters", "external_call_policy", "evidence_schema"):
+        _require_relative_file(root, catalogs.get(key), f"Agent manifest catalog {key}")
+    live_gate = gates.get("live_full_stack") if isinstance(gates, dict) else None
+    if not isinstance(live_gate, dict) or live_gate.get("manual_authorization_required") is not True or live_gate.get("external_calls") is not True:
+        raise DemoContractError("Agent manifest live-run gate is invalid")
+    return manifest
+
+
 def describe_scenario(root: Path, scenario_id: str) -> dict[str, Any]:
     entry = scenario_entry(root, scenario_id)
     scenario_path = _require_relative_file(root / "scenarios", entry.get("scenario_contract"), "Scenario contract")
@@ -174,6 +200,7 @@ def require_runnable_scenario(root: Path, scenario_id: str, compatibility_profil
 def validate_catalog(root: Path) -> list[str]:
     failures: list[str] = []
     try:
+        load_agent_manifest(root)
         scenarios = list_scenarios(root)
         if not scenarios:
             failures.append("Scenario registry is empty")

@@ -2,12 +2,18 @@
 
 This guide uses the accepted replay by default. It does not call an external LLM.
 
+For the detailed operation and evidence checks on each side, use:
+
+- [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md)
+- [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md)
+
 ## 1. Check the repository
 
 ```bash
 make validate
 ./democtl list --json
 ./democtl describe --scenario order-api-field-migration --json
+./democtl verify-accepted
 ```
 
 You should see one accepted scenario. Its technology profile identifies PostgreSQL/pgvector for Run A, Cortrix for Run B, and DeepSeek V4 Flash for the accepted Full Stack evidence.
@@ -40,7 +46,7 @@ This is a synthetic mechanism demo, not a retrieval benchmark. PostgreSQL/pgvect
 
 ## 6. Run live only when authorized
 
-Read the [Full Stack runbook](full-stack-runbook.md). A live run requires the profile's named secret, pinned source, Docker, model checksums, pricing snapshot, and budget preflight. It produces a candidate and must be cleaned up even when rejected.
+Read the [Run B guide](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md) and [Full Stack runbook](full-stack-runbook.md). A live run requires the profile's named secret, pinned source, Docker, model checksums, pricing snapshot, and budget preflight. It produces Run A and Run B as one candidate and must be cleaned up even when rejected.
 
 ## 7. Add another demo
 

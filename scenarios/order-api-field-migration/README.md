@@ -1,5 +1,11 @@
 # Order API Field Migration
 
+## Run the scenario
+
+- [Run A: PostgreSQL and pgvector](docs/run-a-postgresql-pgvector.md)
+- [Run B: Cortrix Full Stack](docs/run-b-cortrix-full-stack.md)
+- [Repository-wide human step-by-step guide](../../docs/step-by-step.md)
+
 ## Business question
 
 Create Order rejects a payload with `account_id` as an unknown field. Which request field should replace it?

@@ -2,6 +2,21 @@
 
 This repository contains reproducible, evidence-backed demos for Cortrix.
 
+## Agent Bootstrap
+
+If this is your first interaction with the repository, read `agent.json` and follow its `bootstrap.safe_default` commands in order:
+
+```bash
+./democtl list --json
+./democtl describe --scenario order-api-field-migration --json
+./democtl validate --scenario order-api-field-migration
+./democtl verify-accepted
+```
+
+These commands are read-only, make no external model calls, and locate the accepted evidence without private workspace knowledge. Treat accepted replay as the default operating mode.
+
+Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`, or any remote Git action unless the current task explicitly authorizes that boundary. A live Full Stack run is cost-bearing and produces a candidate, never automatically accepted evidence.
+
 ## Public Surface
 
 - Treat every tracked file as future-public material, even while the repository is private.
@@ -34,5 +49,6 @@ This repository contains reproducible, evidence-backed demos for Cortrix.
 ## Verification
 
 - Run `make validate` before committing.
+- Verify that `agent.json`, `scenarios/registry.json`, and each scenario's technology profile remain mutually discoverable.
 - Run the public-safety scan against the full tracked tree and staged diff.
 - Keep `main` as the canonical English branch.

@@ -2,6 +2,21 @@
 
 This repository is designed so an Agent can discover and inspect a demo without private workspace knowledge.
 
+## Bootstrap from the repository root
+
+Read [`agent.json`](../agent.json) first. It is the stable machine entry for the safe default, catalogs, lifecycle, and human-intervention gates. Root [`AGENTS.md`](../AGENTS.md) gives contributor constraints, but the bootstrap does not depend on an Agent already knowing Cortrix conventions.
+
+Run the `bootstrap.safe_default` commands in order:
+
+```bash
+./democtl list --json
+./democtl describe --scenario order-api-field-migration --json
+./democtl validate --scenario order-api-field-migration
+./democtl verify-accepted
+```
+
+This path is read-only and reports `external_calls: 0`. Do not infer authorization for a live run from the presence of a provider profile or secret environment variable.
+
 ## Discover
 
 ```bash
@@ -34,6 +49,26 @@ discover -> describe -> validate -> preflight -> provision -> run -> inspect -> 
 ```
 
 The accepted replay requires no external model call. A live Full Stack run is manual, reads its secret only from the named environment variable, and produces a candidate rather than accepted evidence.
+
+## Contract discovery order
+
+```text
+agent.json
+  -> scenarios/registry.json
+  -> scenarios/<id>/scenario.json
+  -> scenarios/<id>/profiles/technology-profile.json
+  -> runtime/adapters/registry.json
+  -> scenarios/<id>/evidence/accepted-run.json
+  -> accepted run manifest
+```
+
+Use the scenario contract for the business question and assertions, the technology profile for scenario-specific database and LLM selection, the adapter registry for implemented capability, and the accepted pointer for immutable evidence identity. Never derive runtime support from prose or a `contract_only` adapter entry.
+
+## Extension boundary
+
+To add a demo, create a new scenario vertical slice and register it. Reuse shared adapters; do not place database or provider integration code inside a scenario. Changing the database or LLM for one scenario means selecting a different implemented adapter in that scenario's technology profile, not replacing a repository-wide stack.
+
+Read [Repository architecture](architecture.md), [Technology profiles](technology-profiles.md), and [Authoring a demo](authoring-a-demo.md) before editing.
 
 ## Review boundary
 

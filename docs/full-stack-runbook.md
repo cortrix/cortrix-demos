@@ -2,6 +2,8 @@
 
 This is a manual, cost-bearing workflow. The runner fails closed and does not use a local generative LLM.
 
+For the scenario-specific interpretation of each path, read [Run A: PostgreSQL and pgvector](../scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) and [Run B: Cortrix Full Stack](../scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md). The live command intentionally produces both paths as one evidence-bound candidate.
+
 ## 1. Supply the pinned Cortrix source
 
 Place a source checkout at `.runtime/cortrix-src` and verify that its `HEAD` is exactly `32b82f6f8f1d7a41349f408969ff03b7997b6c15`. The runner also verifies that release commit `e159974f936bd987d5718195d54cd70ff3acc2e5` is an ancestor of that source revision.

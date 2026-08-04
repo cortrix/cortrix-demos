@@ -9,6 +9,7 @@ scenario -> technology profile -> reusable adapter -> immutable accepted run
 ## Directory map
 
 ```text
+agent.json          Root machine entry, safe bootstrap, catalogs, and review gates
 assets/brand/       Apache-2.0 SVG expressions of the Cortrix visual identity
 config/             Repository-wide safety and external-call policy
 docs/               Agent and human guides, evidence policy, and extension rules
@@ -18,12 +19,27 @@ packages/evidence-schema/  Machine-readable accepted-evidence contracts
 runtime/adapters/   Reusable baseline and LLM provider implementations
 runtime/config/     Cortrix runtime profiles used by implemented adapters
 scenarios/registry.json  Machine-readable scenario discovery entry
-scenarios/<id>/     Business fixtures, assertions, profiles, web text, and evidence
+scenarios/<id>/     Business contract, fixtures, assertions, technology profile, human run guides, web text, and evidence
+```
+
+A scenario vertical slice uses this internal layout:
+
+```text
+scenarios/<id>/
+  scenario.json
+  fixtures/
+  expected/
+  profiles/technology-profile.json
+  docs/
+  web/
+  evidence/accepted-run.json
+  evidence/runs/<run_id>/
 ```
 
 ## Ownership rules
 
 - A scenario owns one business question, fixtures, expected assertions, presentation text, and accepted evidence.
+- Scenario-specific Run A and Run B documentation stays in `scenarios/<id>/docs/`; repository-wide execution and policy documents stay in `docs/`.
 - A technology profile selects one baseline adapter, one Cortrix identity, and optional LLM adapters for that scenario.
 - An adapter owns reusable integration code and capability checks. It never owns a scenario answer.
 - An accepted run freezes exact versions, model identities, source revision, cost visibility, resolver output, cleanup, and screenshot bindings.
@@ -33,11 +49,12 @@ The first scenario retains `full-stack` and `replay` compatibility profiles beca
 
 ## Extension order
 
-1. Add or reuse an implemented adapter.
-2. Add the scenario and technology profile.
-3. Register the scenario in `scenarios/registry.json`.
-4. Add fixtures, assertions, tests, human documentation, and viewer projection.
-5. Run local validation before any external call.
-6. Produce a candidate, obtain independent Clean Run acceptance, and capture the accepted viewer.
+1. Read `agent.json`, this architecture guide, the technology-profile guide, and the authoring guide.
+2. Add or reuse an implemented adapter.
+3. Add the scenario vertical slice and technology profile.
+4. Register the scenario in `scenarios/registry.json`.
+5. Add fixtures, assertions, tests, Run A and Run B human documentation, and viewer projection.
+6. Run local validation before any external call.
+7. Produce a candidate, obtain independent Clean Run acceptance, and capture the accepted viewer.
 
 Never claim that a `contract_only` adapter is runnable. A new adapter becomes `implemented` only with code, fail-closed tests, cleanup, and fresh-clone validation.

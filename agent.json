@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "project": "cortrix-demos",
+  "purpose": "Discover, validate, replay, and extend evidence-backed Cortrix demos without private workspace knowledge.",
+  "agent_first": {
+    "principle": "Machine-readable contracts are the primary execution interface; human documentation and the Web viewer explain the same accepted evidence.",
+    "default_mode": "accepted_replay",
+    "default_external_calls": false,
+    "fail_closed": true
+  },
+  "bootstrap": {
+    "safe_default": [
+      "./democtl list --json",
+      "./democtl describe --scenario order-api-field-migration --json",
+      "./democtl validate --scenario order-api-field-migration",
+      "./democtl verify-accepted"
+    ],
+    "human_entry": "README.md",
+    "agent_guide": "docs/agent-quickstart.md"
+  },
+  "catalogs": {
+    "scenarios": "scenarios/registry.json",
+    "adapters": "runtime/adapters/registry.json",
+    "external_call_policy": "config/external-call-policy.json",
+    "evidence_schema": "packages/evidence-schema/run-manifest.schema.json"
+  },
+  "lifecycle": [
+    "discover",
+    "describe",
+    "validate",
+    "preflight",
+    "provision",
+    "run",
+    "inspect",
+    "verify",
+    "cleanup"
+  ],
+  "gates": {
+    "live_full_stack": {
+      "manual_authorization_required": true,
+      "external_calls": true,
+      "command": "./democtl run-full-stack --scenario order-api-field-migration"
+    },
+    "accepted_promotion": "independent_clean_run_required",
+    "remote_publication": "explicit_human_authorization_required"
+  }
+}

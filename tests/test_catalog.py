@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_external_call_policy
+from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy
 from cortrix_demo_runner.errors import DemoContractError
 
 
@@ -13,6 +13,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CatalogTests(unittest.TestCase):
+    def test_first_time_agent_has_a_safe_root_bootstrap(self) -> None:
+        manifest = load_agent_manifest(ROOT)
+        self.assertEqual("accepted_replay", manifest["agent_first"]["default_mode"])
+        self.assertFalse(manifest["agent_first"]["default_external_calls"])
+        self.assertTrue(manifest["agent_first"]["fail_closed"])
+        self.assertEqual(
+            [
+                "./democtl list --json",
+                "./democtl describe --scenario order-api-field-migration --json",
+                "./democtl validate --scenario order-api-field-migration",
+                "./democtl verify-accepted",
+            ],
+            manifest["bootstrap"]["safe_default"],
+        )
+        instructions = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("## Agent Bootstrap", instructions)
+        for command in manifest["bootstrap"]["safe_default"]:
+            self.assertIn(command, instructions)
+
     def test_agent_can_discover_and_describe_the_accepted_scenario(self) -> None:
         scenarios = list_scenarios(ROOT)
         self.assertEqual(["order-api-field-migration"], [item["id"] for item in scenarios])
@@ -49,6 +68,8 @@ class CatalogTests(unittest.TestCase):
     def test_cli_discovery_and_error_outputs_are_json(self) -> None:
         listing = subprocess.run([str(ROOT / "democtl"), "list", "--json"], cwd=ROOT, check=True, capture_output=True, text=True)
         self.assertEqual("order-api-field-migration", json.loads(listing.stdout)["scenarios"][0]["id"])
+        accepted = subprocess.run([str(ROOT / "democtl"), "verify-accepted"], cwd=ROOT, check=True, capture_output=True, text=True)
+        self.assertEqual("pass", json.loads(accepted.stdout)["status"])
         missing = subprocess.run([str(ROOT / "democtl"), "describe", "--scenario", "missing", "--json"], cwd=ROOT, check=False, capture_output=True, text=True)
         self.assertEqual(1, missing.returncode)
         self.assertEqual("CX_DEMO_SCENARIO_NOT_FOUND", json.loads(missing.stderr)["error"]["code"])
@@ -60,6 +81,23 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("aria-label=\"Cortrix\"", logo)
         self.assertIn("#FF6405", logo)
         self.assertTrue((ROOT / "docs" / "provenance.md").is_file())
+
+    def test_human_run_guides_and_repository_structure_are_discoverable(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("## Agent-first by design", readme)
+        self.assertIn("## How the repository is organized", readme)
+        for relative_path in (
+            "scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md",
+            "scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack.md",
+        ):
+            self.assertIn(relative_path, readme)
+            self.assertTrue((ROOT / relative_path).is_file())
+        run_a = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector.md").read_text(encoding="utf-8")
+        run_b = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack.md").read_text(encoding="utf-8")
+        self.assertIn("The repository intentionally does not expose a separate live `run-a` command", run_a)
+        self.assertIn("`account_id`", run_a)
+        self.assertIn("`buyer_account_id`", run_b)
+        self.assertIn("independent Clean Run acceptance", run_b)
 
 
 if __name__ == "__main__":

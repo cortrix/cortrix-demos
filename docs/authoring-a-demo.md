@@ -10,6 +10,7 @@ Each scenario owns one business question, fixtures, query, assertions, presentat
 4. Freeze scenario, technology-profile, product, and evidence-schema versions separately.
 5. Define variable output and deterministic assertions without hiding unfavorable evidence.
 6. Register the scenario in `scenarios/registry.json`.
+7. Add separate human Run A and Run B guides that explain the same machine contract and evidence boundary.
 
 ## Required scenario structure
 
@@ -20,11 +21,16 @@ scenarios/<scenario-id>/
   profiles/technology-profile.json
   fixtures/
   expected/
+  docs/
+    run-a-<baseline>.md
+    run-b-cortrix-full-stack.md
   web/
   evidence/
 ```
 
 Compatibility profile files may remain when required to verify historical evidence, but new implementation choices belong in the technology profile.
+
+The root `agent.json` remains the repository bootstrap and should not be duplicated per scenario. A new scenario becomes Agent-discoverable through `scenarios/registry.json`; its scenario contract, technology profile, adapter support, human guides, and accepted pointer must all resolve from that registry entry.
 
 ## Acceptance
 
@@ -34,5 +40,6 @@ Compatibility profile files may remain when required to verify historical eviden
 4. Obtain independent Clean Run acceptance.
 5. Promote only curated evidence, render it through the read-only viewer, and capture a real browser screenshot.
 6. Validate an exact-commit fresh clone.
+7. Confirm that an unfamiliar Agent can start from `agent.json` and that an unfamiliar human can reach both scenario run guides from `README.md`.
 
 See [Repository architecture](architecture.md) and [Technology profiles](technology-profiles.md) for extension contracts.

@@ -81,7 +81,11 @@ def command_record_screenshot(args: argparse.Namespace) -> None:
 
 
 def command_verify_accepted(args: argparse.Namespace) -> None:
-    print(json.dumps(verify_accepted(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
+    root = args.root.resolve()
+    run_id = args.run_id or describe_scenario(root, args.scenario)["accepted_evidence"]["run_id"]
+    if not isinstance(run_id, str) or not run_id:
+        raise DemoContractError("Accepted evidence pointer does not identify a run")
+    print(json.dumps(verify_accepted(root, run_id), ensure_ascii=True, indent=2))
 
 
 def command_fresh_clone_verify(args: argparse.Namespace) -> None:
@@ -152,7 +156,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify = subparsers.add_parser("verify-accepted")
     verify.add_argument("--root", type=Path, default=Path.cwd())
-    verify.add_argument("--run-id", required=True)
+    verify.add_argument("--scenario", default=SCENARIO_ID)
+    verify.add_argument("--run-id", help="Accepted run ID. Omit it to follow the scenario's accepted-run pointer.")
     verify.set_defaults(handler=command_verify_accepted)
 
     fresh = subparsers.add_parser("fresh-clone-verify")
