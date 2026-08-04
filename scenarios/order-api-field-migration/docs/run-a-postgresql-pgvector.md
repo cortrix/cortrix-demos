@@ -32,7 +32,7 @@ From the repository root, run:
 ./democtl verify-accepted
 ```
 
-Confirm that the baseline adapter is `postgresql-pgvector`, its support status is `implemented`, the accepted run is `order-api-field-migration-20260803T152219Z`, and every command passes without an external call.
+Confirm that the baseline adapter is `postgresql-pgvector`, its support status is `implemented`, the accepted run is `order-api-field-migration-20260804T085505Z`, and every command passes without an external call.
 
 ## 4. Inspect the frozen inputs
 

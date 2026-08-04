@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "namespaces": [
+    {
+      "namespace": "order-b-gration-20260804t085505z",
+      "existed": true,
+      "removed": true
+    },
+    {
+      "namespace": "order-a-docs-gration-20260804t085505z",
+      "existed": true,
+      "removed": true
+    },
+    {
+      "namespace": "order-a-query-gration-20260804t085505z",
+      "existed": true,
+      "removed": true
+    }
+  ],
+  "namespaces_removed": true,
+  "containers_removed": true,
+  "ports_released": true,
+  "runtime_secret_removed": true,
+  "model_cache_preserved": true,
+  "docker_volumes_preserved": true
+}

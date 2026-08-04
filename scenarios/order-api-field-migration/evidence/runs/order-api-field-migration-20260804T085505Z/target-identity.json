@@ -1,0 +1,10 @@
+{
+  "cortrix_release": "v1.0.0-rc.1",
+  "cortrix_release_commit": "e159974f936bd987d5718195d54cd70ff3acc2e5",
+  "cortrix_source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15",
+  "container_image": "cortrix-demo:32b82f6",
+  "container_digest": "sha256:c31aeef5c9708ab739015f1ea06b23550a262d7e0dc79f15a0daf95091312255",
+  "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
+  "demo_branch": "main",
+  "demo_working_tree": "clean"
+}

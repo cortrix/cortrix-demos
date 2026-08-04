@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "files": [
+    {
+      "path": "assertion-contract.json",
+      "sha256": "6c490ec0ddc896780dcf588f3b5ef26a9c93219ac55a10ca95dc18a5dd757bda"
+    },
+    {
+      "path": "assertions.json",
+      "sha256": "cef356aabb75607b144eb0204f3cc62ba7f3a02307ad10a345754726021bf2d3"
+    },
+    {
+      "path": "cleanup-receipt.json",
+      "sha256": "0728a9547062aec39e21f1f326c51febc402b33688ea1220d06136937cadd521"
+    },
+    {
+      "path": "contract-smoke.json",
+      "sha256": "7678146251527f235eab9e6df24d77b6b8e4e1f7a58a114985eb65023f0c7ad4"
+    },
+    {
+      "path": "fixture-manifest.json",
+      "sha256": "07b32ee011b1707174d7bfd927f4924feab751dd83231ad14e08d0c7d8fdb146"
+    },
+    {
+      "path": "model-checksums.json",
+      "sha256": "ba8608feb4197fab67b08ac0e306464b778d05b077305d056abaac4c036678bf"
+    },
+    {
+      "path": "pricing-snapshot.json",
+      "sha256": "95d8b9675ed3212e48456512e39d3f99b79dfede8534ff7d4156c3d2913f02b0"
+    },
+    {
+      "path": "run-a/pgvector-result.json",
+      "sha256": "636d5f776be8109149fdde8cb58ff76cca0a05cf1c3a803dfb74aef14a497b8d"
+    },
+    {
+      "path": "run-b/resolver-01.json",
+      "sha256": "85c9453810fee08fd7d185364077ea5e4b052e515a3b2c21ff8a02b67dcaf536"
+    },
+    {
+      "path": "run-b/resolver-02.json",
+      "sha256": "85c9453810fee08fd7d185364077ea5e4b052e515a3b2c21ff8a02b67dcaf536"
+    },
+    {
+      "path": "run-b/summary.json",
+      "sha256": "056805c5ac2b4086223169ee8dff070d67075d9018fb2244009f5dae59f6db89"
+    },
+    {
+      "path": "run-manifest.json",
+      "sha256": "be72b0248c3c9ed547b03756d08189769f17d1a57f99b4af6d75af537226e155"
+    },
+    {
+      "path": "runtime.json",
+      "sha256": "a85075eceb3ccd0c550d2799071c0ad2a158c222350f61503e7524863fb2459b"
+    },
+    {
+      "path": "screenshots/cortrix-demo-agent-first-accepted-20260804.png",
+      "sha256": "d3d93be61d85bc05210ac937af8533ac54d69440ed300c7f0df0587e1b8d6f49"
+    },
+    {
+      "path": "screenshots/screenshot-manifest.json",
+      "sha256": "bd5c5065e8aa2fd03c3fab143799f1f9c4e122e68342fb243fe3e8716be9ac63"
+    },
+    {
+      "path": "state-history.json",
+      "sha256": "42fca90e221bec89d3b1e6068a6b814fd2dcae992a2ea6f6e63e8b17aa883c51"
+    },
+    {
+      "path": "target-identity.json",
+      "sha256": "29b878da83031c3b52d871308fa1a2318a4675a08a88223d290cde55edc209cc"
+    }
+  ]
+}

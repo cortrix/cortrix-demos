@@ -4,7 +4,7 @@ This Runbook reproduces Run A with direct Docker, HTTP, Python, and SQL commands
 
 PostgreSQL and pgvector own storage and ranking. The embedding-only Cortrix runtime is used only to generate the same pinned BGE-M3 vectors used by Run B. It makes zero DeepSeek calls and does not use Cortrix retrieval, RRF, reranking, listwise ordering, or lifecycle resolution. Replacing that embedding step with another model would no longer reproduce the accepted comparison.
 
-The output excerpts come from candidate `order-api-field-migration-20260804T085505Z`. Opaque block IDs and a later run timestamp may differ, but the document order and assertions must match.
+The output excerpts come from accepted run `order-api-field-migration-20260804T085505Z`. Opaque block IDs and a later run timestamp may differ, but the document order and assertions must match.
 
 ## 1. Confirm the shared contract
 

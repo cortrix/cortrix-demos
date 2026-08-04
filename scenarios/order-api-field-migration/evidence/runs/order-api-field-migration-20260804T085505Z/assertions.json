@@ -1,0 +1,10 @@
+{
+  "run_a": true,
+  "run_b": true,
+  "required_paths": true,
+  "resolver": true,
+  "cleanup": true,
+  "budget": true,
+  "model_checksums": true,
+  "all_passed": true
+}

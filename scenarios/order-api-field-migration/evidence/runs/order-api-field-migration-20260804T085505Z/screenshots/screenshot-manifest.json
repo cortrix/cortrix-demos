@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "accepted_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
+  "screenshots": [
+    {
+      "file": "screenshots/cortrix-demo-agent-first-accepted-20260804.png",
+      "route": "/packages/viewer/index.html",
+      "evidence_path": "run-b/resolver-01.json",
+      "sha256": "d3d93be61d85bc05210ac937af8533ac54d69440ed300c7f0df0587e1b8d6f49",
+      "width": 1440,
+      "height": 2927,
+      "captured_at": "2026-08-04T10:07:27.397897+00:00"
+    }
+  ]
+}

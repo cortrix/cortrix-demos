@@ -6,7 +6,7 @@ Run B is cost-bearing. It uses the pinned Cortrix image, BGE-M3 embeddings, BM25
 
 This manual path bypasses the Agent runner's attempt ledger, cumulative budget guard, evidence manifest, and automatic rejection state. Use it only as an authorized educational reproduction. Its output is not official candidate or accepted evidence; use the repository's Agent workflow when evidence identity is required.
 
-The output excerpts come from candidate `order-api-field-migration-20260804T085505Z`. Namespace, task, document, and child IDs vary by run. The frozen document identities, ranking layers, resolver decision, and required checks must match.
+The output excerpts come from accepted run `order-api-field-migration-20260804T085505Z`. Namespace, task, document, and child IDs vary by run. The frozen document identities, ranking layers, resolver decision, and required checks must match.
 
 ## 1. Confirm the shared contract
 

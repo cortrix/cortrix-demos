@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "run_id": "order-api-field-migration-20260804T085505Z",
+  "scenario_id": "order-api-field-migration",
+  "scenario_version": "2.0.0",
+  "campaign_id": "order-api-field-migration-2.x",
+  "campaign_slot": 2,
+  "state": "accepted",
+  "target_identity": {
+    "release": "v1.0.0-rc.1",
+    "release_commit": "e159974f936bd987d5718195d54cd70ff3acc2e5",
+    "source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15",
+    "container_digest": "sha256:c31aeef5c9708ab739015f1ea06b23550a262d7e0dc79f15a0daf95091312255",
+    "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8"
+  },
+  "fixture_manifest_sha256": "07b32ee011b1707174d7bfd927f4924feab751dd83231ad14e08d0c7d8fdb146",
+  "assertion_contract_sha256": "6c490ec0ddc896780dcf588f3b5ef26a9c93219ac55a10ca95dc18a5dd757bda",
+  "provider_identity": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "base_url": "https://api.deepseek.com/v1",
+    "local_generative_llm": false
+  },
+  "required_paths": {
+    "bge_m3_embedding": true,
+    "bm25_recall": true,
+    "contextualized_recall": true,
+    "hype_recall": true,
+    "rrf_fusion": true,
+    "bge_cross_encoder_rerank": true,
+    "f41_document_summary_ingestion": true,
+    "chunk_only_result_identity": true,
+    "deepseek_ingestion": true,
+    "deepseek_query_fusion": true,
+    "deepseek_listwise_rerank": true,
+    "application_lifecycle_resolver": true
+  },
+  "run_a": {
+    "path": "run-a/pgvector-result.json",
+    "pass": true
+  },
+  "run_b": {
+    "path": "run-b/summary.json",
+    "pass": true,
+    "serial_query_count": 2,
+    "query_granularity": "chunk",
+    "document_summary_role": "ingestion_evidence_only"
+  },
+  "resolver": {
+    "path": "run-b/resolver-01.json",
+    "pass": true
+  },
+  "cleanup": {
+    "path": "cleanup-receipt.json",
+    "schema_version": 1,
+    "run_id": "order-api-field-migration-20260804T085505Z",
+    "namespaces": [
+      {
+        "namespace": "order-b-gration-20260804t085505z",
+        "existed": true,
+        "removed": true
+      },
+      {
+        "namespace": "order-a-docs-gration-20260804t085505z",
+        "existed": true,
+        "removed": true
+      },
+      {
+        "namespace": "order-a-query-gration-20260804t085505z",
+        "existed": true,
+        "removed": true
+      }
+    ],
+    "namespaces_removed": true,
+    "containers_removed": true,
+    "ports_released": true,
+    "runtime_secret_removed": true,
+    "model_cache_preserved": true,
+    "docker_volumes_preserved": true
+  },
+  "cost": {
+    "currency": "USD",
+    "budget_usd": 1.0,
+    "maximum_reviewed_attempt_contract_cost_usd": 0.084,
+    "observable_input_tokens": 549,
+    "observable_output_tokens": 181,
+    "observable_call_count_minimum": 5,
+    "model": "deepseek-v4-flash",
+    "estimated_observable_cost_usd": 0.00012754,
+    "estimated_total_usd": null,
+    "usage_visibility": "partial",
+    "public_cost_claim_allowed": false,
+    "within_budget_contract": true,
+    "pricing_snapshot": {
+      "schema_version": 1,
+      "observed_at": "2026-08-04T08:54:50Z",
+      "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "model_version": "DeepSeek-V4-Flash",
+      "currency": "USD",
+      "unit": "per_million_tokens",
+      "prices_per_million_tokens": {
+        "input_cache_hit": 0.0028,
+        "input_cache_miss": 0.14,
+        "output": 0.28
+      },
+      "notes": "Recorded from the official pricing page immediately before an authorized local walkthrough. A price change does not expand the repository budget."
+    }
+  },
+  "assertions": {
+    "run_a": true,
+    "run_b": true,
+    "required_paths": true,
+    "resolver": true,
+    "cleanup": true,
+    "budget": true,
+    "model_checksums": true,
+    "all_passed": true
+  },
+  "disclosed_gaps": [
+    {
+      "id": "usage-visibility-partial",
+      "blocking_public_cost_claim": true,
+      "note": "Internal ingestion and listwise calls do not expose complete token usage; only observable usage and a conservative budget bound are recorded."
+    },
+    {
+      "id": "hype-provider-attribution",
+      "blocking_runtime_acceptance": false,
+      "note": "HyPE attribution relies on the sole configured external provider endpoint, exact runtime revision, durable HyPE blocks, and no-local-LLM contract because rc.1 durable labels are not authoritative provider identity."
+    },
+    {
+      "id": "result-source-identity",
+      "blocking_runtime_acceptance": false,
+      "note": "The application resolver uses the durable child_id to doc_id to fixture document_id map instead of trusting source_doc_id."
+    }
+  ],
+  "claim_boundary": "Cortrix supplies the final response order, BGE rerank scores, retrieval paths, content, and durable identity. The demo application independently owns lifecycle validation; no single ranking layer is business truth.",
+  "screenshot_eligible": true,
+  "human_review_required": false,
+  "post_screenshot_human_review_required": true,
+  "acceptance": {
+    "method": "secondscott_clean_room",
+    "verdict": "pass",
+    "accepted_at": "2026-08-04T10:06:12.229498+00:00",
+    "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
+    "acceptance_tooling_commit": "3edd0c9f8efa759c8a3c7a62850803fa7912c6cd",
+    "private_review_reference_recorded": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-04T08:54:50Z",
+  "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "model_version": "DeepSeek-V4-Flash",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "prices_per_million_tokens": {
+    "input_cache_hit": 0.0028,
+    "input_cache_miss": 0.14,
+    "output": 0.28
+  },
+  "notes": "Recorded from the official pricing page immediately before an authorized local walkthrough. A price change does not expand the repository budget."
+}

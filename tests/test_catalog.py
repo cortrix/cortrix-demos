@@ -112,6 +112,11 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("independent Clean Run acceptance", run_b)
         run_a_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-a-postgresql-pgvector-step-by-step.md").read_text(encoding="utf-8")
         run_b_pipeline = (ROOT / "scenarios" / "order-api-field-migration" / "docs" / "run-b-cortrix-full-stack-step-by-step.md").read_text(encoding="utf-8")
+        accepted_run_id = json.loads((ROOT / "scenarios" / "order-api-field-migration" / "evidence" / "accepted-run.json").read_text(encoding="utf-8"))["run_id"]
+        self.assertIn(f"accepted run is `{accepted_run_id}`", run_a)
+        self.assertIn(f"accepted run is `{accepted_run_id}`", run_b)
+        self.assertIn(f"accepted run `{accepted_run_id}`", run_a_pipeline)
+        self.assertIn(f"accepted run `{accepted_run_id}`", run_b_pipeline)
         manual_heading = re.compile(r"^## [0-9]+\. ")
         self.assertEqual(
             [line for line in run_a_pipeline.splitlines() if manual_heading.match(line)],
