@@ -28,8 +28,9 @@ def verify_fresh_clone(source: Path, run_id: str | None = None) -> dict[str, Any
             subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", str(source), str(clone)], check=True, capture_output=True, text=True)
             verify_readme((clone / "README.md").read_text(encoding="utf-8"))
             result = subprocess.run(["make", "validate"], cwd=clone, check=True, capture_output=True, text=True)
-            if any((clone / name).exists() for name in ("LICENSE", "LICENSE.md", "LICENSE.txt")):
-                raise DemoContractError("Fresh clone unexpectedly contains a LICENSE")
+            license_text = (clone / "LICENSE").read_text(encoding="utf-8")
+            if "Apache License" not in license_text or "Version 2.0" not in license_text or not (clone / "NOTICE").is_file():
+                raise DemoContractError("Fresh clone does not contain the Apache-2.0 license and NOTICE contract")
             workflows = clone / ".github" / "workflows"
             if workflows.exists() and any(path.suffix in {".yml", ".yaml"} for path in workflows.rglob("*")):
                 raise DemoContractError("Fresh clone unexpectedly contains a GitHub Actions workflow")

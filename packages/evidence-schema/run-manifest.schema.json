@@ -30,7 +30,7 @@
     "run_b": {"type": "object", "required": ["path", "pass", "serial_query_count", "query_granularity", "document_summary_role"], "properties": {"serial_query_count": {"const": 2}, "query_granularity": {"const": "chunk"}, "document_summary_role": {"const": "ingestion_evidence_only"}}},
     "resolver": {"type": "object", "required": ["path", "pass"]},
     "cleanup": {"type": "object", "required": ["namespaces_removed", "containers_removed", "ports_released", "runtime_secret_removed"]},
-    "cost": {"type": "object", "required": ["budget_usd", "observable_input_tokens", "observable_output_tokens", "observable_call_count_minimum", "usage_visibility", "public_cost_claim_allowed", "within_budget_contract"], "properties": {"budget_usd": {"const": 5.0}, "usage_visibility": {"enum": ["complete", "partial"]}, "public_cost_claim_allowed": {"const": false}, "within_budget_contract": {"const": true}}},
+    "cost": {"type": "object", "required": ["budget_usd", "observable_input_tokens", "observable_output_tokens", "observable_call_count_minimum", "usage_visibility", "public_cost_claim_allowed", "within_budget_contract"], "properties": {"budget_usd": {"enum": [1.0, 5.0]}, "usage_visibility": {"enum": ["complete", "partial"]}, "public_cost_claim_allowed": {"const": false}, "within_budget_contract": {"const": true}}},
     "assertions": {"type": "object", "required": ["all_passed"], "properties": {"all_passed": {"const": true}}},
     "disclosed_gaps": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["id", "note"]}},
     "screenshot_eligible": {"type": "boolean"},

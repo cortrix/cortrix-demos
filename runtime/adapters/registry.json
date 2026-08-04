@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "baselines": [
+    {
+      "id": "postgresql-pgvector",
+      "support_status": "implemented",
+      "profile": "baselines/postgresql-pgvector/profile.json"
+    },
+    {
+      "id": "elasticsearch",
+      "support_status": "contract_only",
+      "documentation": "../../docs/technology-profiles.md"
+    },
+    {
+      "id": "mongodb",
+      "support_status": "contract_only",
+      "documentation": "../../docs/technology-profiles.md"
+    }
+  ],
+  "llm_providers": [
+    {
+      "id": "deepseek-openai-compatible",
+      "support_status": "implemented",
+      "profile": "providers/deepseek-openai-compatible/profile.json"
+    },
+    {
+      "id": "openai-responses",
+      "support_status": "contract_only",
+      "documentation": "../../docs/technology-profiles.md"
+    }
+  ]
+}

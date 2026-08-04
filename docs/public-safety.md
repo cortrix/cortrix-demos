@@ -9,7 +9,7 @@ The validator rejects:
 - internal review or control-plane references
 - secret-like assignments and common private-key markers
 - tracked runtime caches, logs, environment files, or candidate runs
-- a root `LICENSE` before the license gate is accepted
+- a missing or non-Apache-2.0 root `LICENSE`, or a missing `NOTICE`
 - GitHub Actions workflow YAML in the initial bootstrap
 
 The presence of an environment-variable name in documentation is allowed. A value, assignment, or captured environment dump is not.

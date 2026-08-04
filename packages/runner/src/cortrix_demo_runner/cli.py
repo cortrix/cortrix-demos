@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 from .acceptance import record_screenshot, stage_accepted, verify_accepted
+from .catalog import describe_scenario, list_scenarios, load_external_call_policy, require_runnable_scenario, validate_catalog
 from .errors import DemoContractError
 from .fresh_clone import verify_fresh_clone
 from .io import read_json, write_json
@@ -20,10 +21,21 @@ from .scenario import SCENARIO_ID, load_assertion_contract, scenario_root, valid
 def command_validate(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     failures = validate_scenario(root, args.scenario)
+    failures.extend(validate_catalog(root))
     require_safe(root)
     if failures:
         raise DemoContractError("Scenario validation failed:\n- " + "\n- ".join(failures))
     print(json.dumps({"status": "pass", "scenario": args.scenario, "external_calls": 0}, indent=2))
+
+
+def command_list(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    scenarios = list_scenarios(root)
+    print(json.dumps({"schema_version": 1, "scenarios": scenarios, "external_calls": 0}, ensure_ascii=True, indent=2))
+
+
+def command_describe(args: argparse.Namespace) -> None:
+    print(json.dumps(describe_scenario(args.root.resolve(), args.scenario), ensure_ascii=True, indent=2))
 
 
 def command_public_safety(args: argparse.Namespace) -> None:
@@ -32,9 +44,12 @@ def command_public_safety(args: argparse.Namespace) -> None:
 
 
 def command_preflight(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    require_runnable_scenario(root, args.scenario, args.profile)
     if args.profile != "full-stack":
         raise DemoContractError("Only the full-stack live profile has a runtime preflight")
-    result = full_stack_preflight(args.cortrix_source.resolve(), args.pricing_snapshot.resolve())
+    policy = load_external_call_policy(root)
+    result = full_stack_preflight(args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), budget_usd=float(policy["budget_usd"]))
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
@@ -50,6 +65,7 @@ def command_resolve(args: argparse.Namespace) -> None:
 
 
 def command_run_full_stack(args: argparse.Namespace) -> None:
+    require_runnable_scenario(args.root.resolve(), args.scenario, "full-stack")
     result = execute_with_retry(args.root.resolve(), args.cortrix_source.resolve(), args.pricing_snapshot.resolve(), args.reviewed_attempt_limit)
     print(json.dumps({"status": result["state"], "run_id": result["run_id"], "external_calls": True, "human_review_required": True}, indent=2))
 
@@ -76,6 +92,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run and validate evidence-backed Cortrix demos.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    listing = subparsers.add_parser("list")
+    listing.add_argument("--root", type=Path, default=Path.cwd())
+    listing.add_argument("--json", action="store_true", help="Compatibility flag; output is always JSON.")
+    listing.set_defaults(handler=command_list)
+
+    describe = subparsers.add_parser("describe")
+    describe.add_argument("--root", type=Path, default=Path.cwd())
+    describe.add_argument("--scenario", required=True)
+    describe.add_argument("--json", action="store_true", help="Compatibility flag; output is always JSON.")
+    describe.set_defaults(handler=command_describe)
+
     validate = subparsers.add_parser("validate")
     validate.add_argument("--root", type=Path, default=Path.cwd())
     validate.add_argument("--scenario", default=SCENARIO_ID)
@@ -86,8 +113,9 @@ def build_parser() -> argparse.ArgumentParser:
     safety.set_defaults(handler=command_public_safety)
 
     preflight = subparsers.add_parser("preflight")
+    preflight.add_argument("--root", type=Path, default=Path.cwd())
     preflight.add_argument("--scenario", default=SCENARIO_ID)
-    preflight.add_argument("--profile", choices=["full-stack"], default="full-stack")
+    preflight.add_argument("--profile", default="full-stack")
     preflight.add_argument("--cortrix-source", type=Path, default=Path(".runtime/cortrix-src"))
     preflight.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
     preflight.set_defaults(handler=command_preflight)
@@ -144,6 +172,18 @@ def main() -> int:
         paths.extend(value.resolve() for value in vars(args).values() if isinstance(value, Path))
         for path in sorted({str(path) for path in paths}, key=len, reverse=True):
             message = message.replace(path, "[local-path]")
-        print(f"DEMO_CONTRACT_ERROR={message}", file=sys.stderr)
+        if isinstance(exc, DemoContractError):
+            payload = exc.as_dict(message)
+        else:
+            payload = {
+                "error": {
+                    "code": "CX_DEMO_RUNTIME_ERROR",
+                    "category": "runtime",
+                    "retryable": False,
+                    "message": message,
+                    "structured_data": {},
+                }
+            }
+        print(json.dumps(payload, ensure_ascii=True), file=sys.stderr)
         return 1
     return 0

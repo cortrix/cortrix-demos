@@ -10,6 +10,7 @@ from typing import Any
 import urllib.error
 
 from .baseline import export_vectors, run_exact_cosine
+from .catalog import load_external_call_policy
 from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
@@ -376,12 +377,15 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     fixture_manifest_path = fixture_root / "manifest.json"
     manifest = read_json(fixture_manifest_path)
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
+    external_policy = load_external_call_policy(root)
+    effective_profile = dict(profile)
+    effective_profile["budget_usd"] = min(float(profile["budget_usd"]), float(external_policy["budget_usd"]))
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     if reviewed_attempt_limit > int(execution_contract["campaign_attempt_cap"]):
         raise DemoContractError("The reviewed attempt limit exceeds the sealed campaign cap")
-    preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit)
+    preflight = full_stack_preflight(source, pricing_path, reviewed_attempt_limit, budget_usd=float(effective_profile["budget_usd"]))
     pricing = read_json(pricing_path)
-    bound = require_budget_bound(profile, pricing, reviewed_attempt_limit)
+    bound = require_budget_bound(effective_profile, pricing, reviewed_attempt_limit)
     verify_fixture_hashes(fixture_root, manifest)
     demo_checkout = verify_demo_checkout(root)
     attempt = reserve_attempt(root, run_id, reviewed_attempt_limit, campaign_id, scenario["scenario_version"], demo_checkout["commit"])
@@ -409,7 +413,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         health = start("full-stack")
         runtime = sanitized_runtime(run_id, health, image)
         source_identity = source_manifest(run_id, attempt, campaign_id, image, fixture_manifest_path, assertion_path, scenario, demo_checkout)
-        cost = cost_record(pricing, smoke, run_b_result, bound, float(profile["budget_usd"]))
+        cost = cost_record(pricing, smoke, run_b_result, bound, float(effective_profile["budget_usd"]))
         write_json(run_dir / "preflight.json", preflight)
         write_json(run_dir / "runtime.json", runtime)
         write_json(run_dir / "source-manifest.json", source_identity)

@@ -19,14 +19,14 @@ This repository contains reproducible, evidence-backed demos for Cortrix.
 
 ## Secrets and External Calls
 
-- Read `DEEPSEEK_API_KEY` only from the process environment.
+- Read only the secret environment variable named by the selected implemented provider profile. The current scenario uses `DEEPSEEK_API_KEY`.
 - Never print or persist the key in tracked files, evidence, logs, screenshots, command examples, or Git history.
 - Do not use a local generative-model fallback.
 - External Full Stack execution is manual and cost-gated. Pull requests must not call external model APIs.
 
 ## Repository Boundaries
 
-- Do not add a `LICENSE` file until provenance review and a separate license decision are complete.
+- All repository-owned code, documentation, fixtures, schemas, and visual assets are Apache-2.0. Preserve `LICENSE`, `NOTICE`, provenance, and trademark boundaries.
 - Do not add GitHub Actions workflows, Pages configuration, releases, forks, or remote localization branches without a separate human gate.
 - Local `zh-CN` work is presentation-only unless a separate run is approved. It must not alter fixtures, queries, prompts, raw evidence, scores, source IDs, traces, or checksums.
 - Remote repository creation and every push require the explicit authorization defined by the active work package.

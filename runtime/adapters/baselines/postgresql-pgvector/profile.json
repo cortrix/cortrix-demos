@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "postgresql-pgvector",
+  "kind": "baseline",
+  "support_status": "implemented",
+  "engine": "postgresql",
+  "extension": "pgvector",
+  "runtime_service": "postgres",
+  "result_contract": "baseline-result",
+  "capabilities": ["exact_cosine", "metadata_filtering"],
+  "external_calls": false
+}

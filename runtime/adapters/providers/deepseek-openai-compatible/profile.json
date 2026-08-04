@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "deepseek-openai-compatible",
+  "kind": "llm_provider",
+  "support_status": "implemented",
+  "provider": "deepseek",
+  "protocol": "openai-compatible-chat-completions",
+  "base_url": "https://api.deepseek.com/v1",
+  "secret_env": "DEEPSEEK_API_KEY",
+  "allowed_models": ["deepseek-v4-flash"],
+  "capabilities": ["ingestion", "query_fusion", "listwise_rerank"],
+  "local_fallback_allowed": false
+}

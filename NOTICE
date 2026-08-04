@@ -1,0 +1,15 @@
+Cortrix Demos
+Copyright 2026 Cortrix contributors
+
+This product includes Cortrix visual identity assets created from the approved
+Cortrix Magma Orange visual specification. The SVG source in assets/brand/ is
+distributed under the Apache License 2.0 as part of this repository.
+
+Cortrix and the Cortrix logo identify the Cortrix project. The Apache License
+2.0 does not grant permission to use Cortrix trade names, trademarks, service
+marks, or product names except for reasonable and customary attribution and
+description of the origin of this work.
+
+Runtime integrations may download or invoke separately licensed software,
+models, databases, or hosted services. Those components are not redistributed
+by this repository and remain subject to their own terms.

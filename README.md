@@ -1,88 +1,81 @@
 # Cortrix Demos
 
-Reproducible, evidence-backed demos for Cortrix.
+Reproducible, evidence-backed, Agent-first demos for Cortrix.
 
-This repository is currently a private pre-publication candidate. License selection is pending provenance review. Until a license is selected and published, this repository is not licensed for redistribution.
+An Agent can discover each scenario, resolve its database and LLM technology profile, validate contracts, inspect accepted evidence, and decide whether a failure is retryable without parsing prose. Humans see the same accepted evidence through concise documentation and a read-only Web viewer.
 
-## First scenario: Order API Field Migration
-
-This constructed scenario isolates a common version-conflict failure mode. A failing payload still uses the retired `account_id` field, while the current API requires `buyer_account_id`.
-
-- Run A is a BGE-M3 dense-only PostgreSQL/pgvector exact-cosine baseline without lifecycle filtering. It follows the failing payload to the superseded v1 guide and selects `account_id`.
-- Run B executes the Cortrix Context Full Stack and returns the current v2 migration bulletin with `buyer_account_id` as its final top result.
-- The demo application independently applies the lifecycle rule and validates the current Full Stack result as defense in depth.
-
-PostgreSQL and pgvector can filter on lifecycle metadata; this Run A profile intentionally does not. Cortrix supplies multi-path retrieval and ranking evidence. The application owns lifecycle validation. This is a mechanism demo, not a retrieval benchmark or a general superiority claim.
+This repository is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for Cortrix visual identity and trademark attribution.
 
 ## See the result
 
-Open the [evidence viewer](packages/viewer/README.md) to inspect the accepted local replay. A replay is a frozen result, not a new live execution. The sealed 2.0.0 run passed Clean Room review and screenshot verification; final Human Review is still pending.
+Open the [evidence viewer](packages/viewer/README.md) or follow the [human step-by-step guide](docs/step-by-step.md) to inspect the accepted local replay. The sealed run passed Clean Room review and screenshot verification. The viewer fails closed when its pointer, manifest, Run A result, resolver, or screenshot identity disagrees.
 
-The viewer reads the [accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json). It renders only when the pointer, Run A result, run manifest, layered resolver, and screenshot binding agree with the current scenario contract.
+The first scenario is a synthetic mechanism demo: Run A selects the superseded v1 API field, while Cortrix Full Stack returns and validates the current v2 field. It is not a retrieval benchmark or a general superiority claim.
 
 ## Run it locally
 
 Requirements:
 
-- Docker and Docker Compose
-- Python 3.14
-- approximately 1.2 GB for the BGE-M3 and BGE reranker assets
-- a user-provided `DEEPSEEK_API_KEY` for a manual Full Stack run
+- Python 3.14 for validation and discovery
+- Docker and Docker Compose only for a live Full Stack run
+- approximately 1.2 GB for the BGE-M3 and BGE reranker assets only for live execution
+- the technology profile's named API key only for an explicitly authorized live run
 
-Validate the repository without external calls:
+Discover the repository without external calls:
 
 ```bash
+./democtl list --json
+./democtl describe --scenario order-api-field-migration --json
 make validate
 ```
 
-Run the manual Full Stack preflight:
+Start the read-only viewer:
 
 ```bash
-./democtl preflight \
-  --scenario order-api-field-migration \
-  --profile full-stack
+make viewer
 ```
 
-The runner fails before any external call when the key, pinned source identity, Docker runtime, model checksums, pricing snapshot, or budget contract is missing.
-
-The complete manual procedure is in the [Full Stack runbook](docs/full-stack-runbook.md). It records a candidate, never an accepted run. Acceptance, promotion, and screenshot capture remain separate review-gated steps.
-
-After a candidate passes the private SecondScott Clean Room review, follow the [acceptance and screenshot runbook](docs/acceptance-runbook.md) to stage curated evidence, capture the real viewer, verify screenshot bindings, and test a fresh clone. Final Human Review remains required after the screenshot-backed local package is complete.
+A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
 
 ## Inspect the evidence
 
-Start with these contracts:
+Start with:
 
-- [Scenario definition](scenarios/order-api-field-migration/scenario.yaml)
-- [Expected assertions](scenarios/order-api-field-migration/expected/assertions.json)
-- [Layered-ranking contract](docs/layered-ranking-contract.md)
+- [Scenario registry](scenarios/registry.json)
+- [Technology profile](scenarios/order-api-field-migration/profiles/technology-profile.json)
+- [Accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json)
 - [Evidence policy](docs/evidence-policy.md)
-- [Evidence schema](packages/evidence-schema/run-manifest.schema.json)
-- [Compatibility](docs/compatibility.md)
-- [Known limitations](docs/known-limitations.md)
+- [Run manifest schema](packages/evidence-schema/run-manifest.schema.json)
+- [Repository architecture](docs/architecture.md)
 
-Candidate runs stay in the ignored `.runs/` directory. Clean Room-accepted, sanitized evidence is promoted into the scenario's tracked `evidence/runs/` directory only after review; the screenshot-backed package still requires final Human Review.
+Candidate runs stay in the ignored `.runs/` directory. Only independently accepted, sanitized evidence is promoted under a scenario's tracked `evidence/runs/` directory. Existing accepted evidence remains immutable historical identity even when shared repository infrastructure evolves.
 
-## Repository structure
+## First scenario: Order API Field Migration
+
+The constructed corpus isolates a common version-conflict failure mode. A failing payload still uses the retired `account_id` field, while the current API requires `buyer_account_id`.
+
+- Run A is a BGE-M3 dense-only PostgreSQL/pgvector exact-cosine baseline without lifecycle filtering. It follows the failing payload to the superseded v1 guide.
+- Run B executes Cortrix Context Full Stack and returns the current v2 migration bulletin as its final top result.
+- The demo application independently validates lifecycle status as defense in depth.
+
+PostgreSQL and pgvector can filter lifecycle metadata; this Run A profile intentionally does not. Cortrix supplies multi-path retrieval and ranking evidence. The application owns lifecycle validation.
+
+## Extend the demos
+
+The core ownership chain is:
 
 ```text
-packages/
-  runner/           Shared execution, validation, and cleanup logic
-  viewer/           Read-only accepted-evidence viewer
-  evidence-schema/  JSON schemas for manifests and receipts
-scenarios/
-  order-api-field-migration/
-docs/
-  Evidence, localization, compatibility, and authoring contracts
+scenario -> technology profile -> reusable adapter -> immutable accepted run
 ```
 
-The official bundle contains only `en-US`. A downstream locale may change presentation, but not execution inputs or raw evidence.
+Business fixtures and assertions stay under `scenarios/<id>/`. Reusable database and provider integrations stay under `runtime/adapters/` and shared runner code. A scenario may select PostgreSQL/pgvector, Elasticsearch, MongoDB, DeepSeek, or an OpenAI mini model only when the selected adapters are implemented and tested; `contract_only` entries are documentation, not runnable claims.
+
+Read [Repository architecture](docs/architecture.md), [Technology profiles](docs/technology-profiles.md), [Agent quick start](docs/agent-quickstart.md), and [Authoring a demo](docs/authoring-a-demo.md) before adding a scenario.
 
 ## Status boundaries
 
-- Cortrix target release: `v1.0.0-rc.1`
-- Release commit: `e159974f936bd987d5718195d54cd70ff3acc2e5`
+- Cortrix target release for the accepted first scenario: `v1.0.0-rc.1`
 - Validated source revision: `32b82f6f8f1d7a41349f408969ff03b7997b6c15`
-- External model target: `deepseek-v4-flash`
-- Local generative LLM: prohibited
-- GitHub Actions, Pages, releases, forks, remote `zh-CN`, and public visibility: not configured
+- Current accepted provider/model: `deepseek/deepseek-v4-flash`
+- Local generative fallback: prohibited
+- GitHub Actions, Pages, releases, forks, remote localization branches, and public visibility: not configured

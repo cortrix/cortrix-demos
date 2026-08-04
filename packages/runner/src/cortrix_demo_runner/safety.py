@@ -32,8 +32,15 @@ def repository_files(root: Path) -> list[Path]:
 
 def scan_public_safety(root: Path) -> list[str]:
     failures: list[str] = []
-    if any((root / name).exists() for name in ("LICENSE", "LICENSE.md", "LICENSE.txt")):
-        failures.append("A root LICENSE is blocked pending provenance review")
+    license_path = root / "LICENSE"
+    if not license_path.is_file():
+        failures.append("The root LICENSE must contain Apache License 2.0")
+    else:
+        license_text = license_path.read_text(encoding="utf-8")
+        if "Apache License" not in license_text or "Version 2.0" not in license_text:
+            failures.append("The root LICENSE must contain Apache License 2.0")
+    if not (root / "NOTICE").is_file():
+        failures.append("The root NOTICE file is required")
     workflows = root / ".github" / "workflows"
     if workflows.exists() and any(path.suffix in {".yml", ".yaml"} for path in workflows.rglob("*")):
         failures.append("GitHub Actions workflows are not allowed in the initial bootstrap")

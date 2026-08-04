@@ -30,7 +30,7 @@ Immediately before a live run, read the official [DeepSeek pricing page](https:/
 }
 ```
 
-The runner computes a conservative cumulative-attempt cost bound from the current prices. A price change never expands the USD 5.00 budget.
+The runner computes a conservative cumulative-attempt cost bound from the current prices. The repository policy caps all new authorized execution at USD 1.00. A price change never expands that budget. Historical accepted evidence may retain the earlier reviewed USD 5.00 contract as immutable run identity.
 
 ## 3. Inject the secret and run
 
@@ -42,7 +42,7 @@ make full-stack
 
 The runner allows one direct provider contract smoke and one complete candidate run per attempt. It may start a second attempt only after an HTTP 429, HTTP 5xx, or timeout, and the retry receives a new run ID. A deterministic assertion or identity failure never retries.
 
-The default reviewed attempt limit is two. The sealed 2.x scenario campaign has a hard cap of four slots. An explicit review may authorize the exact four-slot campaign without changing the USD 5.00 budget:
+The default reviewed attempt limit is two. The sealed 2.x scenario campaign has a hard cap of four slots. An explicit review may authorize the exact four-slot campaign only when its conservative bound remains within the current USD 1.00 repository policy:
 
 ```bash
 ./democtl run-full-stack --reviewed-attempt-limit 4

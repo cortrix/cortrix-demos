@@ -44,4 +44,4 @@ After committing the accepted package, run:
 ./democtl fresh-clone-verify --run-id <accepted-run-id>
 ```
 
-The verifier creates an isolated temporary local clone, finds `See the result`, `Run it locally`, and `Inspect the evidence` in order, runs `make validate`, confirms the absence of a license and GitHub Actions workflows, and revalidates the accepted run and screenshots. The temporary clone is removed when verification ends.
+The verifier creates an isolated temporary local clone, finds `See the result`, `Run it locally`, and `Inspect the evidence` in order, runs `make validate`, confirms Apache License 2.0 plus `NOTICE`, confirms the absence of GitHub Actions workflows, and revalidates the accepted run and screenshots. The temporary clone is removed when verification ends.

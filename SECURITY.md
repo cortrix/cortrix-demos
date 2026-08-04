@@ -1,12 +1,12 @@
 # Security Policy
 
-This private bootstrap is not yet a published security-support channel.
+This repository does not yet operate a public security-support channel.
 
 ## Sensitive information
 
 Do not open an issue or commit a file that contains API keys, credentials, private workspace paths, customer data, environment dumps, or raw request headers.
 
-The runner reads `DEEPSEEK_API_KEY` from the environment and may create a mode-`0600` ignored runtime configuration when required by the pinned Cortrix revision. Cleanup must remove that file and record only whether removal succeeded. The key value must never enter evidence, logs, screenshots, or Git history.
+The current technology profile reads `DEEPSEEK_API_KEY` from the environment. A future provider profile must declare its own secret environment name. The runner may create a mode-`0600` ignored runtime configuration when required by the pinned Cortrix revision. Cleanup must remove that file and record only whether removal succeeded. A key value must never enter evidence, logs, screenshots, or Git history.
 
 ## Untrusted model output
 

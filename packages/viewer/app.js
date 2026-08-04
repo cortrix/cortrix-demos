@@ -23,15 +23,15 @@ function rejectViewer(message) {
   byId("failure").hidden = false;
 }
 
-function requireAccepted(pointer, manifest, runA, resolver, scenario) {
+function requireAccepted(pointer, manifest, runA, resolver, scenario, technology) {
   if (pointer.status !== "accepted" || manifest.state !== "accepted") {
     throw new Error("The accepted-run pointer and run manifest must both report accepted.");
   }
   if (pointer.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
     throw new Error("Evidence identity mismatch between pointer, manifest, and resolver.");
   }
-  if (manifest.scenario_version !== scenario.scenario_version) {
-    throw new Error("The accepted run does not match the current scenario contract version.");
+  if (manifest.scenario_version !== scenario.scenario_version || technology.scenario_id !== scenario.scenario_id) {
+    throw new Error("The accepted run and technology profile do not match the scenario contract.");
   }
   if (resolver.pass !== true || manifest.assertions?.all_passed !== true) {
     throw new Error("The accepted run does not contain passing resolver and run assertions.");
@@ -51,14 +51,45 @@ function requireAccepted(pointer, manifest, runA, resolver, scenario) {
     throw new Error("The accepted Run A result does not expose the frozen outdated top result.");
   }
   if (manifest.acceptance?.method !== "secondscott_clean_room" || manifest.acceptance?.verdict !== "pass" || manifest.post_screenshot_human_review_required !== true) {
-    throw new Error("The accepted run does not preserve the Clean Room and final Human Review gates.");
+    throw new Error("The accepted run does not preserve the Clean Room and publication-review gates.");
   }
+  if (technology.baseline?.adapter_id !== "postgresql-pgvector" || technology.llm?.adapter_id !== "deepseek-openai-compatible") {
+    throw new Error("The viewer technology profile is not the profile used by accepted evidence.");
+  }
+}
+
+function renderAgentPath() {
+  const steps = ["Discover", "Describe", "Validate", "Preflight", "Provision", "Run", "Inspect", "Verify", "Cleanup"];
+  for (const step of steps) {
+    const item = document.createElement("li");
+    const marker = document.createElement("span");
+    marker.setAttribute("aria-hidden", "true");
+    marker.textContent = String(steps.indexOf(step) + 1).padStart(2, "0");
+    item.append(marker, document.createTextNode(step));
+    byId("agent-steps").append(item);
+  }
+}
+
+function initializeTheme() {
+  const saved = localStorage.getItem("cortrix-demo-theme");
+  const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  byId("theme-toggle").setAttribute("aria-pressed", String(dark));
+  byId("theme-toggle").addEventListener("click", () => {
+    const nextDark = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = nextDark ? "dark" : "light";
+    localStorage.setItem("cortrix-demo-theme", nextDark ? "dark" : "light");
+    byId("theme-toggle").setAttribute("aria-pressed", String(nextDark));
+  });
 }
 
 async function render() {
   try {
     const config = await loadJson("./viewer-config.json");
-    const scenario = await loadJson(config.scenario_metadata);
+    const [scenario, technology] = await Promise.all([
+      loadJson(config.scenario_metadata),
+      loadJson(config.technology_profile),
+    ]);
     byId("scenario-id").textContent = scenario.display_name;
     byId("scenario-title").textContent = scenario.title;
     byId("scenario-summary").textContent = scenario.summary;
@@ -68,10 +99,12 @@ async function render() {
       rejectViewer(pointer.reason ?? "No accepted run is available for the current scenario contract.");
       return;
     }
-    const manifest = await loadJson(pointer.manifest);
-    const runA = await loadJson(pointer.run_a);
-    const resolver = await loadJson(pointer.resolver);
-    requireAccepted(pointer, manifest, runA, resolver, scenario);
+    const [manifest, runA, resolver] = await Promise.all([
+      loadJson(pointer.manifest),
+      loadJson(pointer.run_a),
+      loadJson(pointer.resolver),
+    ]);
+    requireAccepted(pointer, manifest, runA, resolver, scenario, technology);
 
     const runATop = runA.ranking?.[0];
     if (!runATop) {
@@ -108,6 +141,15 @@ async function render() {
     addDefinition(byId("decision-details"), "Selected field", decision.selected_field);
     addDefinition(byId("decision-details"), "Policy action", resolver.layers.application_lifecycle_policy.action);
 
+    addDefinition(byId("technology-details"), "Profile", technology.id);
+    addDefinition(byId("technology-details"), "Run A baseline", technology.baseline.adapter_id);
+    addDefinition(byId("technology-details"), "Baseline version", technology.baseline.version);
+    addDefinition(byId("technology-details"), "Run B Cortrix", `${technology.cortrix.release} @ ${technology.cortrix.source_revision.slice(0, 12)}`);
+    addDefinition(byId("technology-details"), "Embedding", technology.cortrix.embedding_model);
+    addDefinition(byId("technology-details"), "Reranker", technology.cortrix.reranker_model);
+    addDefinition(byId("technology-details"), "LLM", `${technology.llm.provider}/${technology.llm.model}`);
+    addDefinition(byId("technology-details"), "LLM roles", technology.llm.roles.join(", "));
+
     addDefinition(byId("run-details"), "Run ID", manifest.run_id);
     addDefinition(byId("run-details"), "Scenario contract", manifest.scenario_version);
     addDefinition(byId("run-details"), "Cortrix release", manifest.target_identity?.release);
@@ -117,15 +159,17 @@ async function render() {
     addDefinition(byId("run-details"), "Usage visibility", manifest.cost?.usage_visibility);
     addDefinition(byId("run-details"), "Observable estimated cost (USD)", manifest.cost?.estimated_observable_cost_usd);
 
+    renderAgentPath();
     byId("claim-boundary").textContent = resolver.claim_boundary;
     byId("synthetic-disclosure").textContent = scenario.synthetic_disclosure;
     byId("evidence-grid").hidden = false;
     byId("boundary").hidden = false;
     byId("status-panel").classList.add("accepted");
-    byId("status-text").textContent = "Clean Room passed · final Human Review pending";
+    byId("status-text").textContent = "Clean Run accepted · local evidence";
   } catch (error) {
     rejectViewer(error instanceof Error ? error.message : "The accepted evidence contract failed.");
   }
 }
 
+initializeTheme();
 render();

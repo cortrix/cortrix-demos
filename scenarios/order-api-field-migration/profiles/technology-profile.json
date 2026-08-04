@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "id": "postgresql-pgvector-deepseek-v4-flash",
+  "scenario_id": "order-api-field-migration",
+  "compatibility_profiles": ["full-stack", "replay"],
+  "baseline": {
+    "adapter_id": "postgresql-pgvector",
+    "role": "run_a",
+    "version": "PostgreSQL 16 with pgvector",
+    "configuration": "exact cosine without lifecycle filtering"
+  },
+  "cortrix": {
+    "role": "run_b",
+    "release": "v1.0.0-rc.1",
+    "source_revision": "32b82f6f8f1d7a41349f408969ff03b7997b6c15",
+    "embedding_model": "BAAI/bge-m3",
+    "reranker_model": "BAAI/bge-reranker-v2-m3"
+  },
+  "llm": {
+    "adapter_id": "deepseek-openai-compatible",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "secret_env": "DEEPSEEK_API_KEY",
+    "roles": ["ingestion", "query_fusion", "listwise_rerank"],
+    "local_fallback_allowed": false
+  },
+  "capabilities": [
+    "embedding",
+    "dense_recall",
+    "lexical_recall",
+    "contextualized_recall",
+    "hype_recall",
+    "rrf_fusion",
+    "cross_encoder_rerank",
+    "llm_ingestion",
+    "llm_query_fusion",
+    "llm_listwise_rerank",
+    "application_resolver"
+  ],
+  "accepted_evidence": "evidence/accepted-run.json"
+}
