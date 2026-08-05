@@ -45,6 +45,15 @@ class PreflightTests(unittest.TestCase):
         self.assertIn("next_action", error["structured_data"])
 
     @patch("cortrix_demo_runner.preflight.subprocess.run")
+    def test_runtime_next_action_names_the_calling_command(self, run: object) -> None:
+        run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="engine unavailable")
+        with self.assertRaises(DemoContractError) as captured:
+            verify_runtime("prepare-image")
+        next_action = captured.exception.as_dict()["error"]["structured_data"]["next_action"]
+        self.assertIn("rerun prepare-image", next_action)
+        self.assertNotIn("rerun preflight", next_action)
+
+    @patch("cortrix_demo_runner.preflight.subprocess.run")
     def test_unavailable_compose_is_distinct_and_not_retryable(self, run: object) -> None:
         run.side_effect = [
             subprocess.CompletedProcess([], 0, stdout="29.5.3 29.5.3", stderr=""),
