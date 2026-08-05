@@ -25,6 +25,55 @@ SUCCESS_STATES = {"ready", "completed", "success", "succeeded"}
 FAILURE_STATES = {"failed", "cancelled", "canceled", "error"}
 
 
+def _http_status_error(operation: str, status: int) -> DemoContractError:
+    data = {"operation": operation, "http_status": status}
+    if status == 429:
+        return DemoContractError(
+            f"{operation} returned HTTP 429",
+            code="CX_DEMO_HTTP_RATE_LIMITED",
+            category="quota",
+            retryable=True,
+            retry_after_ms=1000,
+            structured_data=data,
+        )
+    if 500 <= status <= 599:
+        return DemoContractError(
+            f"{operation} returned HTTP {status}",
+            code="CX_DEMO_HTTP_SERVER_ERROR",
+            category="transient",
+            retryable=True,
+            retry_after_ms=1000,
+            structured_data=data,
+        )
+    return DemoContractError(
+        f"{operation} returned HTTP {status}",
+        code="CX_DEMO_HTTP_STATUS_UNEXPECTED",
+        structured_data=data,
+    )
+
+
+def _timeout_error(operation: str, timeout_seconds: float) -> DemoContractError:
+    return DemoContractError(
+        f"{operation} timed out",
+        code="CX_DEMO_OPERATION_TIMEOUT",
+        category="timeout",
+        retryable=True,
+        retry_after_ms=1000,
+        structured_data={"operation": operation, "timeout_seconds": timeout_seconds},
+    )
+
+
+def _connection_error(operation: str) -> DemoContractError:
+    return DemoContractError(
+        f"{operation} failed before an HTTP response",
+        code="CX_DEMO_HTTP_CONNECTION_FAILED",
+        structured_data={
+            "operation": operation,
+            "next_action": "Check the required local or provider network endpoint before starting another reviewed attempt.",
+        },
+    )
+
+
 def compose_environment(profile: str) -> dict[str, str]:
     environment = os.environ.copy()
     if profile == "full-stack":
@@ -179,19 +228,19 @@ def start(profile: str, timeout_seconds: float = 1800) -> dict[str, Any]:
     compose(["up", "-d", "postgres"], profile=profile)
     compose(["up", "-d", "--force-recreate", "cortrix"], profile=profile)
     deadline = time.monotonic() + timeout_seconds
-    last_error = "not attempted"
     while time.monotonic() < deadline:
         try:
             _, health = request("GET", "/system/health/ready", timeout=10)
             if isinstance(health, dict):
                 return health
-        except (DemoContractError, urllib.error.URLError) as exc:
-            last_error = str(exc)
+        except (DemoContractError, urllib.error.URLError):
+            pass
         time.sleep(2)
-    raise DemoContractError(f"Cortrix readiness timed out: {last_error}. transient_category=timeout")
+    raise _timeout_error("Cortrix readiness", timeout_seconds)
 
 
 def request(method: str, path: str, payload: dict[str, Any] | None = None, expected: set[int] | None = None, timeout: float = 180) -> tuple[int, Any]:
+    operation_name = f"{method} {path}"
     body = json.dumps(payload, ensure_ascii=True).encode("utf-8") if payload is not None else None
     headers = {"Accept": "application/json"}
     if body is not None:
@@ -205,28 +254,18 @@ def request(method: str, path: str, payload: dict[str, Any] | None = None, expec
         status = exc.code
         raw = exc.read().decode("utf-8")
     except http.client.RemoteDisconnected as exc:
-        raise DemoContractError(f"{method} {path} closed the connection before an HTTP response") from exc
+        raise _connection_error(operation_name) from exc
     except urllib.error.URLError as exc:
         if isinstance(exc.reason, TimeoutError):
-            raise DemoContractError(f"{method} {path} timed out. transient_category=timeout") from exc
-        raise DemoContractError(f"{method} {path} failed before an HTTP response") from exc
+            raise _timeout_error(operation_name, timeout) from exc
+        raise _connection_error(operation_name) from exc
     try:
         value = json.loads(raw) if raw else {}
     except json.JSONDecodeError:
         value = {"non_json_response": True}
     if status not in (expected or {200}):
-        category = transient_category(status)
-        suffix = f" transient_category={category}" if category else ""
-        raise DemoContractError(f"{method} {path} returned HTTP {status}.{suffix}")
+        raise _http_status_error(operation_name, status)
     return status, value
-
-
-def transient_category(status: int) -> str | None:
-    if status == 429:
-        return "http_429"
-    if 500 <= status <= 599:
-        return "http_5xx"
-    return None
 
 
 def ensure_namespace(name: str) -> None:
@@ -251,7 +290,7 @@ def upload(namespace: str, filename: str, content: str, metadata: dict[str, Any]
         if status in FAILURE_STATES:
             raise DemoContractError("Document task entered a failure state")
         time.sleep(1)
-    raise DemoContractError("Document ingestion timed out. transient_category=timeout")
+    raise _timeout_error("Document ingestion", timeout_seconds)
 
 
 def metrics() -> str:
@@ -311,15 +350,13 @@ def contract_smoke() -> dict[str, Any]:
         with urllib.request.urlopen(operation, timeout=60) as response:
             value = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        category = transient_category(exc.code)
-        suffix = f" transient_category={category}" if category else ""
-        raise DemoContractError(f"DeepSeek contract smoke returned HTTP {exc.code}.{suffix}") from exc
+        raise _http_status_error("DeepSeek contract smoke", exc.code) from exc
     except TimeoutError as exc:
-        raise DemoContractError("DeepSeek contract smoke timed out. transient_category=timeout") from exc
+        raise _timeout_error("DeepSeek contract smoke", 60) from exc
     except urllib.error.URLError as exc:
         if isinstance(exc.reason, TimeoutError):
-            raise DemoContractError("DeepSeek contract smoke timed out. transient_category=timeout") from exc
-        raise DemoContractError("DeepSeek contract smoke failed before an HTTP response") from exc
+            raise _timeout_error("DeepSeek contract smoke", 60) from exc
+        raise _connection_error("DeepSeek contract smoke") from exc
     if value.get("model") != "deepseek-v4-flash":
         raise DemoContractError("DeepSeek contract smoke returned a different model identity")
     usage = value.get("usage") if isinstance(value.get("usage"), dict) else {}

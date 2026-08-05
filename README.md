@@ -80,7 +80,7 @@ For a first-time Agent, the discovery order is:
 agent.json -> scenarios/registry.json -> scenario.json -> scenario validation contract -> technology profile -> adapter registry -> accepted-run pointer -> run manifest
 ```
 
-See [Agent quick start](docs/agent-quickstart.md) for the complete safe lifecycle and review boundaries.
+See [Agent quick start](docs/agent-quickstart.md) for the complete safe lifecycle and review boundaries. The [Agent error contract](docs/agent-error-contract.md) defines when an Agent may correct input or retry and when it must stop without changing evidence.
 
 ## How the repository is organized
 
