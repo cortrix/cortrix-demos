@@ -70,7 +70,7 @@
       "hype_recall",
       "rrf_fusion",
       "bge_cross_encoder_rerank",
-      "f41_document_summary_ingestion",
+      "document_summary_ingestion",
       "chunk_only_result_identity",
       "deepseek_ingestion",
       "deepseek_query_fusion",

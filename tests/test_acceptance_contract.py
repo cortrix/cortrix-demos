@@ -160,6 +160,21 @@ class AcceptanceContractTests(unittest.TestCase):
         with self.assertRaises(DemoContractError):
             validate_manifest_contract(ROOT, SCENARIO_ID, manifest)
 
+    def test_retired_path_name_verifies_only_for_archived_evidence(self) -> None:
+        retired = "f41" + "_document_summary_ingestion"
+        manifest = self.accepted_contract_manifest()
+        current = {name: value for name, value in manifest["required_paths"].items() if name != "document_summary_ingestion"}
+        manifest["required_paths"] = {**current, retired: True}
+        self.assertEqual("a" * 40, validate_manifest_contract(ROOT, SCENARIO_ID, manifest, archived_evidence=True))
+        with self.assertRaises(DemoContractError):
+            validate_manifest_contract(ROOT, SCENARIO_ID, manifest)
+
+    def test_archived_evidence_may_not_carry_both_spellings_of_one_path(self) -> None:
+        manifest = self.accepted_contract_manifest()
+        manifest["required_paths"] = {**manifest["required_paths"], "f41" + "_document_summary_ingestion": True}
+        with self.assertRaisesRegex(DemoContractError, "retired and current path names"):
+            validate_manifest_contract(ROOT, SCENARIO_ID, manifest, archived_evidence=True)
+
     def test_manifest_contract_requires_scenario_and_assertion_contract_identity(self) -> None:
         for key in ("scenario_version", "assertion_contract_sha256"):
             manifest = self.accepted_contract_manifest()

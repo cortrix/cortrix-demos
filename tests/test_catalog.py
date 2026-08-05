@@ -190,7 +190,7 @@ class CatalogTests(unittest.TestCase):
         self.assertIn(query_command, run_b_pipeline)
         for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "docker-compose", "psql -X", "embedding <=>", "extract_vectors.py", "/documents/tasks/", "/progress"):
             self.assertIn(fragment, run_a_pipeline)
-        for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "config/external-call-policy.json", "math.isfinite", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "f35_contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
+        for fragment in ("set -euo pipefail", "org.opencontainers.image.revision", "config/external-call-policy.json", "math.isfinite", "conservative_bound_usd", "cortrix.full-stack.yaml", "/documents", "/query?explain=true", "deepseek-v4-flash", "inspect_namespace.py", "selected_content_contains_expected_field", "contextualization_failures", "unset CORTRIX_LLM_API_KEY DEEPSEEK_API_KEY"):
             self.assertIn(fragment, run_b_pipeline)
         self.assertIn("API readiness does not guarantee", run_b_pipeline)
         self.assertIn("listens on loopback inside the Cortrix container", run_b_pipeline)

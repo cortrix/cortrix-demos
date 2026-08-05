@@ -339,9 +339,9 @@ from pathlib import Path
 before = Path(".runs/manual-cortrix/metrics-before-ingest.prom").read_text()
 after = Path(".runs/manual-cortrix/metrics-after-ingest.prom").read_text()
 keys = {
-    "f35_contextualization_failures": 'cortrix_contextual_retrieval_chunks_total{status="failed"}',
-    "f38_hype_failures": 'cortrix_hype_index_llm_calls_total{status="failed"}',
-    "f41_summary_failures": 'cortrix_doc_summary_llm_calls_total{status="failed"}',
+    "contextualization_failures": 'cortrix_contextual_retrieval_chunks_total{status="failed"}',
+    "hype_index_failures": 'cortrix_hype_index_llm_calls_total{status="failed"}',
+    "document_summary_failures": 'cortrix_doc_summary_llm_calls_total{status="failed"}',
 }
 
 def metric(text, key, required):
@@ -361,7 +361,7 @@ PY
 Expected output:
 
 ```text
-{'f35_contextualization_failures': 0.0, 'f38_hype_failures': 0.0, 'f41_summary_failures': 0.0, 'pass': True}
+{'contextualization_failures': 0.0, 'hype_index_failures': 0.0, 'document_summary_failures': 0.0, 'pass': True}
 ```
 
 The reference run completed with:
@@ -631,7 +631,7 @@ done
 ```text
 four frozen documents
   -> Cortrix Full Stack ingestion
-  -> F03 enrichment, F35 contextualization, F38 HyPE, F41 summaries
+  -> LLM enrichment, contextualization, HyPE questions, document summaries
 shared query text
   -> dense + FTS5/BM25 + contextualized + HyPE + sparse recall
   -> RRF fusion

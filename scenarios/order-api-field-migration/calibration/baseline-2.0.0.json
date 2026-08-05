@@ -9,7 +9,7 @@
     "scenario_sha256": "237f1e9591251483f83c6f3e0a0484356c60f1a78fd2620c4aba056e32cc1ab5",
     "fixture_manifest_sha256": "07b32ee011b1707174d7bfd927f4924feab751dd83231ad14e08d0c7d8fdb146",
     "assertion_contract_sha256": "6c490ec0ddc896780dcf588f3b5ef26a9c93219ac55a10ca95dc18a5dd757bda",
-    "full_stack_profile_sha256": "147c93141450627072468bf8410d2624bc06a37b31c0c967d6f7097a8b0be39a",
+    "full_stack_profile_sha256": "4ec4a7a628543e0e6ef1a2c54f2c60557f2a31645e05df840d2b12cb609c634c",
     "query_embedding_sha256": "c9805b08cf8c875db32fba344b3a62c514349dbdc3e9a660eef8afee14a21c41"
   },
   "environment": {

@@ -23,6 +23,11 @@ PRIVATE_IPV4 = re.compile(r"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172
 PREFERRED_LOCAL_PREVIEW_ADDRESS = ".".join(("192", "168", "50", "75"))
 ALLOWED_PRIVATE_IPV4 = {Path("Makefile"): {PREFERRED_LOCAL_PREVIEW_ADDRESS}}
 TEXT_SUFFIXES = {"", ".c", ".cc", ".cpp", ".css", ".h", ".html", ".ini", ".js", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
+# Internal feature identifiers are private tracking labels. They must never appear
+# in public contracts, output field names, or documentation. Evidence archived under
+# a scenario is exempt because a recorded run is never rewritten; the acceptance
+# verifier maps the retired names it still contains onto the current ones.
+INTERNAL_FEATURE_ID = re.compile(r"\bF\d{2}[a-z]?\b|\bf\d{2}_[a-z]")
 
 
 def repository_files(root: Path) -> list[Path]:
@@ -58,7 +63,19 @@ def scan_public_safety(root: Path) -> list[str]:
             continue
         relative = path.relative_to(root)
         failures.extend(scan_text(text, relative))
+        if not is_archived_evidence(relative):
+            failures.extend(scan_internal_feature_ids(text, relative))
     return failures
+
+
+def is_archived_evidence(relative: Path) -> bool:
+    parts = relative.parts
+    return len(parts) > 3 and parts[0] == "scenarios" and parts[2] == "evidence"
+
+
+def scan_internal_feature_ids(text: str, relative: Path) -> list[str]:
+    found = sorted({match.group(0) for match in INTERNAL_FEATURE_ID.finditer(text)})
+    return [f"Found an internal feature identifier in {relative}: {name}" for name in found]
 
 
 def scan_text(text: str, relative: Path) -> list[str]:

@@ -140,10 +140,10 @@ def ingestion_completion(
     expected_hype_questions = text_block_count * hype_questions_per_chunk
     checks = {
         "all_documents_materialized": text_block_count >= expected_document_count,
-        "f03_all_chunks": evidence["f03_llm_enriched_chunks"] >= text_block_count,
-        "f35_all_chunks": evidence["f35_contextualized_chunks"] >= text_block_count,
-        "f38_all_chunks": evidence["hype_questions"] >= expected_hype_questions,
-        "f41_all_documents": evidence["document_summaries"] >= expected_document_count,
+        "llm_enrichment_all_chunks": evidence["llm_enriched_chunks"] >= text_block_count,
+        "contextualization_all_chunks": evidence["contextualized_chunks"] >= text_block_count,
+        "hype_questions_all_chunks": evidence["hype_questions"] >= expected_hype_questions,
+        "document_summary_all_documents": evidence["document_summaries"] >= expected_document_count,
         "enrich_state_all_chunks": evidence["enrich_state_ok"] >= text_block_count,
     }
     return {
@@ -165,19 +165,19 @@ def wait_enrichment(namespace: str, before_text: str, expected_document_count: i
         before = parse_metrics(before_text)
         after = parse_metrics(after_text)
         evidence = {
-            "f03_llm_enriched_chunks": metric_delta(before, after, "cortrix_enricher_score_duration_seconds_count"),
-            "f35_contextualized_chunks": metric_delta(before, after, 'cortrix_contextual_retrieval_chunks_total{status="generated"}'),
-            "f35_failures": metric_delta(before, after, 'cortrix_contextual_retrieval_chunks_total{status="failed"}'),
-            "f38_failures": metric_delta(before, after, 'cortrix_hype_index_llm_calls_total{status="failed"}'),
-            "f41_document_summaries": metric_delta(before, after, 'cortrix_doc_summary_llm_calls_total{status="success"}'),
-            "f41_failures": metric_delta(before, after, 'cortrix_doc_summary_llm_calls_total{status="failed"}'),
+            "llm_enriched_chunks": metric_delta(before, after, "cortrix_enricher_score_duration_seconds_count"),
+            "contextualized_chunks": metric_delta(before, after, 'cortrix_contextual_retrieval_chunks_total{status="generated"}'),
+            "contextualization_failures": metric_delta(before, after, 'cortrix_contextual_retrieval_chunks_total{status="failed"}'),
+            "hype_index_failures": metric_delta(before, after, 'cortrix_hype_index_llm_calls_total{status="failed"}'),
+            "document_summary_llm_calls": metric_delta(before, after, 'cortrix_doc_summary_llm_calls_total{status="success"}'),
+            "document_summary_failures": metric_delta(before, after, 'cortrix_doc_summary_llm_calls_total{status="failed"}'),
             "hype_questions": durable.get("hype_question_count", 0),
             "document_summaries": durable.get("document_summary_count", 0),
             "enrich_state_ok": durable.get("enrich_state_ok_count", 0),
         }
         completion = ingestion_completion(evidence, durable, expected_document_count, hype_questions_per_chunk)
         last = {**evidence, "completion": completion}
-        if any(evidence[name] > 0 for name in ("f35_failures", "f38_failures", "f41_failures")):
+        if any(evidence[name] > 0 for name in ("contextualization_failures", "hype_index_failures", "document_summary_failures")):
             raise DemoContractError("Full Stack ingestion recorded a deterministic feature failure")
         if completion["pass"]:
             return {"metrics": {**evidence, "completion": completion}, "durable": durable}, after_text
@@ -405,7 +405,7 @@ def finalize_candidate(
         "hype_recall": all(item["checks"]["hype_recall"] for item in run_b_result["query_attempts"]),
         "rrf_fusion": all(item["checks"]["rrf_fusion"] for item in run_b_result["query_attempts"]),
         "bge_cross_encoder_rerank": all(item["checks"]["bge_cross_encoder_rerank"] for item in run_b_result["query_attempts"]),
-        "f41_document_summary_ingestion": run_b_result["ingestion"]["completion"]["checks"]["f41_all_documents"],
+        "document_summary_ingestion": run_b_result["ingestion"]["completion"]["checks"]["document_summary_all_documents"],
         "chunk_only_result_identity": all(item["checks"]["chunk_only_result_identity"] for item in run_b_result["query_attempts"]),
         "deepseek_ingestion": run_b_result["ingestion"]["completion"]["pass"],
         "deepseek_query_fusion": all(item["checks"]["deepseek_query_fusion"] for item in run_b_result["query_attempts"]),

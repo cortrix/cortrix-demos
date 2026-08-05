@@ -74,9 +74,9 @@ The default reviewed attempt limit is two. The sealed 2.x scenario campaign has 
 
 The runner preserves the legacy attempt ledger and writes 2.x slots to an isolated campaign ledger. A transient retry consumes another slot. A deterministic failure cannot rerun the same sealed scenario version, and the campaign cannot start a fifth slot.
 
-The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
+The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires LLM enrichment, contextualization, HyPE questions, and the final enrichment state for every actual block, plus a document summary for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 
-The scenario contract sends both Run B queries with `granularity=chunk` and requests four final candidates. The response must echo the granularity in `explain.granularity`, retrieve both version-conflict documents, and expose finite BGE rerank scores. F41 summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
+The scenario contract sends both Run B queries with `granularity=chunk` and requests four final candidates. The response must echo the granularity in `explain.granularity`, retrieve both version-conflict documents, and expose finite BGE rerank scores. Document summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
 
 ## 4. Inspect the candidate
 

@@ -65,7 +65,7 @@ Run B performs this pipeline:
 ```text
 shared fixtures and query
   -> Cortrix Full Stack ingestion
-  -> F03 enrichment + F35 contextualization + F38 HyPE + F41 summaries
+  -> LLM enrichment + contextualization + HyPE questions + document summaries
   -> dense + lexical + contextualized + HyPE + sparse retrieval
   -> RRF fusion
   -> BGE cross-encoder scores
@@ -84,7 +84,7 @@ Read [Run B Manual Runbook: Cortrix Full Stack](run-b-cortrix-full-stack-step-by
 The accepted Run B result must show:
 
 - four documents and five durable text blocks completed ingestion;
-- F03, F35, F38, and F41 completion without recorded deterministic failures;
+- enrichment, contextualization, HyPE, and document-summary completion without recorded deterministic failures;
 - dense, lexical, contextualized, HyPE, sparse, and RRF path participation;
 - chunk-level durable result identity and finite BGE rerank scores;
 - active, non-degraded DeepSeek query fusion and listwise reranking;

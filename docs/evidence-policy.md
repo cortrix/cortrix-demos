@@ -25,7 +25,7 @@ An accepted run records:
 - local-generative-LLM status
 - Run A and Run B status
 - two serial query results and durable result identity
-- chunk-only query granularity and the ingestion-only role of F41 document summaries
+- chunk-only query granularity and the ingestion-only role of document summaries
 - resolver policy and decision
 - cleanup receipt
 - pricing snapshot, visible usage, and estimated cost

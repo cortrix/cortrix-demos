@@ -29,7 +29,7 @@ The BGE cross-encoder leader and score are observable evidence, but they are not
 
 The [sealed local calibration record](calibration/baseline-2.0.0.json) contains the exact input checksums and Run A ranking used to end scenario tuning before any DeepSeek call.
 
-Run B uses `granularity=chunk` so each ranked result is backed by a durable text-child identity and a BGE cross-encoder score. F41 document summaries must still complete during ingestion, but they are intentionally excluded from this scenario's query candidate set.
+Run B uses `granularity=chunk` so each ranked result is backed by a durable text-child identity and a BGE cross-encoder score. Document summaries must still complete during ingestion, but they are intentionally excluded from this scenario's query candidate set.
 
 ## Responsibility boundary
 
