@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.io import read_json, write_json
-from cortrix_demo_runner.live import attempt_ledger, execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit
+from cortrix_demo_runner.live import attempt_ledger, execute_once, failure_category, ingestion_completion, pricing_cost, query_payload, record_query_observation, require_budget_bound, reserve_attempt, update_attempt, validate_reviewed_attempt_limit, verify_demo_checkout
 from cortrix_demo_runner.runtime import request
 from cortrix_demo_runner.walkthrough import inspect_walkthrough, record_pricing_snapshot, walkthrough_status
 
@@ -85,6 +85,44 @@ class LiveContractTests(unittest.TestCase):
             result = inspect_walkthrough(root, "run-a")
             self.assertTrue(result["pass"])
             self.assertEqual("order-api-guide-v1.0", result["ranking"][0]["document_id"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_wrong_branch_is_identified_and_actionable(self, run: object) -> None:
+        run.side_effect = self._checkout_probes(branch="feature/x", status="")
+        with self.assertRaises(DemoContractError) as captured:
+            verify_demo_checkout(ROOT)
+        error = captured.exception.as_dict()["error"]
+        self.assertEqual("CX_DEMO_CHECKOUT_BRANCH_INVALID", error["code"])
+        self.assertEqual("main", error["structured_data"]["required_branch"])
+        self.assertEqual("feature/x", error["structured_data"]["actual_branch"])
+        self.assertIn("next_action", error["structured_data"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_dirty_tree_reports_a_count_and_never_the_paths(self, run: object) -> None:
+        status = "?? local-scratch.txt\n M packages/runner/src/cortrix_demo_runner/live.py"
+        run.side_effect = self._checkout_probes(branch="main", status=status)
+        with self.assertRaises(DemoContractError) as captured:
+            verify_demo_checkout(ROOT)
+        error = captured.exception.as_dict()["error"]
+        self.assertEqual("CX_DEMO_WORKING_TREE_DIRTY", error["code"])
+        self.assertEqual(2, error["structured_data"]["changed_entry_count"])
+        self.assertNotIn("local-scratch.txt", str(error))
+        self.assertIn("next_action", error["structured_data"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_clean_main_checkout_is_accepted(self, run: object) -> None:
+        run.side_effect = self._checkout_probes(branch="main", status="")
+        self.assertEqual("clean", verify_demo_checkout(ROOT)["working_tree"])
+
+    @staticmethod
+    def _checkout_probes(*, branch: str, status: str) -> list[object]:
+        import subprocess as _subprocess
+
+        return [
+            _subprocess.CompletedProcess([], 0, stdout=f"{branch}\n", stderr=""),
+            _subprocess.CompletedProcess([], 0, stdout="a" * 40 + "\n", stderr=""),
+            _subprocess.CompletedProcess([], 0, stdout=status, stderr=""),
+        ]
 
     def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
         payload = query_payload("example", "chunk")

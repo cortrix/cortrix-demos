@@ -74,11 +74,37 @@ def verify_demo_checkout(root: Path) -> dict[str, str]:
     commit = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
     status = subprocess.run(["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"], check=True, capture_output=True, text=True).stdout.strip()
     if branch != "main":
-        raise DemoContractError("Full Stack candidate must run from the main branch")
+        raise DemoContractError(
+            "Full Stack candidate must run from the main branch",
+            code="CX_DEMO_CHECKOUT_BRANCH_INVALID",
+            structured_data={
+                "required_branch": "main",
+                "actual_branch": branch,
+                "next_action": "Check out main in the demo repository, then rerun this command.",
+            },
+        )
     if status:
-        raise DemoContractError("Full Stack candidate must run from a clean working tree")
+        raise DemoContractError(
+            "Full Stack candidate must run from a clean working tree",
+            code="CX_DEMO_WORKING_TREE_DIRTY",
+            # The entry count is reported instead of the paths themselves: status is
+            # collected with --untracked-files=all, so the paths can name local files
+            # that are not part of the repository.
+            structured_data={
+                "changed_entry_count": len(status.splitlines()),
+                "next_action": "Commit, stash, or discard the changes so the working tree is clean, then rerun this command.",
+            },
+        )
     if len(commit) != 40:
-        raise DemoContractError("Demo repository commit identity is invalid")
+        raise DemoContractError(
+            "Demo repository commit identity is invalid",
+            code="CX_DEMO_CHECKOUT_COMMIT_INVALID",
+            structured_data={
+                "actual_length": len(commit),
+                "expected_length": 40,
+                "next_action": "Run this command from a full git checkout that resolves HEAD to a 40-character commit.",
+            },
+        )
     return {"branch": branch, "commit": commit, "working_tree": "clean"}
 
 
