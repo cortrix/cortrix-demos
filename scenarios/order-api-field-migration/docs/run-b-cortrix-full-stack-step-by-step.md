@@ -502,7 +502,7 @@ print(json.dumps(result, indent=2))
 PY
 ```
 
-The reference run showed the complete projected JSON below. A new run must match the document identities, lifecycle states, path participation, non-degraded feature state, model identity, field decision, and assertions. Latencies and generated query variants are observations and may differ.
+The reference run showed the complete projected JSON below. A new run must match the document identities, lifecycle states, path participation, non-degraded feature state, model identity, field decision, and assertions. Latencies and generated query variants are observations and may differ. The `feature_id` keys below are quoted as the pinned Cortrix revision returns them; a later upstream revision drops that field, so a run against a newer server will not show it.
 
 ```json
 {

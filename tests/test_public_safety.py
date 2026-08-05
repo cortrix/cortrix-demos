@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-from cortrix_demo_runner.safety import is_archived_evidence, scan_internal_feature_ids, scan_text
+from cortrix_demo_runner.safety import ALLOWED_INTERNAL_FEATURE_ID, is_archived_evidence, scan_internal_feature_ids, scan_text
 
 
 class PublicSafetyTests(unittest.TestCase):
@@ -31,6 +31,13 @@ class PublicSafetyTests(unittest.TestCase):
     def test_accepts_public_capability_names_and_unrelated_tokens(self) -> None:
         text = "document_summary_ingestion and contextualization_all_chunks completed. Digest 32b82f6f8f1d.\n"
         self.assertEqual([], scan_internal_feature_ids(text, Path("docs/example.md")))
+
+    def test_verbatim_upstream_quote_is_exempt_only_for_its_own_file_and_token(self) -> None:
+        quoting_doc = next(iter(ALLOWED_INTERNAL_FEATURE_ID))
+        allowed_token = next(iter(ALLOWED_INTERNAL_FEATURE_ID[quoting_doc]))
+        self.assertEqual([], scan_internal_feature_ids(f'  "feature_id": "{allowed_token}"\n', quoting_doc))
+        self.assertTrue(scan_internal_feature_ids(f'  "feature_id": "{allowed_token}"\n', Path("docs/other.md")))
+        self.assertTrue(scan_internal_feature_ids("The " + "F" + "13" + " trace path.\n", quoting_doc))
 
     def test_archived_evidence_is_exempt_from_the_feature_identifier_rule(self) -> None:
         self.assertTrue(is_archived_evidence(Path("scenarios/demo/evidence/runs/run-1/run-manifest.json")))

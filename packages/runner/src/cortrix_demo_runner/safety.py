@@ -28,6 +28,15 @@ TEXT_SUFFIXES = {"", ".c", ".cc", ".cpp", ".css", ".h", ".html", ".ini", ".js", 
 # a scenario is exempt because a recorded run is never rewritten; the acceptance
 # verifier maps the retired names it still contains onto the current ones.
 INTERNAL_FEATURE_ID = re.compile(r"\bF\d{2}[a-z]?\b|\bf\d{2}_[a-z]")
+# A runbook that quotes a server response verbatim must keep quoting it verbatim.
+# The pinned Cortrix revision this scenario builds still emits these identifiers in
+# its explain payload; upstream removed the field afterwards. Rewriting the quote
+# would misreport what the pinned revision returns, so the two identifiers are
+# allowed in that one file until the scenario re-pins to a revision without them.
+# Assembled from parts so the scanner can read its own source without exempting it.
+ALLOWED_INTERNAL_FEATURE_ID = {
+    Path("scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md"): {"F" + "36"},
+}
 
 
 def repository_files(root: Path) -> list[Path]:
@@ -74,7 +83,8 @@ def is_archived_evidence(relative: Path) -> bool:
 
 
 def scan_internal_feature_ids(text: str, relative: Path) -> list[str]:
-    found = sorted({match.group(0) for match in INTERNAL_FEATURE_ID.finditer(text)})
+    allowed = ALLOWED_INTERNAL_FEATURE_ID.get(relative, set())
+    found = sorted({match.group(0) for match in INTERNAL_FEATURE_ID.finditer(text)} - allowed)
     return [f"Found an internal feature identifier in {relative}: {name}" for name in found]
 
 
