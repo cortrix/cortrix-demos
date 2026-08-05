@@ -208,14 +208,33 @@ class LiveContractTests(unittest.TestCase):
             self.assertEqual("after\n", (run_dir / "run-b" / "query-01.metrics.after.prom").read_text())
 
     def test_only_named_transient_categories_are_retryable(self) -> None:
-        self.assertEqual("http_429", failure_category(DemoContractError("request failed. transient_category=http_429")))
-        self.assertEqual("timeout", failure_category(DemoContractError("readiness failed. transient_category=timeout")))
+        rate_limit = DemoContractError(
+            "request failed",
+            code="CX_DEMO_HTTP_RATE_LIMITED",
+            category="quota",
+            retryable=True,
+            retry_after_ms=1000,
+        )
+        timeout = DemoContractError(
+            "readiness failed",
+            code="CX_DEMO_OPERATION_TIMEOUT",
+            category="timeout",
+            retryable=True,
+            retry_after_ms=1000,
+        )
+        self.assertEqual("http_429", failure_category(rate_limit))
+        self.assertEqual("timeout", failure_category(timeout))
+        self.assertEqual("deterministic_or_contract_failure", failure_category(DemoContractError("request failed. transient_category=http_429")))
         self.assertEqual("deterministic_or_contract_failure", failure_category(DemoContractError("resolver failed")))
 
-    def test_local_remote_disconnect_becomes_a_readiness_retryable_contract_error(self) -> None:
+    def test_local_remote_disconnect_has_an_actionable_connection_error(self) -> None:
         with patch("urllib.request.urlopen", side_effect=http.client.RemoteDisconnected("closed")):
-            with self.assertRaisesRegex(DemoContractError, "closed the connection before an HTTP response"):
+            with self.assertRaises(DemoContractError) as captured:
                 request("GET", "/system/health/ready")
+        error = captured.exception.as_dict()["error"]
+        self.assertEqual("CX_DEMO_HTTP_CONNECTION_FAILED", error["code"])
+        self.assertFalse(error["retryable"])
+        self.assertIn("next_action", error["structured_data"])
 
     def test_ingestion_completion_uses_all_durable_blocks_not_an_unrelated_demo_constant(self) -> None:
         evidence = {

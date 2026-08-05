@@ -40,7 +40,7 @@ The response resolves the business contract, baseline adapter, Cortrix identity,
 ./democtl public-safety
 ```
 
-Both commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`. Retryable failures also include `retry_after_ms`; `structured_data.next_action` gives a safe recovery action without exposing a secret or local absolute path.
+Both commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`. Retryable failures also include `retry_after_ms`; `structured_data.next_action` appears only when a safe corrective action exists. Evidence integrity, deterministic assertion, and invalid internal state errors deliberately omit `next_action`, which means the Agent must stop and surface the failure. See the [Agent error contract](agent-error-contract.md) for the decision matrix.
 
 `verify-accepted` returns `proof_scope: archive_integrity` and `live_reexecution: false`. It verifies the tracked evidence package and does not claim that retrieval was rerun today.
 

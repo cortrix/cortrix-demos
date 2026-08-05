@@ -26,6 +26,22 @@ SESSION_FILE = "walkthrough-session.json"
 PHASES = ("initialized", "run_a_complete", "run_b_complete", "candidate", "rejected")
 
 
+def _walkthrough_state_error(message: str) -> DemoContractError:
+    """Return a terminal error for a walkthrough state that must not be repaired in place."""
+
+    return DemoContractError(message, code="CX_DEMO_WALKTHROUGH_STATE_INVALID")
+
+
+def _walkthrough_input_error(message: str, *, next_action: str, **data: Any) -> DemoContractError:
+    """Return an actionable error when a safe command or input correction exists."""
+
+    return DemoContractError(
+        message,
+        code="CX_DEMO_WALKTHROUGH_INPUT_INVALID",
+        structured_data={**data, "next_action": next_action},
+    )
+
+
 def record_pricing_snapshot(
     root: Path,
     output: Path,
@@ -36,7 +52,10 @@ def record_pricing_snapshot(
 ) -> dict[str, Any]:
     prices = (input_cache_hit, input_cache_miss, output_price)
     if any(value < 0 for value in prices):
-        raise DemoContractError("Pricing values must be non-negative")
+        raise _walkthrough_input_error(
+            "Pricing values must be non-negative",
+            next_action="Rerun record-pricing with non-negative prices from the official pricing page.",
+        )
     timestamp = observed_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     snapshot = {
         "schema_version": 1,
@@ -72,10 +91,13 @@ def resolve_run_id(root: Path, run_id: str | None) -> str:
         return run_id
     pointer = current_pointer_path(root)
     if not pointer.is_file():
-        raise DemoContractError("No current walkthrough exists; run walkthrough init first")
+        raise _walkthrough_input_error(
+            "No current walkthrough exists; run walkthrough init first",
+            next_action="Run ./democtl walkthrough init before continuing the walkthrough.",
+        )
     value = read_json(pointer).get("run_id")
     if not isinstance(value, str) or not value:
-        raise DemoContractError("The current walkthrough pointer is malformed")
+        raise _walkthrough_state_error("The current walkthrough pointer is malformed")
     return value
 
 
@@ -83,10 +105,17 @@ def load_session(root: Path, run_id: str | None = None) -> dict[str, Any]:
     resolved = resolve_run_id(root, run_id)
     path = session_path(root, resolved)
     if not path.is_file():
-        raise DemoContractError("The walkthrough session does not exist")
+        raise DemoContractError(
+            "The walkthrough session does not exist",
+            code="CX_DEMO_WALKTHROUGH_SESSION_NOT_FOUND",
+            structured_data={
+                "run_id": resolved,
+                "next_action": "Run ./democtl walkthrough status without a run ID, or initialize a new walkthrough.",
+            },
+        )
     session = read_json(path)
     if session.get("run_id") != resolved or session.get("phase") not in PHASES:
-        raise DemoContractError("The walkthrough session identity or phase is invalid")
+        raise _walkthrough_state_error("The walkthrough session identity or phase is invalid")
     return session
 
 
@@ -97,16 +126,24 @@ def save_session(root: Path, session: dict[str, Any]) -> None:
 
 def require_phase(session: dict[str, Any], expected: str) -> None:
     if session.get("phase") != expected:
-        raise DemoContractError(f"Walkthrough phase must be {expected}; current phase is {session.get('phase')}")
+        raise DemoContractError(
+            f"Walkthrough phase must be {expected}; current phase is {session.get('phase')}",
+            code="CX_DEMO_WALKTHROUGH_PHASE_INVALID",
+            structured_data={
+                "expected_phase": expected,
+                "current_phase": session.get("phase"),
+                "next_action": "Run ./democtl walkthrough status and continue with the reported next_command.",
+            },
+        )
 
 
 def verify_session_checkout(root: Path, session: dict[str, Any]) -> None:
     checkout = verify_demo_checkout(root)
     if checkout != session.get("demo_checkout"):
-        raise DemoContractError("The demo checkout changed after walkthrough initialization")
+        raise _walkthrough_state_error("The demo checkout changed after walkthrough initialization")
     failures = validate_scenario(root)
     if failures:
-        raise DemoContractError("Scenario validation failed: " + "; ".join(failures))
+        raise _walkthrough_state_error("Scenario validation failed: " + "; ".join(failures))
 
 
 def reject_walkthrough(root: Path, session: dict[str, Any], phase: str, exc: Exception) -> None:
@@ -147,13 +184,21 @@ def reject_walkthrough(root: Path, session: dict[str, Any], phase: str, exc: Exc
 def initialize_walkthrough(root: Path, source: Path, pricing_path: Path, reviewed_attempt_limit: int = 2) -> dict[str, Any]:
     failures = validate_scenario(root)
     if failures:
-        raise DemoContractError("Scenario validation failed: " + "; ".join(failures))
+        raise _walkthrough_state_error("Scenario validation failed: " + "; ".join(failures))
     scenario = load_scenario(root)
     execution_contract = scenario["execution_contract"]
     campaign_id = execution_contract["campaign_id"]
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     if reviewed_attempt_limit > int(execution_contract["campaign_attempt_cap"]):
-        raise DemoContractError("The reviewed attempt limit exceeds the sealed campaign cap")
+        raise DemoContractError(
+            "The reviewed attempt limit exceeds the sealed campaign cap",
+            code="CX_DEMO_CAMPAIGN_ATTEMPT_CAP_EXCEEDED",
+            category="quota",
+            structured_data={
+                "requested_attempt_limit": reviewed_attempt_limit,
+                "campaign_attempt_cap": int(execution_contract["campaign_attempt_cap"]),
+            },
+        )
     profile = read_json(scenario_root(root) / "profiles" / "full-stack.json")
     policy = load_external_call_policy(root)
     budget_usd = min(float(profile["budget_usd"]), float(policy["budget_usd"]))
@@ -178,7 +223,7 @@ def initialize_walkthrough(root: Path, source: Path, pricing_path: Path, reviewe
     run_id = new_run_id(scenario["id"])
     run_dir = root / ".runs" / run_id
     if run_dir.exists():
-        raise DemoContractError("A walkthrough with the generated run ID already exists")
+        raise _walkthrough_state_error("A walkthrough with the generated run ID already exists")
     attempt = reserve_attempt(root, run_id, reviewed_attempt_limit, campaign_id, scenario["scenario_version"], demo_checkout["commit"])
     record_state(run_dir, "created")
     record_state(run_dir, "running")
@@ -399,14 +444,18 @@ def inspect_walkthrough(root: Path, component: str, run_id: str | None = None) -
             "cost": result["cost"],
             "human_review_required": result["human_review_required"],
         }
-    raise DemoContractError("Walkthrough component must be run-a, run-b, or candidate")
+    raise _walkthrough_input_error(
+        "Walkthrough component must be run-a, run-b, or candidate",
+        next_action="Select run-a, run-b, or candidate as the walkthrough inspection component.",
+        allowed_components=["run-a", "run-b", "candidate"],
+    )
 
 
 def abort_walkthrough(root: Path, run_id: str | None = None) -> dict[str, Any]:
     session = load_session(root, run_id)
     if session["phase"] in {"candidate", "rejected"}:
-        raise DemoContractError("Only an active walkthrough can be aborted")
-    error = DemoContractError("Walkthrough aborted by the operator")
+        raise _walkthrough_state_error("Only an active walkthrough can be aborted")
+    error = DemoContractError("Walkthrough aborted by the operator", code="CX_DEMO_WALKTHROUGH_ABORTED")
     reject_walkthrough(root, session, "operator_abort", error)
     receipt = read_json(root / ".runs" / session["run_id"] / "cleanup-receipt.json")
     return {"status": "rejected", "run_id": session["run_id"], "phase": "operator_abort", "cleanup": receipt}

@@ -19,6 +19,28 @@ from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensur
 from .scenario import assertion_contract_path, load_assertion_contract, load_scenario, resolve_scenario_id, scenario_root, validate_scenario
 
 
+def _live_state_error(message: str) -> DemoContractError:
+    """Return a terminal error for execution state that must not be repaired in place."""
+
+    return DemoContractError(message, code="CX_DEMO_LIVE_STATE_INVALID")
+
+
+def _live_assertion_error(message: str) -> DemoContractError:
+    """Return a terminal error for deterministic execution or evidence assertions."""
+
+    return DemoContractError(message, code="CX_DEMO_EXECUTION_ASSERTION_FAILED")
+
+
+def _live_input_error(message: str, *, next_action: str, **data: Any) -> DemoContractError:
+    """Return an actionable error only when correcting the input is safe."""
+
+    return DemoContractError(
+        message,
+        code="CX_DEMO_LIVE_INPUT_INVALID",
+        structured_data={**data, "next_action": next_action},
+    )
+
+
 def new_run_id(scenario_id: str) -> str:
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"{scenario_id}-{timestamp}"
@@ -39,7 +61,12 @@ def attempt_ledger(root: Path, campaign_id: str | None = None) -> dict[str, Any]
 
 def validate_reviewed_attempt_limit(limit: int) -> int:
     if limit not in REVIEWED_ATTEMPT_LIMITS:
-        raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, 4, or 5")
+        raise _live_input_error(
+            "The reviewed Full Stack attempt limit must be 2, 3, 4, or 5",
+            next_action="Select one of the reviewed attempt limits before starting Full Stack execution.",
+            allowed_attempt_limits=sorted(REVIEWED_ATTEMPT_LIMITS),
+            requested_attempt_limit=limit,
+        )
     return limit
 
 
@@ -48,10 +75,15 @@ def reserve_attempt(root: Path, run_id: str, reviewed_attempt_limit: int = 2, ca
     ledger = attempt_ledger(root, campaign_id)
     attempts = ledger.get("full_stack_attempts")
     if not isinstance(attempts, list):
-        raise DemoContractError("Full Stack attempt ledger is malformed")
+        raise _live_state_error("Full Stack attempt ledger is malformed")
     limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     if len(attempts) >= limit:
-        raise DemoContractError(f"The reviewed {limit}-attempt Full Stack limit has been reached")
+        raise DemoContractError(
+            f"The reviewed {limit}-attempt Full Stack limit has been reached",
+            code="CX_DEMO_FULL_STACK_ATTEMPT_LIMIT_REACHED",
+            category="quota",
+            structured_data={"attempt_limit": limit, "attempts_recorded": len(attempts)},
+        )
     number = len(attempts) + 1
     attempts.append({"attempt": number, "run_id": run_id, "scenario_version": scenario_version, "demo_commit": demo_commit, "state": "reserved", "reserved_at": dt.datetime.now(dt.timezone.utc).isoformat()})
     write_json(path, ledger, mode=0o600)
@@ -113,7 +145,7 @@ def record_state(run_dir: Path, state: str, detail: str | None = None) -> None:
     history = read_json(path) if path.exists() else {"schema_version": 1, "run_id": run_dir.name, "transitions": []}
     transitions = history.get("transitions")
     if not isinstance(transitions, list):
-        raise DemoContractError("Run state history is malformed")
+        raise _live_state_error("Run state history is malformed")
     transition = {"state": state, "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat()}
     if detail:
         transition["detail"] = detail
@@ -124,23 +156,28 @@ def record_state(run_dir: Path, state: str, detail: str | None = None) -> None:
 def pricing_cost(pricing: dict[str, Any], input_tokens: int, output_tokens: int) -> float:
     prices = pricing.get("prices_per_million_tokens")
     if not isinstance(prices, dict):
-        raise DemoContractError("Pricing snapshot has no token price object")
+        raise _live_state_error("Pricing snapshot has no token price object")
     input_price = prices.get("input_cache_miss")
     output_price = prices.get("output")
     if not isinstance(input_price, (int, float)) or not isinstance(output_price, (int, float)):
-        raise DemoContractError("Pricing snapshot lacks input_cache_miss or output pricing")
+        raise _live_state_error("Pricing snapshot lacks input_cache_miss or output pricing")
     return round((input_tokens * float(input_price) + output_tokens * float(output_price)) / 1_000_000, 8)
 
 
 def require_budget_bound(profile: dict[str, Any], pricing: dict[str, Any], reviewed_attempt_limit: int | None = None) -> float:
     guard = profile.get("budget_guard")
     if not isinstance(guard, dict):
-        raise DemoContractError("Full Stack profile has no budget guard")
+        raise _live_state_error("Full Stack profile has no budget guard")
     per_attempt_bound = pricing_cost(pricing, int(guard["maximum_input_tokens"]), int(guard["maximum_output_tokens"]))
     attempt_limit = int(profile["max_full_stack_attempts"]) if reviewed_attempt_limit is None else validate_reviewed_attempt_limit(reviewed_attempt_limit)
     bound = round(per_attempt_bound * attempt_limit, 8)
     if bound > float(profile["budget_usd"]):
-        raise DemoContractError(f"Pricing snapshot makes the Full Stack token bound exceed USD {profile['budget_usd']:.2f}")
+        raise DemoContractError(
+            f"Pricing snapshot makes the Full Stack token bound exceed USD {profile['budget_usd']:.2f}",
+            code="CX_DEMO_BUDGET_BOUND_EXCEEDED",
+            category="quota",
+            structured_data={"budget_usd": float(profile["budget_usd"]), "maximum_contract_cost_usd": bound},
+        )
     return bound
 
 
@@ -202,13 +239,19 @@ def wait_enrichment(namespace: str, before_text: str, expected_document_count: i
             "enrich_state_ok": durable.get("enrich_state_ok_count", 0),
         }
         completion = ingestion_completion(evidence, durable, expected_document_count, hype_questions_per_chunk)
-        last = {**evidence, "completion": completion}
         if any(evidence[name] > 0 for name in ("f35_failures", "f38_failures", "f41_failures")):
-            raise DemoContractError("Full Stack ingestion recorded a deterministic feature failure")
+            raise _live_assertion_error("Full Stack ingestion recorded a deterministic feature failure")
         if completion["pass"]:
             return {"metrics": {**evidence, "completion": completion}, "durable": durable}, after_text
         time.sleep(2)
-    raise DemoContractError(f"Full Stack ingestion timed out. transient_category=timeout evidence={json.dumps(last, sort_keys=True)}")
+    raise DemoContractError(
+        "Full Stack ingestion timed out",
+        code="CX_DEMO_INGESTION_TIMEOUT",
+        category="timeout",
+        retryable=True,
+        retry_after_ms=2000,
+        structured_data={"timeout_seconds": timeout_seconds, "expected_document_count": expected_document_count},
+    )
 
 
 def query_payload(query: str, granularity: str) -> dict[str, Any]:
@@ -236,7 +279,7 @@ def run_query(namespace: str, query: str, granularity: str) -> tuple[dict[str, A
     _, response = request("POST", "/query?explain=true", payload, timeout=360)
     after_text = metrics()
     if not isinstance(response, dict) or not isinstance(response.get("results"), list):
-        raise DemoContractError("Full Stack query returned no result list")
+        raise _live_assertion_error("Full Stack query returned no result list")
     return payload, response, before_text, after_text
 
 
@@ -275,7 +318,7 @@ def query_assertions(response: dict[str, Any], before_text: str, after_text: str
         "application_lifecycle_resolver": resolver.get("pass") is True,
     }
     if not all(checks.values()):
-        raise DemoContractError(f"Full Stack deterministic query assertions failed: {json.dumps(checks, sort_keys=True)}")
+        raise _live_assertion_error(f"Full Stack deterministic query assertions failed: {json.dumps(checks, sort_keys=True)}")
     return {
         "checks": checks,
         "rrf_path_counts": paths,
@@ -318,7 +361,7 @@ def run_b(run_id: str, run_dir: Path, fixture_root: Path, manifest: dict[str, An
         "resolver_decision_identical": resolvers[0]["decision"] == resolvers[1]["decision"],
     }
     if not all(repeat.values()):
-        raise DemoContractError("Two serial Full Stack queries did not preserve the accepted deterministic outputs")
+        raise _live_assertion_error("Two serial Full Stack queries did not preserve the accepted deterministic outputs")
     result = {
         "namespace": namespace,
         "tasks": tasks,
@@ -484,7 +527,7 @@ def finalize_candidate(
     }
     write_json(run_dir / "run-manifest.json", run_manifest)
     if state != "candidate":
-        raise DemoContractError("Candidate manifest assertions failed")
+        raise _live_assertion_error("Candidate manifest assertions failed")
     record_state(run_dir, "candidate")
     update_attempt(root, run_id, "candidate", campaign_id=campaign_id)
     return run_manifest
@@ -494,7 +537,7 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     resolved_id = resolve_scenario_id(root, scenario_id)
     scenario_failures = validate_scenario(root, resolved_id)
     if scenario_failures:
-        raise DemoContractError("Scenario validation failed: " + "; ".join(scenario_failures))
+        raise _live_state_error("Scenario validation failed: " + "; ".join(scenario_failures))
     scenario = load_scenario(root, resolved_id)
     execution_contract = scenario["execution_contract"]
     campaign_id = execution_contract["campaign_id"]
@@ -508,7 +551,15 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
     effective_profile["budget_usd"] = min(float(profile["budget_usd"]), float(external_policy["budget_usd"]))
     reviewed_attempt_limit = validate_reviewed_attempt_limit(reviewed_attempt_limit)
     if reviewed_attempt_limit > int(execution_contract["campaign_attempt_cap"]):
-        raise DemoContractError("The reviewed attempt limit exceeds the sealed campaign cap")
+        raise DemoContractError(
+            "The reviewed attempt limit exceeds the sealed campaign cap",
+            code="CX_DEMO_CAMPAIGN_ATTEMPT_CAP_EXCEEDED",
+            category="quota",
+            structured_data={
+                "requested_attempt_limit": reviewed_attempt_limit,
+                "campaign_attempt_cap": int(execution_contract["campaign_attempt_cap"]),
+            },
+        )
     provenance = require_scenario_image_provenance(scenario["requires"])
     technology = read_json(scenario_root(root, resolved_id) / "profiles" / "technology-profile.json")
     preflight = full_stack_preflight(
@@ -580,10 +631,13 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
 
 
 def failure_category(exc: Exception) -> str:
-    text = str(exc)
-    for category in ("http_429", "http_5xx", "timeout"):
-        if f"transient_category={category}" in text:
-            return category
+    if isinstance(exc, DemoContractError):
+        if exc.code == "CX_DEMO_HTTP_RATE_LIMITED":
+            return "http_429"
+        if exc.code == "CX_DEMO_HTTP_SERVER_ERROR":
+            return "http_5xx"
+        if exc.category == "timeout":
+            return "timeout"
     return "deterministic_or_contract_failure"
 
 
