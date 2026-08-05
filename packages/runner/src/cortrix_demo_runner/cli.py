@@ -81,7 +81,7 @@ def command_prepare_image(args: argparse.Namespace) -> None:
         source_repository=provenance["source_repository"],
         source_path=args.cortrix_source.as_posix(),
     )
-    verify_runtime()
+    verify_runtime("prepare-image")
     image = ensure_image(source, build_if_missing=True)
     print(json.dumps({"status": "pass", "scenario": scenario_id, "source": source_identity, "image": image, "external_calls": 0}, ensure_ascii=True, indent=2))
 

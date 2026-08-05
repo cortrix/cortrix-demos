@@ -85,7 +85,7 @@ def verify_pricing_snapshot(path: Path) -> dict[str, Any]:
     return value
 
 
-def verify_runtime() -> dict[str, str]:
+def verify_runtime(retry_command: str = "preflight") -> dict[str, str]:
     try:
         docker = subprocess.run(["docker", "version", "--format", "{{.Client.Version}} {{.Server.Version}}"], capture_output=True, text=True, check=False)
     except FileNotFoundError as exc:
@@ -101,7 +101,7 @@ def verify_runtime() -> dict[str, str]:
             category="transient",
             retryable=True,
             retry_after_ms=1000,
-            structured_data={"requirement": "docker_engine", "next_action": "Start the Docker engine, wait until it is ready, and rerun preflight."},
+            structured_data={"requirement": "docker_engine", "next_action": f"Start the Docker engine, wait until it is ready, and rerun {retry_command}."},
         )
     try:
         compose = subprocess.run(["docker-compose", "version", "--short"], capture_output=True, text=True, check=False)
@@ -115,7 +115,7 @@ def verify_runtime() -> dict[str, str]:
         raise DemoContractError(
             "Docker Compose is unavailable",
             code="CX_DEMO_COMPOSE_UNAVAILABLE",
-            structured_data={"requirement": "docker-compose", "next_action": "Repair the Docker Compose installation, then rerun preflight."},
+            structured_data={"requirement": "docker-compose", "next_action": f"Repair the Docker Compose installation, then rerun {retry_command}."},
         )
     return {"docker": docker.stdout.strip(), "docker_compose": compose.stdout.strip()}
 
