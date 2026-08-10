@@ -12,6 +12,6 @@ All notable changes to this repository will be documented here after the first a
 - Persisted ignored query observations before resolver validation so rejected identity failures remain diagnosable.
 - Defined scenario contract `1.2.0` with chunk-only query identity and F41 document summaries retained as ingestion-only evidence.
 - Defined sealed synthetic scenario contract `2.0.0` with one shared query, an intentionally unfiltered pgvector baseline, a lifecycle-aware application resolver, and an independent four-slot Full Stack campaign.
-- Added a no-external-call baseline calibration record and invalidated the current accepted-run pointer until the `2.0.0` candidate passes SecondScott Clean Room review.
-- Replaced the pre-screenshot Human Review claim with explicit SecondScott Clean Room acceptance provenance while keeping final Human Review required after screenshot capture.
+- Added a no-external-call baseline calibration record and invalidated the current accepted-run pointer until the `2.0.0` candidate passes independent clean room review.
+- Replaced the pre-screenshot human review claim with explicit independent clean room acceptance provenance while keeping final human review required after screenshot capture.
 - Kept licensing, automation, hosting, releases, forks, and public visibility behind separate gates.

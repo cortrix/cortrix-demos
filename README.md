@@ -148,4 +148,6 @@ Before adding a scenario, follow [Agent quick start](docs/agent-quickstart.md), 
 - Validated source revision: `32b82f6f8f1d7a41349f408969ff03b7997b6c15`
 - Current accepted provider/model: `deepseek/deepseek-v4-flash`
 - Local generative fallback: prohibited
-- GitHub Actions, Pages, releases, forks, remote localization branches, and public visibility: not configured
+- Repository visibility: public
+- GitHub Actions, Pages, and releases: not configured
+- The official repository ships only `en-US`; maintained downstream localizations must preserve the accepted evidence identity

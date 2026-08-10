@@ -1,6 +1,6 @@
 # Public-Safety Contract
 
-The repository is private during bootstrap, but every tracked file must already be safe for a future public history.
+The repository was staged privately during bootstrap. Every tracked file and GitHub interaction must now remain safe for a public repository and its history.
 
 The validator rejects:
 

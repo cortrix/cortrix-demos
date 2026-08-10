@@ -8,7 +8,7 @@ Every run has one state:
 created -> running -> candidate -> accepted | rejected
 ```
 
-Automation may create, run, validate, reject, or nominate a candidate. It must not mark a run accepted. Acceptance requires a recorded SecondScott Clean Room `PASS` for the exact local commit and run ID. Final Human Review remains required after the screenshot-backed local package is complete.
+Automation may create, run, validate, reject, or nominate a candidate. It must not mark a run accepted. Acceptance requires a recorded independent clean room `PASS` for the exact local commit and run ID. Final human review remains required after the screenshot-backed local package is complete.
 
 Rejected runs are never screenshot-eligible. Provider or model mismatch, local generative LLM use, degraded paths, missing source identity, resolver failure, cleanup failure, secret or private-path leakage, and budget failure are rejection conditions. An accepted package is incomplete until its viewer screenshots and screenshot manifest have been verified against the same run ID and accepted code commit.
 

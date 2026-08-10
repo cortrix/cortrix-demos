@@ -1,6 +1,6 @@
 # Acceptance and screenshot runbook
 
-The Full Stack runner can produce only a candidate or a rejected run. This procedure begins only after the private SecondScott Clean Room returns `PASS` for the exact candidate run ID and its `demo_commit`. Final Human Review occurs after the screenshot-backed local package is complete.
+The Full Stack runner can produce only a candidate or a rejected run. This procedure begins only after an independent clean room returns `PASS` for the exact candidate run ID and its `demo_commit`. Final human review occurs after the screenshot-backed local package is complete.
 
 ## 1. Stage curated accepted evidence
 

@@ -19,7 +19,7 @@ Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`,
 
 ## Public Surface
 
-- Treat every tracked file as future-public material, even while the repository is private.
+- Treat every tracked file and every GitHub interaction as public material.
 - Use American English for code, comments, tests, CLI output, fixtures, documentation, and user-visible text.
 - Do not add private workspace links, local absolute paths, internal reviews, raw private logs, runtime caches, or credentials.
 - Do not copy files or Git history from legacy demo repositories. New material must have recorded provenance.
@@ -30,7 +30,7 @@ Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`,
 ## Evidence
 
 - A run advances through `created -> running -> candidate -> accepted | rejected`.
-- Automation may produce a candidate or rejected run. Only a recorded SecondScott Clean Room `PASS` may promote a candidate to accepted; final Human Review follows screenshot capture.
+- Automation may produce a candidate or rejected run. Only a recorded independent clean room `PASS` may promote a candidate to accepted; final human review follows screenshot capture.
 - Screenshots must come from the read-only viewer rendering one accepted run. Do not synthesize or manually rewrite result images.
 - Preserve source revision, release identity, fixture and model checksums, provider/model identity, resolver output, cleanup receipts, and cost visibility.
 - Reject a run when a required path is missing, degraded, locally substituted, over budget, or not attributable to a durable source identity.
