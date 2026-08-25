@@ -17,7 +17,7 @@ The integration source belongs to [Cortrix Integrations](https://github.com/cort
 | Cortrix query API | commit `4c0f0f96b652d5662a66d047771826a4d2933739` |
 | Answer model | `deepseek/deepseek-v4-flash` |
 
-The local release candidate currently pins Cortrix Integrations commit `6a9ab6c8eb63991d6a3352d20518f07d71e71310`. A source change invalidates this candidate and requires another review.
+The local release candidate currently pins Cortrix Integrations commit `77e3000af7756e23df7a049ff71d890fecb8596d`. A source change invalidates this candidate and requires another review.
 
 This is a fixed compatibility result, not a claim about later Harness, Cordis, Cortrix, or model versions.
 
@@ -40,7 +40,7 @@ The Cortrix Integrations repository is not public yet. The commands below become
 
 ```bash
 git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations
-git -C .runtime/cortrix-integrations checkout 6a9ab6c8eb63991d6a3352d20518f07d71e71310
+git -C .runtime/cortrix-integrations checkout 77e3000af7756e23df7a049ff71d890fecb8596d
 npm --prefix .runtime/cortrix-integrations ci
 npm --prefix .runtime/cortrix-integrations run validate
 ```

@@ -13,7 +13,7 @@ npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness install --frozen-lockfile
 npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness run build:lib:host
 test -f .runtime/deepseek-harness/apps/cli/lib/bin.js
 git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations
-git -C .runtime/cortrix-integrations checkout 6a9ab6c8eb63991d6a3352d20518f07d71e71310
+git -C .runtime/cortrix-integrations checkout 77e3000af7756e23df7a049ff71d890fecb8596d
 npm --prefix .runtime/cortrix-integrations ci
 npm --prefix .runtime/cortrix-integrations run validate
 ```
@@ -37,7 +37,7 @@ mkdir -p "$RUN_ROOT"
 test "$(git branch --show-current)" = main
 test -z "$(git status --short --untracked-files=all)"
 test "$(git -C "$HARNESS_ROOT" rev-parse HEAD)" = 99f6f02fecdb7dff40c3fbc9470f5907c29f74ca
-test "$(git -C "$INTEGRATIONS_ROOT" rev-parse HEAD)" = 6a9ab6c8eb63991d6a3352d20518f07d71e71310
+test "$(git -C "$INTEGRATIONS_ROOT" rev-parse HEAD)" = 77e3000af7756e23df7a049ff71d890fecb8596d
 test "$(git -C "$CORTRIX_ROOT" rev-parse HEAD)" = 4c0f0f96b652d5662a66d047771826a4d2933739
 test -z "$(git -C "$HARNESS_ROOT" status --short --untracked-files=all)"
 test -z "$(git -C "$INTEGRATIONS_ROOT" status --short --untracked-files=all)"

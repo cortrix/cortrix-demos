@@ -21,7 +21,7 @@ from urllib.request import urlopen
 SCENARIOS = ("database-change-conflict-guardian", "api-version-drift-coding-agent")
 HARNESS_COMMIT = "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca"
 CORTRIX_COMMIT = "4c0f0f96b652d5662a66d047771826a4d2933739"
-PLUGIN_COMMIT = "6a9ab6c8eb63991d6a3352d20518f07d71e71310"
+PLUGIN_COMMIT = "77e3000af7756e23df7a049ff71d890fecb8596d"
 IMAGE = "cortrix:quickstart"
 COMPOSE_PROJECT = "cortrix_demos_harness_foundation"
 CAMPAIGN_ID = "deepseek-harness-cortrix-foundation"
