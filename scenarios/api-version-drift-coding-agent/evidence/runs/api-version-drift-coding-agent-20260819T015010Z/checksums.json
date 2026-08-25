@@ -76,7 +76,7 @@
     },
     {
       "path": "run-manifest.json",
-      "sha256": "5b3ffab74b5e3bec52cc0ba4a5dd478e046b31583b4194d97d4f1946c031912a"
+      "sha256": "07cbc6721340389ac985abd55fa797f8936fc39e1913535bca899270f9c6cc9d"
     },
     {
       "path": "runtime.json",
@@ -84,19 +84,19 @@
     },
     {
       "path": "screenshots/api-version-drift-coding-agent-desktop.png",
-      "sha256": "9a240152c0d218c1ff3b2377c81bb7ae9bbd03478e8c6197ef413d2da4e6f385"
+      "sha256": "75d905167a66af46a161e04d30994c30fd867c3010d7d823171fc971906309f3"
     },
     {
       "path": "screenshots/api-version-drift-coding-agent-full-page.png",
-      "sha256": "04e9ea87d1701e9ed30081dd435371608d8abdfcd1aebba0eaafaac1bdf34ec3"
+      "sha256": "f012c9e2a89870894696e3ae3225bcfa220efee7594faaf45c3f9f4ddc4fdb6a"
     },
     {
       "path": "screenshots/api-version-drift-coding-agent-mobile.png",
-      "sha256": "d9b869682ad551f750b036604eebd5fb56f36da99fc173b68db697a4d4385512"
+      "sha256": "cafd46bd6764950933dd963373b26e45959ae6191f8b3535110ed80803af67d4"
     },
     {
       "path": "screenshots/screenshot-manifest.json",
-      "sha256": "df5b65b1353d30ddadd04ad88ad32e3ad8653cd1df33a31514a5607dd6ae9d62"
+      "sha256": "39d86507e15166c5402d194cadf6a7267cb69201999c0f25598316f623682ffa"
     }
   ]
 }

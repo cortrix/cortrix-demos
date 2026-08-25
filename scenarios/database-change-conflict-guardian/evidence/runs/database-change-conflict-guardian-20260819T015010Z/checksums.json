@@ -76,7 +76,7 @@
     },
     {
       "path": "run-manifest.json",
-      "sha256": "79494c420c820f0008395e614e70df315f6303d25a7d75bb0b7703c078e9a25c"
+      "sha256": "a7c71a53418bccd6c3331985edef0252680ce7955450b5afa31694302a5a0204"
     },
     {
       "path": "runtime.json",
@@ -84,19 +84,19 @@
     },
     {
       "path": "screenshots/database-change-conflict-guardian-desktop.png",
-      "sha256": "446357df279d43d2292aa3c4e37f7324b45c7946f170dae319a5f5c689992b37"
+      "sha256": "b81228d7d8c3908bbd5524d8c284cbc5573e9e65725ac52fb4aa0be4e4e7b91a"
     },
     {
       "path": "screenshots/database-change-conflict-guardian-full-page.png",
-      "sha256": "c62ca6159290527b3c92e277bf140185ae4b593d5d4dc921acc50cdb396fe4d8"
+      "sha256": "067bc243a8d857b0e66c6d84120dbe01344e723d4337c593442d3ec38d603fb6"
     },
     {
       "path": "screenshots/database-change-conflict-guardian-mobile.png",
-      "sha256": "d6bf8aa9edcca843257e3babd8fbe16fd47d297a9de92f7154fa432fc48706e5"
+      "sha256": "4ac5fcadaf2bc867e2ab9f378ff8c6ed772579840ae68d023639ed76e602b748"
     },
     {
       "path": "screenshots/screenshot-manifest.json",
-      "sha256": "a3db892df98412610542c86b1a2391a26f25279e7430fd204090d52be1e7e2d6"
+      "sha256": "53c76c55f14592b0913b13fa7d211e1bc79e168837ca7fc797fda8df8bf83d30"
     }
   ]
 }

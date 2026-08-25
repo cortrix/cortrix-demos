@@ -114,6 +114,8 @@ class ViewerServerTests(unittest.TestCase):
             with self.subTest(scenario=scenario):
                 config = create_harness_config(ROOT, scenario)
                 self.assertEqual("accepted_harness", config["mode"])
+                self.assertEqual("archive_integrity", config["proof_scope"])
+                self.assertFalse(config["live_reexecution"])
                 self.assertEqual(scenario, config["scenario_id"])
                 self.assertIn(f"/scenarios/{scenario}/evidence/runs/", config["manifest"])
 
@@ -122,7 +124,10 @@ class ViewerServerTests(unittest.TestCase):
         self.assertIn("const sameRun = [runA, runB, review]", source)
         self.assertIn("const sameScenario = [resolverA, resolverB]", source)
         html = (ROOT / "packages" / "viewer" / "harness.html").read_text(encoding="utf-8")
-        self.assertIn('src="./harness.js?v=3"', html)
+        self.assertIn('src="./harness.js?v=4"', html)
+        self.assertIn("Verified accepted archive", html)
+        self.assertIn('config.proof_scope !== "archive_integrity"', source)
+        self.assertIn('config.live_reexecution !== false', source)
 
 
 if __name__ == "__main__":

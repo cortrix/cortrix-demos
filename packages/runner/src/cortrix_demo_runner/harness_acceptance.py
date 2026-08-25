@@ -381,7 +381,7 @@ def stage_harness_accepted(root: Path, scenario_id: str, run_id: str) -> dict[st
     return {"status": "accepted_staged", "scenario_id": scenario_id, "run_id": run_id, "destination": destination.relative_to(root).as_posix(), "screenshot_eligible": True, "commit_required": True}
 
 
-def record_harness_screenshot(root: Path, scenario_id: str, run_id: str, source_file: Path, route: str, evidence_path: str) -> dict[str, Any]:
+def record_harness_screenshot(root: Path, scenario_id: str, run_id: str, source_file: Path, route: str, evidence_path: str, *, replace: bool = False) -> dict[str, Any]:
     scenario_dir, _, _ = _scenario(root, scenario_id)
     expected_route = f"/packages/viewer/harness.html?scenario={scenario_id}"
     if route != expected_route:
@@ -397,27 +397,33 @@ def record_harness_screenshot(root: Path, scenario_id: str, run_id: str, source_
     screenshots = destination / "screenshots"
     screenshots.mkdir(exist_ok=True)
     target = screenshots / source_file.name
-    if target.exists():
+    if target.exists() and not replace:
         raise _failure("Harness screenshot destination already exists")
-    shutil.copyfile(source_file, target)
     screenshot_manifest_path = screenshots / "screenshot-manifest.json"
     screenshot_manifest = read_json(screenshot_manifest_path) if screenshot_manifest_path.exists() else {"schema_version": 1, "scenario_id": scenario_id, "run_id": run_id, "accepted_commit": manifest["source_identity"]["demo_commit"], "screenshots": []}
-    screenshot_manifest["screenshots"].append(
-        {
-            "file": f"screenshots/{target.name}",
-            "sha256": sha256_file(target),
-            "width": width,
-            "height": height,
-            "route": route,
-            "evidence_path": evidence.relative_to(destination).as_posix(),
-        }
-    )
+    target_name = f"screenshots/{target.name}"
+    matching = [index for index, item in enumerate(screenshot_manifest["screenshots"]) if item.get("file") == target_name]
+    if replace and (not target.exists() or len(matching) != 1):
+        raise _failure("Harness screenshot replacement requires exactly one existing bound screenshot")
+    shutil.copyfile(source_file, target)
+    entry = {
+        "file": target_name,
+        "sha256": sha256_file(target),
+        "width": width,
+        "height": height,
+        "route": route,
+        "evidence_path": evidence.relative_to(destination).as_posix(),
+    }
+    if replace:
+        screenshot_manifest["screenshots"][matching[0]] = entry
+    else:
+        screenshot_manifest["screenshots"].append(entry)
     write_json(screenshot_manifest_path, screenshot_manifest)
     manifest["screenshots"] = screenshot_manifest["screenshots"]
     write_json(destination / "run-manifest.json", manifest)
     refresh_harness_checksums(destination)
     _validate_safety(destination, root)
-    return {"status": "recorded", "scenario_id": scenario_id, "run_id": run_id, "file": f"screenshots/{target.name}", "width": width, "height": height, "sha256": sha256_file(target)}
+    return {"status": "replaced" if replace else "recorded", "scenario_id": scenario_id, "run_id": run_id, "file": f"screenshots/{target.name}", "width": width, "height": height, "sha256": sha256_file(target)}
 
 
 def verify_harness_accepted(root: Path, scenario_id: str, run_id: str | None = None) -> dict[str, Any]:

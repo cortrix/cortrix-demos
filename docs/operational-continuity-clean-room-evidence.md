@@ -101,17 +101,17 @@ Every requested HTML, script, stylesheet, logo, manifest, evidence, resolver, cl
 
 ![Payment Incident Shift Handoff accepted comparison](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-desktop.png)
 
-- [Desktop, 1440 by 1000](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-desktop.png), SHA-256 `31a0e7887afc57d9dee07ae3c04f6dafb66736d3e26fa8a1c7537e22c94e6fd3`
-- [Complete result page, 1200 by 3600](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-full-page.png), SHA-256 `34208c0a76f522a0953458e43eef213044cc8adbf0172e9486043b4f302a65e7`
-- [Narrow viewport, 800 by 1100](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-mobile.png), SHA-256 `20d8a1e1016e8c7a7fbb33e383b307da6a3a357dd424e18942a017ad03a1cc1a`
+- [Desktop, 1440 by 1000](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-desktop.png), SHA-256 `26957012dfc30324a216266998387d1d6745ea15981ee5c15f1795476b7c7c1e`
+- [Complete result page, 1200 by 4000](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-full-page.png), SHA-256 `065ab98d4b72c5354d9adfdab2ed43ed78b66fe30fc6d8f6613213e78d8606da`
+- [Narrow viewport, 800 by 1100](../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/payment-incident-shift-handoff-mobile.png), SHA-256 `4b8b02554c6cfac1ced45c76aabc550aa8735de7235ab7fe4d59719f214e4db4`
 
 ### Migration Decision Recovery
 
 ![Migration Decision Recovery accepted comparison](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-desktop.png)
 
-- [Desktop, 1440 by 1000](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-desktop.png), SHA-256 `bfaa90d690f54f8ff567c619ff634906b0906a2a76a3bfb1405f044519946bdc`
-- [Complete result page, 1200 by 4000](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-full-page.png), SHA-256 `97c5fb33d82196b99b2994aeb03662e4217ee7d7e4f88728a662f8ecf15ba3b2`
-- [Narrow viewport, 800 by 1100](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-mobile.png), SHA-256 `a66977c13189ea785a9129e6afd29b92aef4a0078b405c831e3bec4f34cfa12e`
+- [Desktop, 1440 by 1000](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-desktop.png), SHA-256 `50e5260a95841118e5cea7a84c51ce3960f6324e8be6ad8850cebe6cb5b4b40f`
+- [Complete result page, 1200 by 4000](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-full-page.png), SHA-256 `7ca9670b6a53f7e8548c31f25c66628f698f198b4013a42c53f406c45110cb71`
+- [Narrow viewport, 800 by 1100](../scenarios/migration-decision-recovery/evidence/runs/migration-decision-recovery-20260819T080134Z/screenshots/migration-decision-recovery-mobile.png), SHA-256 `cedba1da55ba51201420d33447e5107195890aac68181367eca898fcf8100584`
 
 ## 6. Cleanup and publication boundary
 

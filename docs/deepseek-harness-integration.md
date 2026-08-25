@@ -36,7 +36,7 @@ test -z "$(git -C .runtime/deepseek-harness status --short --untracked-files=all
 
 ## Prepare the integration
 
-The Cortrix Integrations repository is not public yet. The commands below become valid only after that repository is publicly available and the placeholder is replaced by a reviewed commit.
+The Cortrix Integrations repository is not public yet. The commands below become valid only after that repository is publicly available at the exact reviewed commit already shown.
 
 ```bash
 git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations

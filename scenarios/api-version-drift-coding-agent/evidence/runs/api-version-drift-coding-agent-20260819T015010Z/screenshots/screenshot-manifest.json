@@ -6,25 +6,25 @@
   "screenshots": [
     {
       "file": "screenshots/api-version-drift-coding-agent-desktop.png",
-      "sha256": "9a240152c0d218c1ff3b2377c81bb7ae9bbd03478e8c6197ef413d2da4e6f385",
-      "width": 1418,
-      "height": 826,
+      "sha256": "75d905167a66af46a161e04d30994c30fd867c3010d7d823171fc971906309f3",
+      "width": 1440,
+      "height": 1000,
       "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
       "evidence_path": "run-manifest.json"
     },
     {
       "file": "screenshots/api-version-drift-coding-agent-full-page.png",
-      "sha256": "04e9ea87d1701e9ed30081dd435371608d8abdfcd1aebba0eaafaac1bdf34ec3",
-      "width": 1418,
-      "height": 3170,
+      "sha256": "f012c9e2a89870894696e3ae3225bcfa220efee7594faaf45c3f9f4ddc4fdb6a",
+      "width": 1200,
+      "height": 4000,
       "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
       "evidence_path": "run-b/summary.json"
     },
     {
       "file": "screenshots/api-version-drift-coding-agent-mobile.png",
-      "sha256": "d9b869682ad551f750b036604eebd5fb56f36da99fc173b68db697a4d4385512",
-      "width": 1062,
-      "height": 2301,
+      "sha256": "cafd46bd6764950933dd963373b26e45959ae6191f8b3535110ed80803af67d4",
+      "width": 800,
+      "height": 1100,
       "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
       "evidence_path": "clean-room-review.json"
     }

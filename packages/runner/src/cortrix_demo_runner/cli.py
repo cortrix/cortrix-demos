@@ -236,7 +236,7 @@ def command_harness_stage_accepted(args: argparse.Namespace) -> None:
 
 def command_harness_record_screenshot(args: argparse.Namespace) -> None:
     route = args.route or f"/packages/viewer/harness.html?scenario={args.scenario}"
-    result = record_harness_screenshot(args.root.resolve(), args.scenario, args.run_id, args.file.resolve(), route, args.evidence_path)
+    result = record_harness_screenshot(args.root.resolve(), args.scenario, args.run_id, args.file.resolve(), route, args.evidence_path, replace=args.replace)
     print(json.dumps(result, ensure_ascii=True, indent=2))
 
 
@@ -433,6 +433,7 @@ def build_parser() -> argparse.ArgumentParser:
     harness_screenshot.add_argument("--file", type=Path, required=True)
     harness_screenshot.add_argument("--route")
     harness_screenshot.add_argument("--evidence-path", default="run-manifest.json")
+    harness_screenshot.add_argument("--replace", action="store_true", help="Replace one existing screenshot binding after an accepted-viewer presentation correction.")
     harness_screenshot.set_defaults(handler=command_harness_record_screenshot)
 
     harness_verify = harness_subparsers.add_parser("verify-accepted")

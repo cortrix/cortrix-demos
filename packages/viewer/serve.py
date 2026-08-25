@@ -173,6 +173,8 @@ def create_harness_config(root: Path, scenario_id: str) -> dict[str, object]:
     result = {
         "schema_version": 1,
         "mode": "accepted_harness",
+        "proof_scope": "archive_integrity",
+        "live_reexecution": False,
         "scenario_id": scenario_id,
         "run_id": run_id,
         **{name: require_file(path, name) for name, path in paths.items()},

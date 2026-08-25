@@ -19,6 +19,7 @@ function requireAccepted(config, manifest, runA, resolverA, runB, resolverB, sce
   const sameRun = [runA, runB, review].every((value) => value.run_id === manifest.run_id);
   const sameScenario = [resolverA, resolverB].every((value) => value.scenario_id === manifest.scenario_id);
   if (config.mode !== "accepted_harness" || config.run_id !== manifest.run_id || !sameRun || !sameScenario) throw new Error("Accepted evidence identity is inconsistent.");
+  if (config.proof_scope !== "archive_integrity" || config.live_reexecution !== false) throw new Error("Accepted archive proof scope is invalid.");
   if (manifest.state !== "accepted" || manifest.screenshot_eligible !== true || manifest.human_review_required !== false) throw new Error("The Harness run has not passed the accepted evidence gate.");
   if (manifest.acceptance?.method !== "independent_clean_room" || manifest.acceptance?.verdict !== "pass" || review.verdict !== "pass") throw new Error("The Harness run has no passing independent Clean Room review.");
   if (scenario.scenario_id !== manifest.scenario_id || technology.scenario_id !== manifest.scenario_id) throw new Error("Scenario and technology profile identity is inconsistent.");
@@ -102,6 +103,8 @@ async function render() {
       byId("position-variants").hidden = false;
     }
     addDefinition(byId("identity-details"), "Run ID", manifest.run_id);
+    addDefinition(byId("identity-details"), "Proof scope", config.proof_scope);
+    addDefinition(byId("identity-details"), "Live reexecution", config.live_reexecution);
     addDefinition(byId("identity-details"), "Demo commit", manifest.source_identity.demo_commit);
     addDefinition(byId("identity-details"), "Plugin commit", manifest.source_identity.plugin_commit);
     addDefinition(byId("identity-details"), "Cortrix commit", manifest.source_identity.cortrix_commit);
@@ -114,7 +117,7 @@ async function render() {
     byId("synthetic-disclosure").textContent = scenario.synthetic_disclosure;
     renderSteps();
     byId("status-panel").classList.add("accepted");
-    byId("status-text").textContent = "Independent Clean Room accepted";
+    byId("status-text").textContent = "Independent Clean Room archive accepted";
     byId("question-panel").hidden = false;
     byId("evidence-grid").hidden = false;
     byId("boundary").hidden = false;

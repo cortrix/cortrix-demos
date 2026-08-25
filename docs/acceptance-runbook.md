@@ -36,6 +36,8 @@ The recorder rejects non-PNG files, images below 800x450, non-viewer routes, and
 
 The verifier requires at least one screenshot, an exact curated file allowlist, complete checksums, matching pointer/manifest/resolver/screenshot identity, passing assertions, a reachable demo commit, and public-safe English text. Commit the accepted evidence only after this command passes.
 
+If a later viewer-only correction changes the meaning or trust-boundary labels shown in an existing screenshot, recapture the same accepted route and use `./democtl harness record-screenshot --replace` for each existing filename. Replacement is allowed only when exactly one matching screenshot binding already exists. It does not change the accepted answer or source identity, and it requires a new independent Clean Room review of the resulting commit.
+
 ## 4. Verify a fresh clone
 
 After committing the accepted package, run:

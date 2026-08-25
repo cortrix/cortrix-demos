@@ -44,6 +44,22 @@ make viewer
 
 The viewer tries the preferred local preview address and prints the address it actually uses. To force loopback or choose another port, run `make viewer VIEWER_BIND=127.0.0.1 VIEWER_PORT=18765`.
 
+## Inspect the evidence
+
+Start with:
+
+- [Scenario registry](scenarios/registry.json)
+- [Technology profile](scenarios/order-api-field-migration/profiles/technology-profile.json)
+- [Accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json)
+- [Operational continuity Clean Room evidence](docs/operational-continuity-clean-room-evidence.md)
+- [DeepSeek Harness integration](docs/deepseek-harness-integration.md)
+- [DeepSeek Harness limitations](docs/deepseek-harness-limitations.md)
+- [Evidence policy](docs/evidence-policy.md)
+- [Run manifest schema](packages/evidence-schema/run-manifest.schema.json)
+- [Repository architecture](docs/architecture.md)
+
+Candidate runs stay in the ignored `.runs/` directory. Only independently accepted, sanitized evidence is promoted under a scenario's tracked `evidence/runs/` directory. Existing accepted evidence remains immutable historical identity even when shared repository infrastructure evolves.
+
 An authorized local reviewer may inspect one completed candidate without promoting it by running `make viewer-candidate-qa RUN_ID=<run_id>`. This starts a separate, server-gated route that verifies the candidate still reports `screenshot_eligible=false` and `human_review_required=true`, and labels the page as Candidate QA rather than accepted evidence. Browser captures from that route are review artifacts only; `record-screenshot` refuses them, and the accepted viewer remains unchanged.
 
 Follow the two human-readable paths:
@@ -71,22 +87,6 @@ A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-run
 The current public-release candidate is replay-ready but not live-reproduction-ready: the Cortrix Integrations repository is not public yet, and the exact model export recipe is not available in the public documentation. Do not treat an existing workstation checkout or model volume as a public installation method.
 
 For authorized workstation runs, the runner can use a protected user-level `current.yaml` LLM profile instead of requiring the operator to export a real API key for every command. Explicit environment injection remains the highest-priority option for CI and containers. Safe discovery, validation, accepted replay, tests, and the viewer never read the profile; only a cost-bearing Full Stack preflight may resolve it. The profile stays outside every Git checkout, and runtime output records only its source class. See [Secret injection and default profiles](docs/full-stack-runbook.md#3-inject-the-secret-and-run) for setup and permission requirements.
-
-## Inspect the evidence
-
-Start with:
-
-- [Scenario registry](scenarios/registry.json)
-- [Technology profile](scenarios/order-api-field-migration/profiles/technology-profile.json)
-- [Accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json)
-- [Operational continuity Clean Room evidence](docs/operational-continuity-clean-room-evidence.md)
-- [DeepSeek Harness integration](docs/deepseek-harness-integration.md)
-- [DeepSeek Harness limitations](docs/deepseek-harness-limitations.md)
-- [Evidence policy](docs/evidence-policy.md)
-- [Run manifest schema](packages/evidence-schema/run-manifest.schema.json)
-- [Repository architecture](docs/architecture.md)
-
-Candidate runs stay in the ignored `.runs/` directory. Only independently accepted, sanitized evidence is promoted under a scenario's tracked `evidence/runs/` directory. Existing accepted evidence remains immutable historical identity even when shared repository infrastructure evolves.
 
 ## Demo observability versus production operation
 

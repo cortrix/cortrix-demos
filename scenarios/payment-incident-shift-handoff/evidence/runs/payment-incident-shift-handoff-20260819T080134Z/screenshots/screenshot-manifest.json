@@ -6,7 +6,7 @@
   "screenshots": [
     {
       "file": "screenshots/payment-incident-shift-handoff-desktop.png",
-      "sha256": "31a0e7887afc57d9dee07ae3c04f6dafb66736d3e26fa8a1c7537e22c94e6fd3",
+      "sha256": "26957012dfc30324a216266998387d1d6745ea15981ee5c15f1795476b7c7c1e",
       "width": 1440,
       "height": 1000,
       "route": "/packages/viewer/harness.html?scenario=payment-incident-shift-handoff",
@@ -14,15 +14,15 @@
     },
     {
       "file": "screenshots/payment-incident-shift-handoff-full-page.png",
-      "sha256": "34208c0a76f522a0953458e43eef213044cc8adbf0172e9486043b4f302a65e7",
+      "sha256": "065ab98d4b72c5354d9adfdab2ed43ed78b66fe30fc6d8f6613213e78d8606da",
       "width": 1200,
-      "height": 3600,
+      "height": 4000,
       "route": "/packages/viewer/harness.html?scenario=payment-incident-shift-handoff",
       "evidence_path": "run-b/summary.json"
     },
     {
       "file": "screenshots/payment-incident-shift-handoff-mobile.png",
-      "sha256": "20d8a1e1016e8c7a7fbb33e383b307da6a3a357dd424e18942a017ad03a1cc1a",
+      "sha256": "4b8b02554c6cfac1ced45c76aabc550aa8735de7235ab7fe4d59719f214e4db4",
       "width": 800,
       "height": 1100,
       "route": "/packages/viewer/harness.html?scenario=payment-incident-shift-handoff",

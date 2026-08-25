@@ -6,25 +6,25 @@
   "screenshots": [
     {
       "file": "screenshots/database-change-conflict-guardian-desktop.png",
-      "sha256": "446357df279d43d2292aa3c4e37f7324b45c7946f170dae319a5f5c689992b37",
-      "width": 1418,
-      "height": 826,
+      "sha256": "b81228d7d8c3908bbd5524d8c284cbc5573e9e65725ac52fb4aa0be4e4e7b91a",
+      "width": 1440,
+      "height": 1000,
       "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
       "evidence_path": "run-manifest.json"
     },
     {
       "file": "screenshots/database-change-conflict-guardian-full-page.png",
-      "sha256": "c62ca6159290527b3c92e277bf140185ae4b593d5d4dc921acc50cdb396fe4d8",
-      "width": 1418,
-      "height": 3053,
+      "sha256": "067bc243a8d857b0e66c6d84120dbe01344e723d4337c593442d3ec38d603fb6",
+      "width": 1200,
+      "height": 4000,
       "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
       "evidence_path": "run-b/summary.json"
     },
     {
       "file": "screenshots/database-change-conflict-guardian-mobile.png",
-      "sha256": "d6bf8aa9edcca843257e3babd8fbe16fd47d297a9de92f7154fa432fc48706e5",
-      "width": 1062,
-      "height": 2301,
+      "sha256": "4ac5fcadaf2bc867e2ab9f378ff8c6ed772579840ae68d023639ed76e602b748",
+      "width": 800,
+      "height": 1100,
       "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
       "evidence_path": "clean-room-review.json"
     }

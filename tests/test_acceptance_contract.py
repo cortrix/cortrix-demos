@@ -130,6 +130,7 @@ class AcceptanceContractTests(unittest.TestCase):
 
     def test_repository_readme_points_to_the_reviewed_accepted_run_contract(self) -> None:
         readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+        verify_readme(readme)
         self.assertIn("scenarios/order-api-field-migration/evidence/accepted-run.json", readme)
         self.assertIn("accepted local replay", readme)
         self.assertIn("passed Clean Room review and screenshot verification", readme)

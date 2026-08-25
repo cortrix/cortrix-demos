@@ -284,7 +284,7 @@
     },
     {
       "path": "run-manifest.json",
-      "sha256": "16f181b2960fdd6d9facd4c0dd71f76d814d04b875b4ea3ac469e1196d424e6e"
+      "sha256": "2eeb754a19badc7643f46b05c697904cee55ed48bb3b7ac67fb3d42009d464b9"
     },
     {
       "path": "runtime.json",
@@ -292,19 +292,19 @@
     },
     {
       "path": "screenshots/migration-decision-recovery-desktop.png",
-      "sha256": "bfaa90d690f54f8ff567c619ff634906b0906a2a76a3bfb1405f044519946bdc"
+      "sha256": "50e5260a95841118e5cea7a84c51ce3960f6324e8be6ad8850cebe6cb5b4b40f"
     },
     {
       "path": "screenshots/migration-decision-recovery-full-page.png",
-      "sha256": "97c5fb33d82196b99b2994aeb03662e4217ee7d7e4f88728a662f8ecf15ba3b2"
+      "sha256": "7ca9670b6a53f7e8548c31f25c66628f698f198b4013a42c53f406c45110cb71"
     },
     {
       "path": "screenshots/migration-decision-recovery-mobile.png",
-      "sha256": "a66977c13189ea785a9129e6afd29b92aef4a0078b405c831e3bec4f34cfa12e"
+      "sha256": "cedba1da55ba51201420d33447e5107195890aac68181367eca898fcf8100584"
     },
     {
       "path": "screenshots/screenshot-manifest.json",
-      "sha256": "43bfee17e78c5809934dd472f3c6a9f911201bac9e9bec5f1fb11b8a4686b13e"
+      "sha256": "bb61adeb126e47151bf86df136178290e977372849e5fcfe62c6bfa6bd7421f6"
     }
   ]
 }
