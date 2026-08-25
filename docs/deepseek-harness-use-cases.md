@@ -17,6 +17,6 @@ The same read-only pattern can support dependency upgrade evidence, CI failure t
 - each source has stable identity, content integrity, version, status, scope, and validity metadata;
 - the application defines an authority resolver;
 - the desired output is an explanation, recommendation, or read-only check rather than an action;
-- a scenario-specific validation and Clean Room proves the claim.
+- scenario-specific validation and an independent clean-room review prove the claim.
 
 These extensions are design candidates, not capabilities already validated by the four demos.
