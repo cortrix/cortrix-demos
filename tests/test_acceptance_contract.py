@@ -149,8 +149,13 @@ class AcceptanceContractTests(unittest.TestCase):
         self.assertIn("required_documents_retrieved", viewer)
         self.assertIn("deepseek_listwise_final", viewer)
         self.assertIn("manifest.scenario_version", viewer)
-        self.assertIn('manifest.acceptance?.method !== "secondscott_clean_room"', viewer)
+        self.assertIn('manifest.acceptance?.method === "independent_clean_room"', viewer)
+        self.assertIn('pointer.acceptance_contract === "legacy_published_v1"', viewer)
         self.assertIn("manifest.post_screenshot_human_review_required", viewer)
+        self.assertIn('manifest.state !== "candidate"', viewer)
+        self.assertIn('manifest.screenshot_eligible !== false', viewer)
+        self.assertIn('manifest.human_review_required !== true', viewer)
+        self.assertIn("Candidate QA · Clean Room review · not accepted evidence", viewer)
         self.assertNotIn("manifest.status", viewer)
 
     def test_manifest_contract_requires_the_exact_frozen_paths(self) -> None:
@@ -179,7 +184,7 @@ class AcceptanceContractTests(unittest.TestCase):
         screenshot_schema = json.loads((root / "packages" / "evidence-schema" / "screenshot-manifest.schema.json").read_text(encoding="utf-8"))
         self.assertIn("acceptance", run_schema["properties"])
         self.assertEqual("string", run_schema["properties"]["acceptance"]["properties"]["method"]["type"])
-        self.assertEqual("secondscott_clean_room", VALIDATION["evidence_contract"]["acceptance_method"])
+        self.assertEqual("independent_clean_room", VALIDATION["evidence_contract"]["acceptance_method"])
         self.assertIn("post_screenshot_human_review_required", run_schema["properties"])
         self.assertIn("required_paths", run_schema["required"])
         self.assertIn("scenario_version", run_schema["required"])
@@ -328,12 +333,12 @@ class AcceptanceContractTests(unittest.TestCase):
             self.assertEqual("accepted_staged", staged["status"])
             accepted_root = root / "scenarios" / SCENARIO_ID / "evidence" / "runs" / run_id
             accepted_manifest = json.loads((accepted_root / "run-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual("secondscott_clean_room", accepted_manifest["acceptance"]["method"])
+            self.assertEqual("independent_clean_room", accepted_manifest["acceptance"]["method"])
             self.assertEqual("pass", accepted_manifest["acceptance"]["verdict"])
             self.assertEqual(tooling_commit, accepted_manifest["acceptance"]["acceptance_tooling_commit"])
             self.assertTrue(accepted_manifest["post_screenshot_human_review_required"])
             accepted_history = json.loads((accepted_root / "state-history.json").read_text(encoding="utf-8"))
-            self.assertEqual("secondscott_clean_room_passed", accepted_history["transitions"][-1]["detail"])
+            self.assertEqual("independent_clean_room_passed", accepted_history["transitions"][-1]["detail"])
             self.assertEqual(assertion_contract.read_bytes(), (accepted_root / "assertion-contract.json").read_bytes())
             self.assertEqual(fixture.read_bytes(), (accepted_root / "fixture-manifest.json").read_bytes())
             screenshot = root / "viewer.png"

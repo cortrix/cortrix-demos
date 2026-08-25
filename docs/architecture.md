@@ -18,6 +18,7 @@ packages/viewer/    Read-only human projection of accepted evidence
 packages/evidence-schema/  Machine-readable accepted-evidence contracts
 runtime/adapters/   Reusable baseline and LLM provider implementations
 runtime/config/     Cortrix runtime profiles used by implemented adapters
+runtime/harness/    Pinned Harness campaign, fixture loading, read-only plugin query, and answer orchestration
 scenarios/registry.json  Machine-readable scenario discovery entry
 scenarios/<id>/     Business contract, fixtures, assertions, technology profile, human run guides, web text, and evidence
 ```
@@ -48,6 +49,8 @@ scenarios/<id>/
 - Changing a database or model creates a new profile and run. It does not overwrite accepted evidence.
 
 The first scenario retains `full-stack` and `replay` compatibility profiles because its accepted evidence predates the adapter catalog. New scenarios should use the technology-profile contract directly.
+
+DeepSeek Harness scenarios use the same vertical-slice ownership with one additional frozen chain: Harness commit, standalone plugin commit, exact two-tool surface, answer prompt contract, comparison variable, durable tool events, and independent Clean Room record. Raw Harness home and session storage stay ignored; only curated, public-safe evidence enters `evidence/runs/<run_id>/`.
 
 ## Extension order
 

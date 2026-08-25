@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "session_id": "api-version-drift-coding-agent-20260819T015010Z-query-2",
+  "registered_tools": [
+    "cortrix_search_evidence",
+    "cortrix_get_source"
+  ],
+  "search_result": {
+    "status": "ok",
+    "query": "After upgrading the Orders SDK from version 1.x to 2.x, retry behavior no longer matches the old example. Find the current official API and deprecation notice, explain why the example is obsolete, and propose the smallest test plan. Do not edit code.",
+    "purpose": "verification",
+    "evidence": [
+      {
+        "evidence_ref": "cxev_bmzi5UqEN0b18Ob9cYb-mfVXUkRexHIJ",
+        "excerpt": "# Orders SDK retry option deprecation notice\nStatus: current deprecation notice.\nThe `retries` constructor option and its retry-count semantics were removed in Orders SDK 2.0. Applications must provide a `RetryPolicy`. Copying a 1.x `retries=3` example into a 2.x client is obsolete and can either fail validation or create an incorrect expectation about total attempts.",
+        "score": 0.01666666753590107,
+        "rerank_score": 0.9906933903694153,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:a0ceffe37606a13d27a255e1202687e7"
+      },
+      {
+        "evidence_ref": "cxev_qytDexIW-y8W8s1lMjagnKwovy1Qe1AW",
+        "excerpt": "# Orders SDK 1.x retry example\nStatus: superseded.\nThe 1.x client accepted `retries=3`. That value meant three retries after the initial request, for up to four total attempts. The example retried a broad set of server errors in the 5xx range.\nThis page remains available for historical integrations. It is not valid configuration for Orders SDK 2.x.",
+        "score": 0.016393441706895828,
+        "rerank_score": 0.9778127670288086,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:8c6ff439e0963dc17d895fe66aacba86"
+      },
+      {
+        "evidence_ref": "cxev_cGzUMn25FNuZJT730Mr_4WGpF1zSgUTv",
+        "excerpt": "# Orders SDK 2.x retry API\nStatus: current official API. Effective: 2026-07-20.\nConfigure retries with `RetryPolicy(max_attempts=3, retryable_statuses={429, 503}, retry_transport_errors=True)`. `max_attempts` includes the initial request, so this policy permits at most three total attempts.\nThe SDK does not retry every 5xx response by default. The explicit status set in this example contains only 429 and 503. Transport errors remain separately controlled by `retry_transport_errors`.",
+        "score": 0.016129031777381897,
+        "rerank_score": 0.9688675999641418,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:190a5adcd2365c700b570388fba7314a"
+      },
+      {
+        "evidence_ref": "cxev_qFSYlVvZUIOFfYvL0vShcUMf_LJLGjrF",
+        "excerpt": "# Payments SDK retry example\nPayments SDK 1.x accepts `retries=3` for gateway timeouts. Payments and Orders are separate packages with different release trains. This example does not establish an Orders SDK 2.x API.",
+        "score": 0.01587301678955555,
+        "rerank_score": 0.9135787487030029,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:a1d747f9840418b6c1b08dbe92075885"
+      },
+      {
+        "evidence_ref": "cxev_1gZUl2_GiIjFgGP1sPs9dQuzNUuGgT3v",
+        "excerpt": "# Orders SDK 2.x retry migration guide\nReplace `retries=n` with an explicit `RetryPolicy`. Translate the desired total request count deliberately because 1.x counted retries after the initial request while 2.x `max_attempts` includes it.\nSmallest useful test plan:\n1. Stub a 503 response followed by success and assert no more than three total calls for `max_attempts=3`.\n2. Stub a non-listed 500 response and assert that the policy does not retry it.\n3. Stub a transport error and assert the configured transport-error behavior.",
+        "score": 0.015625,
+        "rerank_score": 0.9131462574005127,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:910097274c3d63bc7aa2412ae59ec971"
+      },
+      {
+        "evidence_ref": "cxev_orDrwaXknh-FU0VMsjeaO22h-lqeo1Yf",
+        "excerpt": "# Orders SDK 2.x retry contract tests\nStatus: current verification reference.\nThe maintained contract suite asserts that `max_attempts=3` produces three total calls, not one initial call plus three retries. It also asserts retry for 429 and 503, no retry for an unlisted 500 response, and separate handling for transport errors.",
+        "score": 0.015384615398943424,
+        "rerank_score": 0.5482037663459778,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:094267c8e4005e5d56df287250f9cadc"
+      },
+      {
+        "evidence_ref": "cxev_FMKXk4vcalUyHosgQ5qi1opWlSw--ZQL",
+        "excerpt": "# Orders SDK 2.x pagination API\nThis current reference describes cursor pagination and page-size limits. It does not define retry configuration or attempt counting.",
+        "score": 0.01515151560306549,
+        "rerank_score": 0.4556034505367279,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:0abc6a38c87e66a072aa951f8747ade2"
+      },
+      {
+        "evidence_ref": "cxev_My6gk4sKxrhRrIRGr4N1fQyaTxhBDYwd",
+        "excerpt": "# Generic Python HTTP retry snippet\nA generic HTTP client example retries all 5xx responses four times. It is not maintained by the Orders SDK team and does not describe Orders SDK 2.x.",
+        "score": 0.014925372786819935,
+        "rerank_score": 0.4204653799533844,
+        "namespace": "harness-1b4e76f7c8998a1500ca7443",
+        "content_hash": "sha256:e01f2d1c8851e72c5dee53670aa36602"
+      }
+    ],
+    "meta": {
+      "coverage_ratio": 1,
+      "namespaces_succeeded": [
+        "harness-1b4e76f7c8998a1500ca7443"
+      ],
+      "namespaces_failed": [],
+      "warnings": [],
+      "truncated": false
+    }
+  },
+  "source_ledger": {
+    "cxev_bmzi5UqEN0b18Ob9cYb-mfVXUkRexHIJ": "# Orders SDK retry option deprecation notice\nStatus: current deprecation notice.\nThe `retries` constructor option and its retry-count semantics were removed in Orders SDK 2.0. Applications must provide a `RetryPolicy`. Copying a 1.x `retries=3` example into a 2.x client is obsolete and can either fail validation or create an incorrect expectation about total attempts.",
+    "cxev_qytDexIW-y8W8s1lMjagnKwovy1Qe1AW": "# Orders SDK 1.x retry example\nStatus: superseded.\nThe 1.x client accepted `retries=3`. That value meant three retries after the initial request, for up to four total attempts. The example retried a broad set of server errors in the 5xx range.\nThis page remains available for historical integrations. It is not valid configuration for Orders SDK 2.x.",
+    "cxev_cGzUMn25FNuZJT730Mr_4WGpF1zSgUTv": "# Orders SDK 2.x retry API\nStatus: current official API. Effective: 2026-07-20.\nConfigure retries with `RetryPolicy(max_attempts=3, retryable_statuses={429, 503}, retry_transport_errors=True)`. `max_attempts` includes the initial request, so this policy permits at most three total attempts.\nThe SDK does not retry every 5xx response by default. The explicit status set in this example contains only 429 and 503. Transport errors remain separately controlled by `retry_transport_errors`.",
+    "cxev_qFSYlVvZUIOFfYvL0vShcUMf_LJLGjrF": "# Payments SDK retry example\nPayments SDK 1.x accepts `retries=3` for gateway timeouts. Payments and Orders are separate packages with different release trains. This example does not establish an Orders SDK 2.x API.",
+    "cxev_1gZUl2_GiIjFgGP1sPs9dQuzNUuGgT3v": "# Orders SDK 2.x retry migration guide\nReplace `retries=n` with an explicit `RetryPolicy`. Translate the desired total request count deliberately because 1.x counted retries after the initial request while 2.x `max_attempts` includes it.\nSmallest useful test plan:\n1. Stub a 503 response followed by success and assert no more than three total calls for `max_attempts=3`.\n2. Stub a non-listed 500 response and assert that the policy does not retry it.\n3. Stub a transport error and assert the configured transport-error behavior.",
+    "cxev_orDrwaXknh-FU0VMsjeaO22h-lqeo1Yf": "# Orders SDK 2.x retry contract tests\nStatus: current verification reference.\nThe maintained contract suite asserts that `max_attempts=3` produces three total calls, not one initial call plus three retries. It also asserts retry for 429 and 503, no retry for an unlisted 500 response, and separate handling for transport errors.",
+    "cxev_FMKXk4vcalUyHosgQ5qi1opWlSw--ZQL": "# Orders SDK 2.x pagination API\nThis current reference describes cursor pagination and page-size limits. It does not define retry configuration or attempt counting.",
+    "cxev_My6gk4sKxrhRrIRGr4N1fQyaTxhBDYwd": "# Generic Python HTTP retry snippet\nA generic HTTP client example retries all 5xx responses four times. It is not maintained by the Orders SDK team and does not describe Orders SDK 2.x."
+  },
+  "tool_trace": [
+    {
+      "name": "cortrix_search_evidence",
+      "call_id": "cortrix-search-1",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-1",
+      "evidence_ref": "cxev_bmzi5UqEN0b18Ob9cYb-mfVXUkRexHIJ",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-2",
+      "evidence_ref": "cxev_qytDexIW-y8W8s1lMjagnKwovy1Qe1AW",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-3",
+      "evidence_ref": "cxev_cGzUMn25FNuZJT730Mr_4WGpF1zSgUTv",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-4",
+      "evidence_ref": "cxev_qFSYlVvZUIOFfYvL0vShcUMf_LJLGjrF",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-5",
+      "evidence_ref": "cxev_1gZUl2_GiIjFgGP1sPs9dQuzNUuGgT3v",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-6",
+      "evidence_ref": "cxev_orDrwaXknh-FU0VMsjeaO22h-lqeo1Yf",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-7",
+      "evidence_ref": "cxev_FMKXk4vcalUyHosgQ5qi1opWlSw--ZQL",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-8",
+      "evidence_ref": "cxev_My6gk4sKxrhRrIRGr4N1fQyaTxhBDYwd",
+      "status": "ok"
+    }
+  ],
+  "durable_session_events": [
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-search-1",
+        "name": "cortrix_search_evidence"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-search-1"
+            }
+          ]
+        },
+        "meta": {
+          "schema": "cortrix_evidence_ledger/v1",
+          "search_call_id": "cortrix-search-1",
+          "namespace": "harness-1b4e76f7c8998a1500ca7443",
+          "entries": [
+            {
+              "ordinal": 0,
+              "evidence_ref": "cxev_bmzi5UqEN0b18Ob9cYb-mfVXUkRexHIJ",
+              "child_id": "01M0BVEAJQZBHPVNNE5WZ5A2TF",
+              "parent_id": "",
+              "content_hash": "sha256:a0ceffe37606a13d27a255e1202687e7",
+              "content": "# Orders SDK retry option deprecation notice\nStatus: current deprecation notice.\nThe `retries` constructor option and its retry-count semantics were removed in Orders SDK 2.0. Applications must provide a `RetryPolicy`. Copying a 1.x `retries=3` example into a 2.x client is obsolete and can either fail validation or create an incorrect expectation about total attempts.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 1,
+              "evidence_ref": "cxev_qytDexIW-y8W8s1lMjagnKwovy1Qe1AW",
+              "child_id": "01M0BVE8HC5QDWHBMFD6A03PS5",
+              "parent_id": "",
+              "content_hash": "sha256:8c6ff439e0963dc17d895fe66aacba86",
+              "content": "# Orders SDK 1.x retry example\nStatus: superseded.\nThe 1.x client accepted `retries=3`. That value meant three retries after the initial request, for up to four total attempts. The example retried a broad set of server errors in the 5xx range.\nThis page remains available for historical integrations. It is not valid configuration for Orders SDK 2.x.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 2,
+              "evidence_ref": "cxev_cGzUMn25FNuZJT730Mr_4WGpF1zSgUTv",
+              "child_id": "01M0BVE9HGCTF8NN2V10M8GDDW",
+              "parent_id": "",
+              "content_hash": "sha256:190a5adcd2365c700b570388fba7314a",
+              "content": "# Orders SDK 2.x retry API\nStatus: current official API. Effective: 2026-07-20.\nConfigure retries with `RetryPolicy(max_attempts=3, retryable_statuses={429, 503}, retry_transport_errors=True)`. `max_attempts` includes the initial request, so this policy permits at most three total attempts.\nThe SDK does not retry every 5xx response by default. The explicit status set in this example contains only 429 and 503. Transport errors remain separately controlled by `retry_transport_errors`.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 3,
+              "evidence_ref": "cxev_qFSYlVvZUIOFfYvL0vShcUMf_LJLGjrF",
+              "child_id": "01M0BVEDGYNZK74AMKYZ71EZ6K",
+              "parent_id": "",
+              "content_hash": "sha256:a1d747f9840418b6c1b08dbe92075885",
+              "content": "# Payments SDK retry example\nPayments SDK 1.x accepts `retries=3` for gateway timeouts. Payments and Orders are separate packages with different release trains. This example does not establish an Orders SDK 2.x API.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 4,
+              "evidence_ref": "cxev_1gZUl2_GiIjFgGP1sPs9dQuzNUuGgT3v",
+              "child_id": "01M0BVEBJMX2K184PWDJX7H4MB",
+              "parent_id": "",
+              "content_hash": "sha256:910097274c3d63bc7aa2412ae59ec971",
+              "content": "# Orders SDK 2.x retry migration guide\nReplace `retries=n` with an explicit `RetryPolicy`. Translate the desired total request count deliberately because 1.x counted retries after the initial request while 2.x `max_attempts` includes it.\nSmallest useful test plan:\n1. Stub a 503 response followed by success and assert no more than three total calls for `max_attempts=3`.\n2. Stub a non-listed 500 response and assert that the policy does not retry it.\n3. Stub a transport error and assert the configured transport-error behavior.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 5,
+              "evidence_ref": "cxev_orDrwaXknh-FU0VMsjeaO22h-lqeo1Yf",
+              "child_id": "01M0BVECJQBDVAAFED9PQVEFPD",
+              "parent_id": "",
+              "content_hash": "sha256:094267c8e4005e5d56df287250f9cadc",
+              "content": "# Orders SDK 2.x retry contract tests\nStatus: current verification reference.\nThe maintained contract suite asserts that `max_attempts=3` produces three total calls, not one initial call plus three retries. It also asserts retry for 429 and 503, no retry for an unlisted 500 response, and separate handling for transport errors.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 6,
+              "evidence_ref": "cxev_FMKXk4vcalUyHosgQ5qi1opWlSw--ZQL",
+              "child_id": "01M0BVEGHCJ5VTYGKQS9V7X747",
+              "parent_id": "",
+              "content_hash": "sha256:0abc6a38c87e66a072aa951f8747ade2",
+              "content": "# Orders SDK 2.x pagination API\nThis current reference describes cursor pagination and page-size limits. It does not define retry configuration or attempt counting.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 7,
+              "evidence_ref": "cxev_My6gk4sKxrhRrIRGr4N1fQyaTxhBDYwd",
+              "child_id": "01M0BVEK49P71R1XR9PS389FWP",
+              "parent_id": "",
+              "content_hash": "sha256:e01f2d1c8851e72c5dee53670aa36602",
+              "content": "# Generic Python HTTP retry snippet\nA generic HTTP client example retries all 5xx responses four times. It is not maintained by the Orders SDK team and does not describe Orders SDK 2.x.",
+              "source_kind": "content"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-1",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-2",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-3",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-3"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-4",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-5",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-6",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-6"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-7",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-7"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-8",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-8"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "plugin_external_http_calls": 1,
+  "external_llm_calls": 0
+}

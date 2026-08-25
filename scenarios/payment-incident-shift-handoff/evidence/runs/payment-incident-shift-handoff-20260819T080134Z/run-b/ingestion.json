@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "operation": "load",
+  "scenario_id": "payment-incident-shift-handoff",
+  "namespace": "harness-83e5160799c6915ce6834985",
+  "document_count": 16,
+  "documents": [
+    {
+      "document_id": "payment-handoff-0100-superseded",
+      "task_id": "01M0CGNJYZ3TBVJ1N2TS08D711",
+      "status": "completed"
+    },
+    {
+      "document_id": "payment-capacity-plan",
+      "task_id": "01M0CGNKZBJ6G1ABT9H9GM9G9D",
+      "status": "completed"
+    },
+    {
+      "document_id": "database-maintenance-notice",
+      "task_id": "01M0CGNMZNQREW1B0QC8Q62JAT",
+      "status": "completed"
+    },
+    {
+      "document_id": "checkout-ui-timeout",
+      "task_id": "01M0CGNP0137N6YH1V0N3SB67S",
+      "status": "completed"
+    },
+    {
+      "document_id": "payment-handoff-0320-current",
+      "task_id": "01M0CGNPQS2J4MXQKJFAYWPN3K",
+      "status": "completed"
+    },
+    {
+      "document_id": "gateway-queue-saturation-confirmed",
+      "task_id": "01M0CGNQRVVP09XEH3PK7BP1K8",
+      "status": "completed"
+    },
+    {
+      "document_id": "database-saturation-ruled-out",
+      "task_id": "01M0CGNRSV3C0FSDNFW8EKXYMD",
+      "status": "completed"
+    },
+    {
+      "document_id": "worker-change-pending-approval",
+      "task_id": "01M0CGNSTM69CP00ZBWQ35MH19",
+      "status": "completed"
+    },
+    {
+      "document_id": "payment-readonly-checks-current",
+      "task_id": "01M0CGNTVC4D3PTWNH0EGKXV0B",
+      "status": "completed"
+    },
+    {
+      "document_id": "payment-incident-event-export",
+      "task_id": "01M0CGNVVZS2VHV84F3E16XGMV",
+      "status": "completed"
+    },
+    {
+      "document_id": "refund-latency-review",
+      "task_id": "01M0CGNWWDN7CZENP6G0WCFEDS",
+      "status": "completed"
+    },
+    {
+      "document_id": "fraud-model-latency",
+      "task_id": "01M0CGNXWJSF4TKA23WVWHJ8M0",
+      "status": "completed"
+    },
+    {
+      "document_id": "ledger-reconciliation-runbook",
+      "task_id": "01M0CGNYX161CPSYP790H0086E",
+      "status": "completed"
+    },
+    {
+      "document_id": "merchant-webhook-backlog",
+      "task_id": "01M0CGNZXJNP021DXJCTST1Y68",
+      "status": "completed"
+    },
+    {
+      "document_id": "gateway-load-test-draft",
+      "task_id": "01M0CGP0NYCP3M9ZBRC6EJE4PW",
+      "status": "completed"
+    },
+    {
+      "document_id": "regional-routing-postmortem",
+      "task_id": "01M0CGP1Q6MMFRA7CBTYG1CG3A",
+      "status": "completed"
+    }
+  ],
+  "fixture_manifest_sha256": "c2061d4bf2e0133bc86f9d088501b6a35e3306a3235cdc19972884309f3396c2",
+  "external_llm_calls": 0
+}

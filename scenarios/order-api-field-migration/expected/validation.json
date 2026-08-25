@@ -95,6 +95,6 @@
     "run_b_path": "run-b/summary.json",
     "resolver_path": "run-b/resolver-01.json",
     "serial_query_count": 2,
-    "acceptance_method": "secondscott_clean_room"
+    "acceptance_method": "independent_clean_room"
   }
 }

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "backend_mode": "cortrix_bundle_absent",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": false,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [
+    "Evidence did not include the resolver-selected current document",
+    "Answer did not select the resolver-selected current document"
+  ],
+  "selected_document_ids": [
+    "orders-incident-readonly-evidence",
+    "orders-schema-runbook-v3.1-superseded"
+  ],
+  "evidence_refs": [
+    "ws_58e31f3b666d231905705fa6d8ca1b9d",
+    "ws_d5fc2c5be6e4a20a252265566d4857b6"
+  ],
+  "decision": {
+    "active_field": "buyer_account_id",
+    "action_mode": "read_only_diagnosis",
+    "rollback_permitted": false
+  },
+  "resolver_selected_document_id": "orders-schema-migration-v4.0-current",
+  "resolver_action": "current_source_read_only_plan",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

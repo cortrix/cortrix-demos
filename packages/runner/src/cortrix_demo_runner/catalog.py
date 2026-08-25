@@ -143,7 +143,7 @@ def load_agent_manifest(root: Path) -> dict[str, Any]:
         _require_relative_file(root, bootstrap.get(key), f"Agent manifest {key}")
     if not isinstance(catalogs, dict):
         raise DemoContractError("Agent manifest catalogs are invalid")
-    for key in ("scenarios", "adapters", "external_call_policy", "evidence_schema", "image_provenance"):
+    for key in ("scenarios", "adapters", "external_call_policy", "evidence_schema", "harness_evidence_schema", "image_provenance"):
         _require_relative_file(root, catalogs.get(key), f"Agent manifest catalog {key}")
     live_gate = gates.get("live_full_stack") if isinstance(gates, dict) else None
     if not isinstance(live_gate, dict) or live_gate.get("manual_authorization_required") is not True or live_gate.get("external_calls") is not True:

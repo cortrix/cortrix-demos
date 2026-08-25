@@ -112,7 +112,58 @@ class LiveContractTests(unittest.TestCase):
     @patch("cortrix_demo_runner.live.subprocess.run")
     def test_clean_main_checkout_is_accepted(self, run: object) -> None:
         run.side_effect = self._checkout_probes(branch="main", status="")
-        self.assertEqual("clean", verify_demo_checkout(ROOT)["working_tree"])
+        checkout = verify_demo_checkout(ROOT)
+        self.assertEqual("clean", checkout["working_tree"])
+        self.assertEqual("canonical", checkout["checkout_kind"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_declared_presentation_checkout_is_accepted_for_live_validation(self, run: object) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "localization-base.yaml").write_text(
+                "canonical_branch: main\n"
+                f"canonical_base_commit: {'b' * 40}\n"
+                "locale: zh-CN\n"
+                "presentation_only: true\n",
+                encoding="utf-8",
+            )
+            run.side_effect = [
+                *self._checkout_probes(branch="zh-CN", status=""),
+                self._completed(returncode=0),
+                self._completed(stdout="README.zh-CN.md\nlocalization-base.yaml\n"),
+            ]
+            checkout = verify_demo_checkout(root)
+        self.assertEqual("zh-CN", checkout["branch"])
+        self.assertEqual("presentation_localization", checkout["checkout_kind"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_presentation_checkout_rejects_runtime_contract_changes(self, run: object) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "localization-base.yaml").write_text(
+                "canonical_branch: main\n"
+                f"canonical_base_commit: {'b' * 40}\n"
+                "locale: zh-CN\n"
+                "presentation_only: true\n",
+                encoding="utf-8",
+            )
+            run.side_effect = [
+                *self._checkout_probes(branch="zh-CN", status=""),
+                self._completed(returncode=0),
+                self._completed(stdout="runtime/docker-compose.yml\n"),
+            ]
+            with self.assertRaises(DemoContractError) as captured:
+                verify_demo_checkout(root)
+        error = captured.exception.as_dict()["error"]
+        self.assertEqual("CX_DEMO_LOCALIZATION_CHECKOUT_INVALID", error["code"])
+        self.assertEqual(1, error["structured_data"]["unexpected_path_count"])
+
+    @patch("cortrix_demo_runner.live.subprocess.run")
+    def test_presentation_checkout_cannot_stage_accepted_evidence(self, run: object) -> None:
+        run.side_effect = self._checkout_probes(branch="zh-CN", status="")
+        with self.assertRaises(DemoContractError) as captured:
+            verify_demo_checkout(ROOT, allow_presentation_localization=False)
+        self.assertEqual("CX_DEMO_CHECKOUT_BRANCH_INVALID", captured.exception.as_dict()["error"]["code"])
 
     @staticmethod
     def _checkout_probes(*, branch: str, status: str) -> list[object]:
@@ -123,6 +174,12 @@ class LiveContractTests(unittest.TestCase):
             _subprocess.CompletedProcess([], 0, stdout="a" * 40 + "\n", stderr=""),
             _subprocess.CompletedProcess([], 0, stdout=status, stderr=""),
         ]
+
+    @staticmethod
+    def _completed(*, returncode: int = 0, stdout: str = "") -> object:
+        import subprocess as _subprocess
+
+        return _subprocess.CompletedProcess([], returncode, stdout=stdout, stderr="")
 
     def test_query_payload_uses_the_reviewed_chunk_granularity(self) -> None:
         payload = query_payload("example", "chunk")

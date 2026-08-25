@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "frozen": {
+    "run_a_top_document_id": "orders-sdk-v1-retry-example-superseded",
+    "run_a_top_document_status": "superseded",
+    "run_a_required_current_document_id": "orders-sdk-v2-retry-api-current",
+    "run_a_required_current_document_status": "current",
+    "run_b_required_document_ids": ["orders-sdk-v2-retry-api-current", "orders-sdk-v1-retry-deprecation", "orders-sdk-v2-migration-guide", "orders-sdk-v2-retry-tests"],
+    "run_b_final_top_document_id": "orders-sdk-v1-retry-deprecation",
+    "run_b_final_top_document_status": "current",
+    "resolver_selected_document_id": "orders-sdk-v2-retry-api-current",
+    "resolver_selected_field": "max_attempts",
+    "resolver_action": "current_api_explanation_and_test_plan",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "local_generative_llm": false,
+    "degraded": false,
+    "serial_query_count": 2,
+    "forbidden_actions": ["edit_code", "network_test", "deprecated_api_recommendation"]
+  },
+  "variable": ["evidence_provider", "retrieved_evidence", "model_wording", "latency_ms", "ranking_scores"]
+}

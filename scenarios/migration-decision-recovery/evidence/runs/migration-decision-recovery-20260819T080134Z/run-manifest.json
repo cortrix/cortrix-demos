@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "run_id": "migration-decision-recovery-20260819T080134Z",
+  "state": "accepted",
+  "source_identity": {
+    "demo_commit": "8c9e714e90bfbdbd26c3cf7dfd6451b4ba3a9520",
+    "plugin_commit": "f1eab7316b35e2ea632be4f0d7a45738319246a7",
+    "harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
+    "cortrix_commit": "4c0f0f96b652d5662a66d047771826a4d2933739",
+    "cortrix_image_digest": "sha256:f5dbb6ed129acb584e909d81d00e8cf45fbaf1b14419fb59a32784bfda11f490",
+    "fixture_manifest_sha256": "3c01d908592d89c8eebb756200e38d051dd611d2960af824543a9763ff2a36da",
+    "assertion_contract_sha256": "bb29ad30f011441a49cffae31a028ec1afb0eec961ef35fd8f5b5f26970da2d6",
+    "answer_prompt_template_sha256": "dc33d14ccc9e2376534415084ec50b8f13361f06ea81aaf3e9860e707a42f636"
+  },
+  "comparison": {
+    "same_harness": true,
+    "same_model": true,
+    "same_prompt": true,
+    "same_corpus": true,
+    "same_non_cortrix_tools": true,
+    "only_independent_variable": "cortrix_bundle_loaded"
+  },
+  "provider": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "local_generative_llm": false,
+    "fallback_used": false,
+    "secret_source": "default_profile",
+    "secret_value_recorded": false
+  },
+  "usage": {
+    "visibility": "partial",
+    "observable_calls": 9,
+    "observable_input_tokens": 46200,
+    "observable_output_tokens": 3337,
+    "observable_cache_hit_tokens": 0,
+    "observable_cost_usd": 0.00740236,
+    "reviewed_bound_usd": 0.15139936,
+    "budget_usd": 5.0
+  },
+  "pricing_snapshot": {
+    "schema_version": 1,
+    "observed_at": "2026-08-19T06:32:01Z",
+    "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "model_version": "DeepSeek-V4-Flash",
+    "currency": "USD",
+    "unit": "per_million_tokens",
+    "prices_per_million_tokens": {
+      "input_cache_hit": 0.0028,
+      "input_cache_miss": 0.14,
+      "output": 0.28
+    },
+    "notes": "Recorded from the official pricing page immediately before an authorized local walkthrough. A price change does not expand the repository budget."
+  },
+  "run_a": {
+    "path": "run-a/summary.json",
+    "sha256": "5bf6d064c3b5200c193027342d3e7811c2ac344bca3dc15ac470c11a1870d39f",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_absent",
+    "answer_prompt_sha256": "72b67acc6d3664aabda60822aed047ffa4f1d667e39eca34e830d24bf5ef304a"
+  },
+  "run_b": {
+    "path": "run-b/summary.json",
+    "sha256": "3126b92c9ea10aa77102b049417f3f2d9ccdfa33d2f42bb3726a60b8371307ef",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_loaded",
+    "answer_prompt_sha256": "ef15b348ff46abc184fe7e2a3ed81a2f23ddbfaf4843dde27c1c81493ccc72f9"
+  },
+  "resolver": {
+    "path": "run-b/resolver.json",
+    "sha256": "8c2e1cf8c4f5ddf5dc2457701eff32de5c81054544c7519288ed3c35a7e73b84",
+    "pass": true
+  },
+  "cleanup": {
+    "path": "cleanup.json",
+    "sha256": "6942bc43815daf5a0033accd3b29cec5c8c248e83891589441c9d24c8219f0d0",
+    "pass": true
+  },
+  "screenshot_eligible": true,
+  "human_review_required": false,
+  "negative_result": false,
+  "position_variants": {
+    "path": "position-variants/summary.json",
+    "sha256": "3ed8e7d6c8ab35180b44cc04d5ba7e7b598d28c74e25b52de80dd7bef0992736",
+    "pass": true
+  },
+  "post_screenshot_human_review_required": true,
+  "acceptance": {
+    "method": "independent_clean_room",
+    "review_id": "REVIEW-MIGRATION-DECISION-RECOVERY-20260819T080556Z",
+    "verdict": "pass",
+    "accepted_at": "2026-08-19T08:06:37.957151+00:00",
+    "acceptance_tooling_commit": "0896e387925b2b0fe3773c469e5b4a35a02da2a1",
+    "private_review_reference_recorded": false
+  },
+  "screenshots": [
+    {
+      "file": "screenshots/migration-decision-recovery-desktop.png",
+      "sha256": "bfaa90d690f54f8ff567c619ff634906b0906a2a76a3bfb1405f044519946bdc",
+      "width": 1440,
+      "height": 1000,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "run-b/evidence-01.json"
+    },
+    {
+      "file": "screenshots/migration-decision-recovery-full-page.png",
+      "sha256": "97c5fb33d82196b99b2994aeb03662e4217ee7d7e4f88728a662f8ecf15ba3b2",
+      "width": 1200,
+      "height": 4000,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "position-variants/summary.json"
+    },
+    {
+      "file": "screenshots/migration-decision-recovery-mobile.png",
+      "sha256": "a66977c13189ea785a9129e6afd29b92aef4a0078b405c831e3bec4f34cfa12e",
+      "width": 800,
+      "height": 1100,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "run-b/resolver.json"
+    }
+  ]
+}

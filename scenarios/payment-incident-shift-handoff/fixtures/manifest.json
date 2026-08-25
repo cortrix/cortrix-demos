@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scenario_id": "payment-incident-shift-handoff",
+  "synthetic_data": true,
+  "construction_note": "Synthetic mechanism demo designed before execution to isolate current incident authority from a superseded shift handoff and nearby operational noise.",
+  "query": {"path": "query.txt", "sha256": "d67317c4b9ba938f494117cfb9ee4d6d019299cbbf18175975bea540d74848d7"},
+  "blind_queries": [
+    {"id": "status-boundary", "path": "blind-status.txt", "sha256": "f5f1fa3f194447a16186d6f64b8e9e72d7339d9759aeca5a831ee2f7021e5095"},
+    {"id": "safety-boundary", "path": "blind-safety.txt", "sha256": "1749a9809484e6370b8e4339cee80bff0f59f6326109a9e1366b9b260f15abff"}
+  ],
+  "documents": [
+    {"path":"payment-handoff-0100-superseded.md","document_id":"payment-handoff-0100-superseded","source":"incident_handoff","version":"01:00","status":"superseded","effective_at":"2026-08-18T01:00:00Z","superseded_by":"payment-handoff-0320-current","role":"decisive","baseline_rank":1,"sha256":"930c5d8e719187919ea54504417930b7b7deddc0a7e70e3301d24bd65993f071"},
+    {"path":"payment-capacity-plan.md","document_id":"payment-capacity-plan","source":"capacity_plan","version":"2026-Q3","status":"current","effective_at":"2026-07-01","role":"distractor","baseline_rank":2,"sha256":"2450511907cb60b3f33ba1dcd9c9d6cccb9093881b050fe17b99a77f8fad78f0"},
+    {"path":"database-maintenance-notice.md","document_id":"database-maintenance-notice","source":"maintenance_notice","version":"2026-08","status":"current","effective_at":"2026-08-25","role":"distractor","baseline_rank":3,"sha256":"01b215f694c9cd275f9366002a0e2f6173c1509ce94fcbb563f891b9905576ef"},
+    {"path":"checkout-ui-timeout.md","document_id":"checkout-ui-timeout","source":"incident_note","version":"2026-05","status":"historical","effective_at":"2026-05-12","role":"distractor","baseline_rank":4,"sha256":"596371b0590ee837f00960cd89f7420befb8890b2e2a6352885e0065131e8bc3"},
+    {"path":"payment-handoff-0320-current.md","document_id":"payment-handoff-0320-current","source":"incident_handoff","version":"03:20","status":"current","effective_at":"2026-08-18T03:20:00Z","supersedes":"payment-handoff-0100-superseded","role":"decisive","baseline_rank":5,"sha256":"8a1b63983cb16a4ac69709f39e2db4a004368632aeca305f5e94bda078598b54"},
+    {"path":"gateway-queue-saturation-confirmed.md","document_id":"gateway-queue-saturation-confirmed","source":"incident_evidence","version":"2026-08-18","status":"current","effective_at":"2026-08-18T02:02:00Z","role":"decisive","baseline_rank":6,"sha256":"d1d19ec15794b266b8d2cd173a5c6eab74384a150e0b8d37e55045cb6c9f2d15"},
+    {"path":"database-saturation-ruled-out.md","document_id":"database-saturation-ruled-out","source":"hypothesis_review","version":"2026-08-18","status":"current","effective_at":"2026-08-18T01:31:00Z","role":"decisive","baseline_rank":7,"sha256":"d77648d5a6f447c5f54742483ac78d9d2cd568ead1adbc0e823e877a84119ca4"},
+    {"path":"worker-change-pending-approval.md","document_id":"worker-change-pending-approval","source":"change_proposal","version":"2026-08-18","status":"pending","effective_at":"2026-08-18T02:18:00Z","role":"decisive","baseline_rank":8,"sha256":"3b62b2b6528ff243096f3c06d3bf03ee64ece07c692d5fb1462879bb9f6a21e0"},
+    {"path":"payment-readonly-checks-current.md","document_id":"payment-readonly-checks-current","source":"check_register","version":"2026-08-18","status":"current","effective_at":"2026-08-18T03:20:00Z","role":"decisive","baseline_rank":9,"sha256":"c01affacba42f7535c4a50d5da2d779a833f0e07140e00df0d282eb290160750"},
+    {"path":"incident-events.md","document_id":"payment-incident-event-export","source":"explicit_event_export","version":"2026-08-18","status":"current","effective_at":"2026-08-18T03:20:00Z","role":"decisive","baseline_rank":10,"sha256":"e1677a85fe39b907075c1dde0d0ed548dcf9cd8eb97734f06573dd8bbfdc2cf0"},
+    {"path":"refund-latency-review.md","document_id":"refund-latency-review","source":"service_review","version":"2026-07","status":"current","effective_at":"2026-07-22","role":"distractor","baseline_rank":11,"sha256":"bdb1fb560e4d46d76f425f574ebaaaf94d52a73cbd550b8df52359e9fc66431b"},
+    {"path":"fraud-model-latency.md","document_id":"fraud-model-latency","source":"experiment","version":"draft","status":"draft","effective_at":"2026-08-10","role":"distractor","baseline_rank":12,"sha256":"8308438bba2afe45de9a9812c544967447a7f0530551c71606eba854c7e541d1"},
+    {"path":"ledger-reconciliation-runbook.md","document_id":"ledger-reconciliation-runbook","source":"operations_runbook","version":"4.2","status":"current","effective_at":"2026-06-01","role":"distractor","baseline_rank":13,"sha256":"ef3e00fa25bc3dddc4214b3480da3df8021f597d25fb0c5fbac49d4d011c34b8"},
+    {"path":"merchant-webhook-backlog.md","document_id":"merchant-webhook-backlog","source":"incident_report","version":"2026-06","status":"historical","effective_at":"2026-06-18","role":"distractor","baseline_rank":14,"sha256":"646e1f29ad8acf1afa22e7e55be1ec95986e3116707b2ee4d99406d21d76988c"},
+    {"path":"gateway-load-test-draft.md","document_id":"gateway-load-test-draft","source":"test_plan","version":"draft","status":"draft","effective_at":"2026-08-18","role":"distractor","baseline_rank":15,"sha256":"3a5798117809439f46ebbf5771121b1e8effdd311feeea7282b5f55cad0958e3"},
+    {"path":"regional-routing-postmortem.md","document_id":"regional-routing-postmortem","source":"postmortem","version":"2025-11","status":"historical","effective_at":"2025-11-05","role":"distractor","baseline_rank":16,"sha256":"1fe26c96e56705cbbfb1ba88df81ee5f01834f401eecb7f961d7d3f03e90a399"}
+  ],
+  "resolver": {"owner":"demo_application_policy","rule":"select the current shift handoff, require confirmed and ruled-out evidence, and allow only read-only checks","role":"authority_and_action_boundary","expected_document_id":"payment-handoff-0320-current","expected_field":"incident_cause","forbidden_actions":["execute_remediation","restart_service","configuration_change","write_operation"]}
+}

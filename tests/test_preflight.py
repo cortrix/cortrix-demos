@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -20,16 +21,47 @@ class PreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(DemoContractError, "must be 2, 3, 4, or 5"):
             full_stack_preflight(Path("missing-source"), Path("missing-price"), reviewed_attempt_limit=6, **self.SOURCE)
 
-    @patch.dict(os.environ, {}, clear=True)
     def test_missing_api_key_stops_before_other_checks(self) -> None:
-        with self.assertRaisesRegex(DemoContractError, "no external call was made") as captured:
-            full_stack_preflight(Path("missing-source"), Path("missing-price"), **self.SOURCE)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            os.environ,
+            {"HOME": directory, "XDG_CONFIG_HOME": str(Path(directory) / "config")},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(DemoContractError, "no external call was made") as captured:
+                full_stack_preflight(Path("missing-source"), Path("missing-price"), **self.SOURCE)
         error = captured.exception.as_dict()["error"]
         self.assertEqual("CX_DEMO_SECRET_MISSING", error["code"])
         self.assertEqual("auth", error["category"])
         self.assertFalse(error["retryable"])
         self.assertFalse(error["structured_data"]["external_calls_made"])
         self.assertIn("next_action", error["structured_data"])
+
+    @patch("cortrix_demo_runner.preflight.verify_pricing_snapshot")
+    @patch("cortrix_demo_runner.preflight.verify_runtime")
+    @patch("cortrix_demo_runner.preflight.verify_source")
+    @patch("cortrix_demo_runner.preflight.require_api_key")
+    def test_preflight_records_only_the_secret_source_class(
+        self,
+        require_key: object,
+        verify_source: object,
+        verify_runtime: object,
+        verify_pricing: object,
+    ) -> None:
+        require_key.return_value = "default_profile"
+        verify_source.return_value = {"source_revision": self.SOURCE["source_revision"]}
+        verify_runtime.return_value = {"docker": "available", "docker_compose": "available"}
+        verify_pricing.return_value = {"model": "deepseek-v4-flash"}
+        result = full_stack_preflight(
+            Path("source"),
+            Path("pricing.json"),
+            expected_model="deepseek-v4-flash",
+            expected_base_url="https://api.deepseek.com/v1",
+            **self.SOURCE,
+        )
+        self.assertEqual("default_profile", result["secret_source"])
+        self.assertTrue(result["secret_present"])
+        self.assertFalse(result["secret_value_recorded"])
+        self.assertNotIn("secret_value", result)
 
     @patch("cortrix_demo_runner.preflight.subprocess.run")
     def test_unavailable_docker_engine_is_machine_retryable(self, run: object) -> None:

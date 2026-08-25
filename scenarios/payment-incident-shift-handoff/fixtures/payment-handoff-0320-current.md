@@ -1,0 +1,3 @@
+# Payment incident handoff at 03:20 UTC
+
+Status: current. Confirmed fact: the regional failover concentrated payment authorization traffic on gateway queue `gw-payments-east`, where queue depth and dequeue age rose before customer latency. Database saturation was ruled out by stable CPU, lock wait, connection, and commit latency evidence. A worker concurrency change is proposed but remains pending approval. The incoming shift may run only the read-only checks in the current check register. Unknowns are whether the secondary gateway will remain stable at peak traffic and whether delayed callbacks will create a later retry wave.

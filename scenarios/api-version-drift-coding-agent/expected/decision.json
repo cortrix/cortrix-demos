@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "expected": {
+    "current_api": "RetryPolicy",
+    "deprecated_option": "retries",
+    "max_attempts_includes_initial_request": true,
+    "max_total_attempts": 3,
+    "retryable_statuses": [429, 503],
+    "action_mode": "explanation_and_tests_only"
+  }
+}

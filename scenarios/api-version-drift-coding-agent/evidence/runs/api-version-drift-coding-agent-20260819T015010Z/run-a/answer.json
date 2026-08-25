@@ -1,0 +1,15 @@
+{
+  "answer": "Orders SDK 2.x replaces the 1.x `retries` option with a `RetryPolicy`. The superseded example's `retries=3` meant three retries after the initial request (up to four attempts); new semantics count the initial request so a `RetryPolicy` capping at 3 total attempts yields different behavior. The deprecated example (document ws_bd13173e92db8546d651581a795ab00a) must not be used; Payments, CLI (`--retry-count`), and Shipping configs are separate and do not define Orders 2.x. Retryable statuses are 429/503. Test plan: verify `RetryPolicy` is the accepted constructor arg, assert 3 total attempts includes the initial request, and confirm 429/503 trigger retries while other statuses do not.",
+  "selected_document_ids": ["orders-sdk-v1-retry-example-superseded", "payments-sdk-v1-retry-example", "orders-cli-retry-flag", "shipping-sdk-backoff-guide"],
+  "evidence_refs": ["ws_bd13173e92db8546d651581a795ab00a", "ws_38c48b21f2c3472154c306ebef618318", "ws_d820fb164c4de0184aae2abf8e7f2c5e", "ws_6d5d3bfdbae640f6a2625c1ec0836145"],
+  "decision": {
+    "action_mode": "explanation_and_tests_only",
+    "current_api": "RetryPolicy",
+    "deprecated_option": "retries",
+    "max_attempts_includes_initial_request": true,
+    "max_total_attempts": 3,
+    "retryable_statuses": [429, 503]
+  },
+  "recommended_checks": ["assert Orders SDK 2.x accepts a RetryPolicy argument, not retries", "verify a capping RetryPolicy permits exactly 3 total attempts (initial plus retries) on 429/503"],
+  "unknowns": []
+}

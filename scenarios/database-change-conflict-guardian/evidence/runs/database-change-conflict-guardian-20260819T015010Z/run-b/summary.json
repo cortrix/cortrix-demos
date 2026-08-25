@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "run_id": "database-change-conflict-guardian-20260819T015010Z",
+  "scenario_id": "database-change-conflict-guardian",
+  "backend_mode": "cortrix_bundle_loaded",
+  "pass": true,
+  "authority_pass": true,
+  "expected_outcome_observed": true,
+  "serial_query_count": 2,
+  "serial_source_order_identical": true,
+  "tool_sessions": [
+    "run-b/tool-session-01.json",
+    "run-b/tool-session-02.json"
+  ],
+  "evidence": "run-b/evidence-01.json",
+  "answer": "run-b/answer.json",
+  "usage": "run-b/usage.json",
+  "resolver": "run-b/resolver.json"
+}

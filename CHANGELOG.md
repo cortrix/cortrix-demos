@@ -4,6 +4,12 @@ All notable changes to this repository will be documented here after the first a
 
 ## Unreleased
 
+- Added four Preview DeepSeek Harness integration scenarios covering database conflict, API version drift, incident handoff, and migration decision recovery.
+- Added the exact two-tool read-only integration contract, durable source ledger evidence, application authority separation, and Harness accepted viewer.
+- Added public source preparation, use cases, limitations, model asset, compatibility, provenance, and legacy evidence documentation.
+- Added public-neutral `foundation` and `operational-continuity` campaign names for new runs.
+- Kept existing accepted archives immutable and disclosed when a new public integration commit requires new live evidence.
+
 - Added the private bootstrap for the `order-api-field-migration` scenario.
 - Added shared runner, evidence-schema, and read-only viewer contracts.
 - Defined scenario contract `1.1.0` with separate dense, BGE cross-encoder, Full Stack final-order, and application-policy evidence.

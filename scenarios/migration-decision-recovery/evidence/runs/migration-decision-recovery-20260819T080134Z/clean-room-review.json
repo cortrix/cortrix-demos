@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "review_id": "REVIEW-MIGRATION-DECISION-RECOVERY-20260819T080556Z",
+  "method": "independent_clean_room",
+  "reviewer_context": "fresh_agent_clean_clone",
+  "scenario_id": "migration-decision-recovery",
+  "run_id": "migration-decision-recovery-20260819T080134Z",
+  "verdict": "pass",
+  "clean_clone": true,
+  "safe_bootstrap_pass": true,
+  "static_validation_pass": true,
+  "manual_runbooks_verified": true,
+  "live_candidate_pass": true,
+  "secret_scan_pass": true,
+  "cleanup_pass": true,
+  "tracked_worktree_clean": true,
+  "private_review_reference_recorded": false
+}

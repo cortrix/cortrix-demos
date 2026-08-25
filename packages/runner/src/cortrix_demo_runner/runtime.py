@@ -14,6 +14,7 @@ import urllib.request
 
 from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
+from .secret_profile import resolve_secret
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -23,6 +24,9 @@ API_BASE = "http://127.0.0.1:18420/api/v1"
 IMAGE_PROVENANCE_PATH = ROOT / "runtime" / "image-provenance.json"
 SUCCESS_STATES = {"ready", "completed", "success", "succeeded"}
 FAILURE_STATES = {"failed", "cancelled", "canceled", "error"}
+LLM_SECRET_ENV = "DEEPSEEK_API_KEY"
+LLM_MODEL = "deepseek-v4-flash"
+LLM_BASE_URL = "https://api.deepseek.com/v1"
 
 
 def _http_status_error(operation: str, status: int) -> DemoContractError:
@@ -93,15 +97,11 @@ def compose_environment(profile: str) -> dict[str, str]:
 
 
 def require_key() -> str:
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-    if len(api_key) < 20:
-        raise DemoContractError(
-            "DEEPSEEK_API_KEY is missing; no external call was made",
-            code="CX_DEMO_SECRET_MISSING",
-            category="auth",
-            structured_data={"secret_env": "DEEPSEEK_API_KEY", "external_calls_made": False, "next_action": "Inject DEEPSEEK_API_KEY through the process environment before live execution."},
-        )
-    return api_key
+    return resolve_secret(
+        LLM_SECRET_ENV,
+        expected_model=LLM_MODEL,
+        expected_base_url=LLM_BASE_URL,
+    ).value
 
 
 def compose(arguments: list[str], profile: str = "embedding-only", capture: bool = False) -> subprocess.CompletedProcess[str]:
@@ -223,9 +223,63 @@ def materialize_config(profile: str) -> Path:
     return target
 
 
+def ensure_postgres_schema(timeout_seconds: float = 60) -> None:
+    readiness_command = [
+        "docker-compose",
+        "-p",
+        COMPOSE_PROJECT,
+        "-f",
+        str(COMPOSE_FILE),
+        "exec",
+        "-T",
+        "postgres",
+        "pg_isready",
+        "-U",
+        "cortrix_demo",
+        "-d",
+        "cortrix_demo",
+    ]
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        ready = subprocess.run(readiness_command, cwd=ROOT, capture_output=True, text=True, check=False)
+        if ready.returncode == 0:
+            break
+        time.sleep(1)
+    else:
+        raise _timeout_error("PostgreSQL readiness", timeout_seconds)
+    try:
+        compose(
+            [
+                "exec",
+                "-T",
+                "postgres",
+                "psql",
+                "-X",
+                "-q",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-U",
+                "cortrix_demo",
+                "-d",
+                "cortrix_demo",
+                "-f",
+                "/docker-entrypoint-initdb.d/10-demo.sql",
+            ]
+        )
+    except subprocess.CalledProcessError as exc:
+        raise DemoContractError(
+            "PostgreSQL demo schema initialization failed",
+            code="CX_DEMO_POSTGRES_SCHEMA_FAILED",
+            structured_data={"next_action": "Inspect the local PostgreSQL demo volume and rerun after restoring the tracked schema contract."},
+        ) from exc
+
+
 def start(profile: str, timeout_seconds: float = 1800) -> dict[str, Any]:
     materialize_config(profile)
     compose(["up", "-d", "postgres"], profile=profile)
+    # The official PostgreSQL image runs init scripts only for a new empty
+    # volume. Reapply the idempotent tracked schema for reused demo volumes.
+    ensure_postgres_schema()
     compose(["up", "-d", "--force-recreate", "cortrix"], profile=profile)
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:

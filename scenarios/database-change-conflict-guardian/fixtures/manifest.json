@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "synthetic_data": true,
+  "construction_note": "Synthetic mechanism demo designed before execution to isolate conflict between a superseded database runbook and the current approved migration.",
+  "query": {"path": "query.txt", "sha256": "cbc869081c991816d0f94365a90f0e3bf329449b84f3be1bcc7f20a8a59fc242"},
+  "blind_queries": [
+    {"id": "rollback-window", "path": "blind-rollback.txt", "sha256": "9b0be04393df6b6616d001412769860793f2a5f92f5d9b51aeb62662ed417ac6"},
+    {"id": "scope-boundary", "path": "blind-scope.txt", "sha256": "d42d97474a70cb6a84a8a6ad854c6f94709875317748e881e68ab0c206f9f05c"}
+  ],
+  "documents": [
+    {"path": "orders-schema-runbook-v3.1-superseded.md", "document_id": "orders-schema-runbook-v3.1-superseded", "source": "operations_runbook", "version": "3.1", "status": "superseded", "effective_at": "2026-01-10", "superseded_by": "orders-schema-migration-v4.0-current", "role": "decisive", "baseline_rank": 1, "sha256": "40363d71b96ea9de641c45b9eff706ac4413fdc7d320b8cab5c961dcc1b05378"},
+    {"path": "orders-schema-migration-v4.0-current.md", "document_id": "orders-schema-migration-v4.0-current", "source": "approved_migration", "version": "4.0", "status": "current", "effective_at": "2026-07-12", "supersedes": "orders-schema-runbook-v3.1-superseded", "role": "decisive", "baseline_rank": 5, "sha256": "200914fc9a193eeeedadf4c368db5f5a141b6b616f34877850c46b05f3f23bb2"},
+    {"path": "orders-rollback-window-v4.0.md", "document_id": "orders-rollback-window-v4.0", "source": "operations_notice", "version": "4.0", "status": "current", "effective_at": "2026-07-13", "role": "decisive", "baseline_rank": 8, "sha256": "d8d2968de34ab8e3f3e38e0d1c2261ff677e83c325df0eca46e944bdebc86e14"},
+    {"path": "orders-incident-readonly-evidence.md", "document_id": "orders-incident-readonly-evidence", "source": "incident_evidence", "version": "2026-08-17", "status": "current", "effective_at": "2026-08-17", "role": "decisive", "baseline_rank": 2, "sha256": "edc48c925750365262b75d3f52f7275acc34c042e7f7a87f1612eec08dcc5f55"},
+    {"path": "invoices-account-column-guide.md", "document_id": "invoices-account-column-guide", "source": "reference_guide", "version": "2.2", "status": "current", "effective_at": "2026-05-01", "role": "distractor", "baseline_rank": 3, "sha256": "c562891db914b863ed771fc75c8e09c865c7cb7d7d66fe72d261a0cff1098376"},
+    {"path": "staging-orders-compatibility-view-draft.md", "document_id": "staging-orders-compatibility-view-draft", "source": "draft_design", "version": "draft", "status": "draft", "effective_at": "2026-06-20", "role": "distractor", "baseline_rank": 4, "sha256": "32fc4b4f223185d6971f7ab507192f1f10cc88fb7308f7788866af30f8067d5b"},
+    {"path": "returns-buyer-reference-migration.md", "document_id": "returns-buyer-reference-migration", "source": "approved_migration", "version": "2.0", "status": "current", "effective_at": "2026-07-01", "role": "distractor", "baseline_rank": 6, "sha256": "2d0b930b16da2fedd0afcd876de5901e625fc95670a41781984a3215ec330152"},
+    {"path": "orders-audit-column-reference.md", "document_id": "orders-audit-column-reference", "source": "reference_guide", "version": "1.5", "status": "current", "effective_at": "2026-07-12", "role": "distractor", "baseline_rank": 7, "sha256": "b28bd5763f2692f38c309b94fe8032ed09c2b29182755f8a9819cdc77c03dbdc"},
+    {"path": "customer-profile-account-migration.md", "document_id": "customer-profile-account-migration", "source": "approved_migration", "version": "3.0", "status": "current", "effective_at": "2026-06-15", "role": "distractor", "baseline_rank": 9, "sha256": "d16a20f51a1a9108333604ec295e373e0d558643092141b38ba32439536fa942"},
+    {"path": "warehouse-orders-region-incident.md", "document_id": "warehouse-orders-region-incident", "source": "incident_report", "version": "2026-07", "status": "current", "effective_at": "2026-07-08", "role": "distractor", "baseline_rank": 10, "sha256": "6f616463515431962ff87d45d09e183a1fac1e6e6837750e54b1e027715715ee"},
+    {"path": "orders-backfill-performance-note.md", "document_id": "orders-backfill-performance-note", "source": "performance_note", "version": "4.0", "status": "historical", "effective_at": "2026-07-12", "role": "distractor", "baseline_rank": 11, "sha256": "c267a006e8d3693680e7090384c4084560d32d61c614e80835a180471a6a89a7"},
+    {"path": "checkout-sdk-account-mapping.md", "document_id": "checkout-sdk-account-mapping", "source": "sdk_reference", "version": "5.0", "status": "current", "effective_at": "2026-08-01", "role": "distractor", "baseline_rank": 12, "sha256": "67c3041899b20bb206f0be4211bf8a239790db9ad33059eaeb668a5f23682a7c"}
+  ],
+  "resolver": {
+    "owner": "demo_application_policy",
+    "rule": "select the approved current Orders migration, require a closed-window check, and allow only read-only diagnosis",
+    "role": "authority_and_action_boundary",
+    "expected_document_id": "orders-schema-migration-v4.0-current",
+    "expected_field": "buyer_account_id",
+    "forbidden_actions": ["ddl", "dml", "rollback", "configuration_change"]
+  }
+}

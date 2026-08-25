@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "deepseek-harness-cortrix-readonly",
+  "scenario_id": "api-version-drift-coding-agent",
+  "compatibility_profiles": ["full-stack", "replay"],
+  "baseline": {"adapter_id": "frozen-workspace-evidence", "role": "run_a", "configuration": "preregistered read-only workspace evidence order"},
+  "harness": {"repository": "https://github.com/deepseek-ai/DeepSeek-Harness.git", "commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca", "mode": "headless"},
+  "cortrix": {"role": "run_b_evidence_backend", "repository": "https://github.com/cortrix/cortrix.git", "release": "main", "source_revision": "4c0f0f96b652d5662a66d047771826a4d2933739"},
+  "plugin": {"package": "@cortrix/dsh-cortrix", "version": "0.1.0", "tools": ["cortrix_search_evidence", "cortrix_get_source"], "write_tools": 0},
+  "llm": {"adapter_id": "deepseek-openai-compatible", "provider": "deepseek", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com/v1", "secret_env": "DEEPSEEK_API_KEY", "roles": ["harness_answer"], "local_fallback_allowed": false},
+  "accepted_evidence": "evidence/accepted-run.json"
+}

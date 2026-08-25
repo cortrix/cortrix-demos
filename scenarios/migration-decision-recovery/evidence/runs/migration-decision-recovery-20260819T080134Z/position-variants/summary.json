@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "run_id": "migration-decision-recovery-20260819T080134Z",
+  "primary_variant": "middle",
+  "variants": [
+    {
+      "variant": "front",
+      "run_a_pass": true,
+      "run_b_pass": true,
+      "authority_pass": true,
+      "resolver_pass": true,
+      "cleanup_pass": true
+    },
+    {
+      "variant": "middle",
+      "run_a_pass": true,
+      "run_b_pass": true,
+      "authority_pass": true,
+      "resolver_pass": true,
+      "cleanup_pass": true
+    },
+    {
+      "variant": "end",
+      "run_a_pass": true,
+      "run_b_pass": true,
+      "authority_pass": true,
+      "resolver_pass": true,
+      "cleanup_pass": true
+    }
+  ],
+  "all_variants_pass": true
+}

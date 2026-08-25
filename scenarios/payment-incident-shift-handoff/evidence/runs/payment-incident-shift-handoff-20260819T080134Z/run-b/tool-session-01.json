@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "session_id": "payment-incident-shift-handoff-20260819T080134Z-query-1",
+  "registered_tools": [
+    "cortrix_search_evidence",
+    "cortrix_get_source"
+  ],
+  "search_result": {
+    "status": "ok",
+    "query": "I am taking over the payment-latency incident. What has been confirmed, which hypotheses were ruled out, and which read-only checks remain? Separate facts, inferences, and unknowns. Do not execute remediation.",
+    "purpose": "verification",
+    "evidence": [
+      {
+        "evidence_ref": "cxev_YnyxWvF6sxbq1zywTPTYh6wNWdXTQ5As",
+        "excerpt": "Status: current. Confirmed fact: the regional failover concentrated payment authorization traffic on gateway queue `gw-payments-east`, where queue depth and dequeue age rose before customer latency. Database saturation was ruled out by stable CPU, lock wait, connection, and commit latency evidence. A worker concurrency change is proposed but remains pending approval. The incoming shift may run only the read-only checks in the current check register. Unknowns are whether the secondary gateway will remain stable at peak traffic and whether delayed callbacks will create a later retry wave.",
+        "score": 0.01666666753590107,
+        "rerank_score": 0.9619222283363342,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:18e95415a8ae1d4a706facf699b29efd"
+      },
+      {
+        "evidence_ref": "cxev_8zsxFbe0EstZMlJb9nUX4qqncQOZHZJo",
+        "excerpt": "# Database saturation hypothesis review\nStatus: current and ruled out for this incident window. PostgreSQL CPU remained below 42 percent, active connections remained below 38 percent of the limit, lock waits stayed at baseline, and commit latency did not move with payment latency. These observations rule out primary database saturation as the incident cause. They do not prove that all database risk is absent.",
+        "score": 0.016393441706895828,
+        "rerank_score": 0.8983274698257446,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:981766a31823393c1fffcc1b3e8a5073"
+      },
+      {
+        "evidence_ref": "cxev_xWLNTPXWgDSCb21FVhXs6ZBtrt-ndqc2",
+        "excerpt": "# Confirmed cause for the payment-latency incident shift handoff\nFor an engineer taking over this incident, the confirmed cause is payment gateway queue saturation after the regional failover. Queue depth reached 18,400 messages and oldest-message age reached 47 seconds while database metrics stayed within the established baseline. The timing preceded the p95 authorization latency increase by four minutes. This is a confirmed fact, not permission to remediate.",
+        "score": 0.016129031777381897,
+        "rerank_score": 0.8263939023017883,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:1f73444bd598d91e905dad8762080e7d"
+      },
+      {
+        "evidence_ref": "cxev_E-dr0_X5xU2qBgaTCqJePgqPcEjev3C6",
+        "excerpt": "# Current read-only check register\nAllowed checks for the incoming shift are: inspect gateway queue depth and oldest-message age; compare read-only payment authorization latency by region; inspect worker backlog without restarting workers; and verify database CPU, connections, lock waits, and commit latency. Record timestamps and distinguish observations from inference. Do not change configuration or execute remediation.",
+        "score": 0.01587301678955555,
+        "rerank_score": 0.7897824645042419,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:55c94041537df2ff27e34387323e3a73"
+      },
+      {
+        "evidence_ref": "cxev_gUoCo6ozKsPmhzvIlLOg2Jqwq8wcmIOd",
+        "excerpt": "# Fraud model latency experiment\nA staging experiment measured fraud model inference latency under synthetic load. It did not use production payment traffic and cannot confirm or rule out causes in the current incident.",
+        "score": 0.015625,
+        "rerank_score": 0.32243505120277405,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:259466fe6cd5c3c885d90f2a15c12264"
+      },
+      {
+        "evidence_ref": "cxev_t01CErkXlZJ4DdD2YXbE8L8aaEounPhY",
+        "excerpt": "# Payment incident handoff at 01:00 UTC\nStatus: superseded by the 03:20 UTC handoff. Payment authorization latency is elevated. The working hypothesis is primary database saturation. The outgoing shift recommends increasing the database connection pool and restarting payment workers. Gateway queue saturation has not yet been evaluated. This snapshot must not be used as current authority.",
+        "score": 0.015384615398943424,
+        "rerank_score": 0.23759755492210388,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:51ed3726695692200e5ec69efc9a2939"
+      },
+      {
+        "evidence_ref": "cxev_SOMJT3COuz47UKXEBnivCNj-P2vGcwRb",
+        "excerpt": "# Proposed payment worker change\nStatus: pending approval. For the shift handoff, the remediation status remains pending approval: the incident team proposed a temporary payment worker concurrency adjustment after confirming gateway queue saturation. No change has been approved or executed. The proposal requires incident commander and payments owner approval plus a rollback checkpoint. An incoming engineer must not execute remediation, restart workers, change concurrency, or alter configuration.",
+        "score": 0.01515151560306549,
+        "rerank_score": 0.2365601360797882,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:2dc0ac88f298685dc54868f4390e0cae"
+      },
+      {
+        "evidence_ref": "cxev_bhqGwEGABqu8TR1TIhqwzrE-JQ8eiyo1",
+        "excerpt": "# Historical regional routing postmortem\nA 2025 routing incident involved a stale health check. The cause and remediation differ from the current payment latency incident. This historical report is a distractor.",
+        "score": 0.014925372786819935,
+        "rerank_score": 0.14008833467960358,
+        "namespace": "harness-83e5160799c6915ce6834985",
+        "content_hash": "sha256:df5efce300e4228c4dcbdf72bc8350ec"
+      }
+    ],
+    "meta": {
+      "coverage_ratio": 1,
+      "namespaces_succeeded": [
+        "harness-83e5160799c6915ce6834985"
+      ],
+      "namespaces_failed": [],
+      "warnings": [],
+      "truncated": false
+    }
+  },
+  "source_ledger": {
+    "cxev_YnyxWvF6sxbq1zywTPTYh6wNWdXTQ5As": "Status: current. Confirmed fact: the regional failover concentrated payment authorization traffic on gateway queue `gw-payments-east`, where queue depth and dequeue age rose before customer latency. Database saturation was ruled out by stable CPU, lock wait, connection, and commit latency evidence. A worker concurrency change is proposed but remains pending approval. The incoming shift may run only the read-only checks in the current check register. Unknowns are whether the secondary gateway will remain stable at peak traffic and whether delayed callbacks will create a later retry wave.",
+    "cxev_8zsxFbe0EstZMlJb9nUX4qqncQOZHZJo": "# Database saturation hypothesis review\nStatus: current and ruled out for this incident window. PostgreSQL CPU remained below 42 percent, active connections remained below 38 percent of the limit, lock waits stayed at baseline, and commit latency did not move with payment latency. These observations rule out primary database saturation as the incident cause. They do not prove that all database risk is absent.",
+    "cxev_xWLNTPXWgDSCb21FVhXs6ZBtrt-ndqc2": "# Confirmed cause for the payment-latency incident shift handoff\nFor an engineer taking over this incident, the confirmed cause is payment gateway queue saturation after the regional failover. Queue depth reached 18,400 messages and oldest-message age reached 47 seconds while database metrics stayed within the established baseline. The timing preceded the p95 authorization latency increase by four minutes. This is a confirmed fact, not permission to remediate.",
+    "cxev_E-dr0_X5xU2qBgaTCqJePgqPcEjev3C6": "# Current read-only check register\nAllowed checks for the incoming shift are: inspect gateway queue depth and oldest-message age; compare read-only payment authorization latency by region; inspect worker backlog without restarting workers; and verify database CPU, connections, lock waits, and commit latency. Record timestamps and distinguish observations from inference. Do not change configuration or execute remediation.",
+    "cxev_gUoCo6ozKsPmhzvIlLOg2Jqwq8wcmIOd": "# Fraud model latency experiment\nA staging experiment measured fraud model inference latency under synthetic load. It did not use production payment traffic and cannot confirm or rule out causes in the current incident.",
+    "cxev_t01CErkXlZJ4DdD2YXbE8L8aaEounPhY": "# Payment incident handoff at 01:00 UTC\nStatus: superseded by the 03:20 UTC handoff. Payment authorization latency is elevated. The working hypothesis is primary database saturation. The outgoing shift recommends increasing the database connection pool and restarting payment workers. Gateway queue saturation has not yet been evaluated. This snapshot must not be used as current authority.",
+    "cxev_SOMJT3COuz47UKXEBnivCNj-P2vGcwRb": "# Proposed payment worker change\nStatus: pending approval. For the shift handoff, the remediation status remains pending approval: the incident team proposed a temporary payment worker concurrency adjustment after confirming gateway queue saturation. No change has been approved or executed. The proposal requires incident commander and payments owner approval plus a rollback checkpoint. An incoming engineer must not execute remediation, restart workers, change concurrency, or alter configuration.",
+    "cxev_bhqGwEGABqu8TR1TIhqwzrE-JQ8eiyo1": "# Historical regional routing postmortem\nA 2025 routing incident involved a stale health check. The cause and remediation differ from the current payment latency incident. This historical report is a distractor."
+  },
+  "tool_trace": [
+    {
+      "name": "cortrix_search_evidence",
+      "call_id": "cortrix-search-1",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-1",
+      "evidence_ref": "cxev_YnyxWvF6sxbq1zywTPTYh6wNWdXTQ5As",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-2",
+      "evidence_ref": "cxev_8zsxFbe0EstZMlJb9nUX4qqncQOZHZJo",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-3",
+      "evidence_ref": "cxev_xWLNTPXWgDSCb21FVhXs6ZBtrt-ndqc2",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-4",
+      "evidence_ref": "cxev_E-dr0_X5xU2qBgaTCqJePgqPcEjev3C6",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-5",
+      "evidence_ref": "cxev_gUoCo6ozKsPmhzvIlLOg2Jqwq8wcmIOd",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-6",
+      "evidence_ref": "cxev_t01CErkXlZJ4DdD2YXbE8L8aaEounPhY",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-7",
+      "evidence_ref": "cxev_SOMJT3COuz47UKXEBnivCNj-P2vGcwRb",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-8",
+      "evidence_ref": "cxev_bhqGwEGABqu8TR1TIhqwzrE-JQ8eiyo1",
+      "status": "ok"
+    }
+  ],
+  "durable_session_events": [
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-search-1",
+        "name": "cortrix_search_evidence"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-search-1"
+            }
+          ]
+        },
+        "meta": {
+          "schema": "cortrix_evidence_ledger/v1",
+          "search_call_id": "cortrix-search-1",
+          "namespace": "harness-83e5160799c6915ce6834985",
+          "entries": [
+            {
+              "ordinal": 0,
+              "evidence_ref": "cxev_YnyxWvF6sxbq1zywTPTYh6wNWdXTQ5As",
+              "child_id": "01M0CGNPT0H44V7DG8AA01P69P",
+              "parent_id": "",
+              "content_hash": "sha256:18e95415a8ae1d4a706facf699b29efd",
+              "content": "Status: current. Confirmed fact: the regional failover concentrated payment authorization traffic on gateway queue `gw-payments-east`, where queue depth and dequeue age rose before customer latency. Database saturation was ruled out by stable CPU, lock wait, connection, and commit latency evidence. A worker concurrency change is proposed but remains pending approval. The incoming shift may run only the read-only checks in the current check register. Unknowns are whether the secondary gateway will remain stable at peak traffic and whether delayed callbacks will create a later retry wave.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 1,
+              "evidence_ref": "cxev_8zsxFbe0EstZMlJb9nUX4qqncQOZHZJo",
+              "child_id": "01M0CGNRVGPJ4V3VKCWYAREN27",
+              "parent_id": "",
+              "content_hash": "sha256:981766a31823393c1fffcc1b3e8a5073",
+              "content": "# Database saturation hypothesis review\nStatus: current and ruled out for this incident window. PostgreSQL CPU remained below 42 percent, active connections remained below 38 percent of the limit, lock waits stayed at baseline, and commit latency did not move with payment latency. These observations rule out primary database saturation as the incident cause. They do not prove that all database risk is absent.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 2,
+              "evidence_ref": "cxev_xWLNTPXWgDSCb21FVhXs6ZBtrt-ndqc2",
+              "child_id": "01M0CGNQTKN8D1H2MREVCJKMZY",
+              "parent_id": "",
+              "content_hash": "sha256:1f73444bd598d91e905dad8762080e7d",
+              "content": "# Confirmed cause for the payment-latency incident shift handoff\nFor an engineer taking over this incident, the confirmed cause is payment gateway queue saturation after the regional failover. Queue depth reached 18,400 messages and oldest-message age reached 47 seconds while database metrics stayed within the established baseline. The timing preceded the p95 authorization latency increase by four minutes. This is a confirmed fact, not permission to remediate.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 3,
+              "evidence_ref": "cxev_E-dr0_X5xU2qBgaTCqJePgqPcEjev3C6",
+              "child_id": "01M0CGNTWVGH99Y7BX62FJ1TRF",
+              "parent_id": "",
+              "content_hash": "sha256:55c94041537df2ff27e34387323e3a73",
+              "content": "# Current read-only check register\nAllowed checks for the incoming shift are: inspect gateway queue depth and oldest-message age; compare read-only payment authorization latency by region; inspect worker backlog without restarting workers; and verify database CPU, connections, lock waits, and commit latency. Record timestamps and distinguish observations from inference. Do not change configuration or execute remediation.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 4,
+              "evidence_ref": "cxev_gUoCo6ozKsPmhzvIlLOg2Jqwq8wcmIOd",
+              "child_id": "01M0CGNXYR5AS5H8XBZ5H1GQ6W",
+              "parent_id": "",
+              "content_hash": "sha256:259466fe6cd5c3c885d90f2a15c12264",
+              "content": "# Fraud model latency experiment\nA staging experiment measured fraud model inference latency under synthetic load. It did not use production payment traffic and cannot confirm or rule out causes in the current incident.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 5,
+              "evidence_ref": "cxev_t01CErkXlZJ4DdD2YXbE8L8aaEounPhY",
+              "child_id": "01M0CGNJZNZY46G06SJ832AZ5V",
+              "parent_id": "",
+              "content_hash": "sha256:51ed3726695692200e5ec69efc9a2939",
+              "content": "# Payment incident handoff at 01:00 UTC\nStatus: superseded by the 03:20 UTC handoff. Payment authorization latency is elevated. The working hypothesis is primary database saturation. The outgoing shift recommends increasing the database connection pool and restarting payment workers. Gateway queue saturation has not yet been evaluated. This snapshot must not be used as current authority.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 6,
+              "evidence_ref": "cxev_SOMJT3COuz47UKXEBnivCNj-P2vGcwRb",
+              "child_id": "01M0CGNSW5T3XZ20HQVRNDP3A9",
+              "parent_id": "",
+              "content_hash": "sha256:2dc0ac88f298685dc54868f4390e0cae",
+              "content": "# Proposed payment worker change\nStatus: pending approval. For the shift handoff, the remediation status remains pending approval: the incident team proposed a temporary payment worker concurrency adjustment after confirming gateway queue saturation. No change has been approved or executed. The proposal requires incident commander and payments owner approval plus a rollback checkpoint. An incoming engineer must not execute remediation, restart workers, change concurrency, or alter configuration.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 7,
+              "evidence_ref": "cxev_bhqGwEGABqu8TR1TIhqwzrE-JQ8eiyo1",
+              "child_id": "01M0CGP1S5ED4GHZKCMWAQMW0W",
+              "parent_id": "",
+              "content_hash": "sha256:df5efce300e4228c4dcbdf72bc8350ec",
+              "content": "# Historical regional routing postmortem\nA 2025 routing incident involved a stale health check. The cause and remediation differ from the current payment latency incident. This historical report is a distractor.",
+              "source_kind": "content"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-1",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-2",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-3",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-3"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-4",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-5",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-6",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-6"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-7",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-7"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-8",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-8"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "plugin_external_http_calls": 1,
+  "external_llm_calls": 0
+}

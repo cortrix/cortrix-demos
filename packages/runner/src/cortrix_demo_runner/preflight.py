@@ -1,30 +1,28 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import subprocess
 from typing import Any
 
 from .errors import DemoContractError
 from .io import read_json
+from .secret_profile import resolve_secret
 
 
 REVIEWED_ATTEMPT_LIMITS = (2, 3, 4, 5)
 
 
-def require_api_key(secret_env: str = "DEEPSEEK_API_KEY") -> None:
-    value = os.environ.get(secret_env, "").strip()
-    if len(value) < 20:
-        raise DemoContractError(
-            f"{secret_env} is missing; no external call was made",
-            code="CX_DEMO_SECRET_MISSING",
-            category="auth",
-            structured_data={
-                "secret_env": secret_env,
-                "external_calls_made": False,
-                "next_action": f"Inject {secret_env} through the process environment, then rerun preflight.",
-            },
-        )
+def require_api_key(
+    secret_env: str = "DEEPSEEK_API_KEY",
+    *,
+    expected_model: str | None = None,
+    expected_base_url: str | None = None,
+) -> str:
+    return resolve_secret(
+        secret_env,
+        expected_model=expected_model,
+        expected_base_url=expected_base_url,
+    ).source
 
 
 def verify_source(
@@ -129,15 +127,22 @@ def full_stack_preflight(
     source_repository: str | None = None,
     source_path: str = ".runtime/cortrix-src",
     secret_env: str = "DEEPSEEK_API_KEY",
+    expected_model: str | None = None,
+    expected_base_url: str | None = None,
     reviewed_attempt_limit: int = 2,
     budget_usd: float = 1.0,
 ) -> dict[str, Any]:
     if reviewed_attempt_limit not in REVIEWED_ATTEMPT_LIMITS:
         raise DemoContractError("The reviewed Full Stack attempt limit must be 2, 3, 4, or 5")
-    require_api_key(secret_env)
+    secret_source = require_api_key(
+        secret_env,
+        expected_model=expected_model,
+        expected_base_url=expected_base_url,
+    )
     return {
         "secret_present": True,
         "secret_env": secret_env,
+        "secret_source": secret_source,
         "secret_value_recorded": False,
         "source": verify_source(
             source,

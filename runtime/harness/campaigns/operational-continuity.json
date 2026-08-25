@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "campaign_id": "deepseek-harness-cortrix-operational-continuity",
+  "compose_project": "cortrix_demos_harness_continuity",
+  "budget_usd": 5.0,
+  "answer_calls": 8,
+  "source_projection_scenario": "payment-incident-shift-handoff",
+  "scenarios": [
+    {"id": "payment-incident-shift-handoff", "position_variants": []},
+    {"id": "migration-decision-recovery", "position_variants": ["front", "middle", "end"], "primary_variant": "middle"}
+  ]
+}

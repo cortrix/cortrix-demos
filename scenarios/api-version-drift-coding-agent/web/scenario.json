@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "scenario_version": "1.0.1",
+  "display_name": "API Version Drift Coding Agent",
+  "title": "When a Familiar Retry Example Uses Retired Semantics",
+  "summary": "The same Harness and model receive either incomplete frozen workspace evidence or current evidence retrieved through the Cortrix read-only plugin. An application resolver separately enforces API authority, package scope, and a no-edit boundary.",
+  "synthetic_disclosure": "Synthetic mechanism demo preregistered before live execution; not a retrieval benchmark.",
+  "default_locale": "en-US",
+  "available_locales": ["en-US"]
+}

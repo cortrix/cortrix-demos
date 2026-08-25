@@ -1,0 +1,1 @@
+After upgrading the Orders SDK from version 1.x to 2.x, retry behavior no longer matches the old example. Find the current official API and deprecation notice, explain why the example is obsolete, and propose the smallest test plan. Do not edit code.

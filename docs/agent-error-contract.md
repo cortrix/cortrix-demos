@@ -33,7 +33,8 @@ The execution path uses these code families:
 | Code or family | Meaning | Recovery rule |
 |---|---|---|
 | `CX_DEMO_LIVE_INPUT_INVALID` | A live command input is outside the reviewed contract. | Follow `next_action`; a passive retry is not allowed. |
-| `CX_DEMO_CHECKOUT_BRANCH_INVALID`, `CX_DEMO_WORKING_TREE_DIRTY`, `CX_DEMO_CHECKOUT_COMMIT_INVALID` | The demo checkout does not satisfy a live execution precondition. | Correct only the reported checkout condition. Local filenames are never included in the payload. |
+| `CX_DEMO_CHECKOUT_BRANCH_INVALID`, `CX_DEMO_LOCALIZATION_CHECKOUT_INVALID`, `CX_DEMO_WORKING_TREE_DIRTY`, `CX_DEMO_CHECKOUT_COMMIT_INVALID` | The demo checkout does not satisfy a live execution precondition. | Correct only the reported checkout condition. Local filenames are never included in the payload. |
+| `CX_DEMO_POSTGRES_SCHEMA_FAILED` | The local PostgreSQL demo volume could not apply the tracked idempotent schema. | Inspect only the local demo volume and tracked schema; do not replace evidence or change scenario inputs. |
 | `CX_DEMO_WALKTHROUGH_INPUT_INVALID`, `CX_DEMO_WALKTHROUGH_SESSION_NOT_FOUND`, `CX_DEMO_WALKTHROUGH_PHASE_INVALID` | The walkthrough command, session, or ordering is not ready for the requested step. | Follow the reported safe command or inspect the current walkthrough status. |
 | `CX_DEMO_HTTP_RATE_LIMITED`, `CX_DEMO_HTTP_SERVER_ERROR`, `CX_DEMO_OPERATION_TIMEOUT`, `CX_DEMO_INGESTION_TIMEOUT` | A reviewed transient failure occurred. | Use `retry_after_ms` and the existing attempt limit. Do not create extra attempts. |
 | `CX_DEMO_FULL_STACK_ATTEMPT_LIMIT_REACHED`, `CX_DEMO_CAMPAIGN_ATTEMPT_CAP_EXCEEDED`, `CX_DEMO_BUDGET_BOUND_EXCEEDED` | An attempt or cost boundary has been reached. | Stop. The error does not grant permission to expand a limit or budget. |

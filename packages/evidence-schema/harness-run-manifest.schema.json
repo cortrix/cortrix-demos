@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cortrix/cortrix-demos/packages/evidence-schema/harness-run-manifest.schema.json",
+  "title": "DeepSeek Harness and Cortrix comparison run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scenario_id", "run_id", "state", "source_identity", "comparison", "provider", "usage", "run_a", "run_b", "resolver", "cleanup", "screenshot_eligible", "human_review_required"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "scenario_id": {"enum": ["database-change-conflict-guardian", "api-version-drift-coding-agent", "payment-incident-shift-handoff", "migration-decision-recovery"]},
+    "run_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["created", "running", "candidate", "accepted", "rejected"]},
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["demo_commit", "plugin_commit", "harness_commit", "cortrix_commit", "fixture_manifest_sha256", "assertion_contract_sha256"],
+      "properties": {
+        "demo_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "plugin_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "harness_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cortrix_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cortrix_image_digest": {"type": ["string", "null"]},
+        "fixture_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "assertion_contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "answer_prompt_template_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["same_harness", "same_model", "same_prompt", "same_corpus", "same_non_cortrix_tools", "only_independent_variable"],
+      "properties": {
+        "same_harness": {"const": true},
+        "same_model": {"const": true},
+        "same_prompt": {"const": true},
+        "same_corpus": {"const": true},
+        "same_non_cortrix_tools": {"const": true},
+        "only_independent_variable": {"const": "cortrix_bundle_loaded"}
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "local_generative_llm", "fallback_used", "secret_source", "secret_value_recorded"],
+      "properties": {
+        "provider": {"const": "deepseek"},
+        "model": {"const": "deepseek-v4-flash"},
+        "local_generative_llm": {"const": false},
+        "fallback_used": {"const": false},
+        "secret_source": {"enum": ["declared_environment", "secret_file", "default_profile"]},
+        "secret_value_recorded": {"const": false}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility", "observable_calls", "observable_input_tokens", "observable_output_tokens", "observable_cost_usd", "reviewed_bound_usd", "budget_usd"],
+      "properties": {
+        "visibility": {"enum": ["complete", "partial"]},
+        "observable_calls": {"type": "integer", "minimum": 0},
+        "observable_input_tokens": {"type": "integer", "minimum": 0},
+        "observable_output_tokens": {"type": "integer", "minimum": 0},
+        "observable_cache_hit_tokens": {"type": "integer", "minimum": 0},
+        "observable_cost_usd": {"type": "number", "minimum": 0, "maximum": 5},
+        "reviewed_bound_usd": {"type": "number", "exclusiveMinimum": 0, "maximum": 5},
+        "budget_usd": {"enum": [1.0, 5.0]}
+      }
+    },
+    "pricing_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["official_url", "observed_at", "model", "currency", "prices_per_million_tokens"],
+      "properties": {
+        "official_url": {"const": "https://api-docs.deepseek.com/quick_start/pricing"},
+        "observed_at": {"type": "string", "minLength": 1},
+        "model": {"const": "deepseek-v4-flash"},
+        "currency": {"const": "USD"},
+        "prices_per_million_tokens": {
+          "type": "object",
+          "required": ["input_cache_hit", "input_cache_miss", "output"],
+          "properties": {
+            "input_cache_hit": {"type": "number", "minimum": 0},
+            "input_cache_miss": {"type": "number", "minimum": 0},
+            "output": {"type": "number", "minimum": 0}
+          }
+        }
+      }
+    },
+    "run_a": {"$ref": "#/$defs/run"},
+    "run_b": {"$ref": "#/$defs/run"},
+    "resolver": {"$ref": "#/$defs/pathResult"},
+    "cleanup": {"$ref": "#/$defs/pathResult"},
+    "position_variants": {"$ref": "#/$defs/pathResult"},
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "review_id", "verdict", "accepted_at", "acceptance_tooling_commit", "private_review_reference_recorded"],
+      "properties": {
+        "method": {"const": "independent_clean_room"},
+        "review_id": {"type": "string", "minLength": 1},
+        "verdict": {"const": "pass"},
+        "accepted_at": {"type": "string", "minLength": 1},
+        "acceptance_tooling_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "private_review_reference_recorded": {"const": false}
+      }
+    },
+    "screenshots": {"type": "array", "items": {"$ref": "#/$defs/screenshot"}},
+    "screenshot_eligible": {"type": "boolean"},
+    "human_review_required": {"type": "boolean"},
+    "post_screenshot_human_review_required": {"type": "boolean"},
+    "negative_result": {"type": "boolean"}
+  },
+  "$defs": {
+    "pathResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "pass"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "pass": {"type": "boolean"}
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "pass", "backend_mode", "answer_prompt_sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "pass": {"type": "boolean"},
+        "backend_mode": {"enum": ["cortrix_bundle_absent", "cortrix_bundle_loaded"]},
+        "answer_prompt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "screenshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "sha256", "width", "height", "route", "evidence_path"],
+      "properties": {
+        "file": {"type": "string", "pattern": "^screenshots/[A-Za-z0-9][A-Za-z0-9._-]*\\.png$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "width": {"type": "integer", "minimum": 800},
+        "height": {"type": "integer", "minimum": 450},
+        "route": {"type": "string", "pattern": "^/packages/viewer/harness\\.html\\?scenario=(database-change-conflict-guardian|api-version-drift-coding-agent|payment-incident-shift-handoff|migration-decision-recovery)$"},
+        "evidence_path": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"const": "candidate"}}},
+      "then": {"properties": {"screenshot_eligible": {"const": false}, "human_review_required": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"state": {"const": "accepted"}}},
+      "then": {
+        "required": ["acceptance", "screenshots", "post_screenshot_human_review_required"],
+        "properties": {"screenshot_eligible": {"const": true}, "human_review_required": {"const": false}, "post_screenshot_human_review_required": {"const": true}}
+      }
+    }
+  ]
+}

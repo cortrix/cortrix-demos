@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "status": "accepted",
+  "run_id": "database-change-conflict-guardian-20260819T015010Z",
+  "demo_commit": "9111ab6dbe4e66b40abf8b60db1281b92817d796",
+  "manifest": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-manifest.json",
+  "run_a_summary": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-a/summary.json",
+  "run_a_answer": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-a/answer.json",
+  "run_a_resolver": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-a/resolver.json",
+  "run_b_summary": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-b/summary.json",
+  "run_b_answer": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-b/answer.json",
+  "run_b_evidence": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-b/evidence-01.json",
+  "resolver": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/run-b/resolver.json",
+  "cleanup": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/cleanup.json",
+  "screenshot_manifest": "../../scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/screenshots/screenshot-manifest.json"
+}

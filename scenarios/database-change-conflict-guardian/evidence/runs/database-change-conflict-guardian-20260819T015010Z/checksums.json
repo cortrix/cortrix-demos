@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "database-change-conflict-guardian-20260819T015010Z",
+  "files": [
+    {
+      "path": "clean-room-review.json",
+      "sha256": "2d13522f998b9e0cf19346c772727dda122882271eb244c8650e002cada8d39b"
+    },
+    {
+      "path": "cleanup.json",
+      "sha256": "81cf29a8b7d6b9ace5cc3a8398b047f51ffe187e755e49556cc85409ab563fb8"
+    },
+    {
+      "path": "run-a/answer-prompt.txt",
+      "sha256": "ca38c8919ca26a8f959c54db1d2f438bd31b77001f6b888801e9119a11d0db3b"
+    },
+    {
+      "path": "run-a/answer.json",
+      "sha256": "c1cdc3d64c7c14949e769e4e3d3155fdb9fe9a2e7be699770aff3c9e1f52b54c"
+    },
+    {
+      "path": "run-a/evidence.json",
+      "sha256": "acc8455cab96d95f25da3f6d78e7a24b8d935e97d6baa63cf519be53922fa49a"
+    },
+    {
+      "path": "run-a/resolver.json",
+      "sha256": "67207a0419b404970933d5d9c773f5841d855048eef351bfa4d8f645538351b4"
+    },
+    {
+      "path": "run-a/summary.json",
+      "sha256": "71ab72421081bd21bf0b5025803ae0325f10e48a3180f71ddd2b50df2003abb2"
+    },
+    {
+      "path": "run-a/usage.json",
+      "sha256": "8a4083ac1e6001f791a7e6565ea45cf0d7e1e8444bec1733f4f143124b6ce1f5"
+    },
+    {
+      "path": "run-b/answer-prompt.txt",
+      "sha256": "3ac990fe1fa0240826e7f8aac200e7ab509fb33d2b7bc19455a73570ce76c595"
+    },
+    {
+      "path": "run-b/answer.json",
+      "sha256": "ea9a5d7214091300f00b43f06429af882fe2d152bf7e8fb2bd622e34ff9be3eb"
+    },
+    {
+      "path": "run-b/evidence-01.json",
+      "sha256": "98de8bb6fa3eb55fe9f4afa4f47ab952180d52524999f3fceec0bee2b6ac0b97"
+    },
+    {
+      "path": "run-b/evidence-02.json",
+      "sha256": "fcbd81c8f8415ee8754074eb944f866a7785a77c80dfe09c82ae484beb9cfdd6"
+    },
+    {
+      "path": "run-b/ingestion.json",
+      "sha256": "51a4ec1aad8562a0ad59a808f5cb20cd489651410fac06af76a900ab98d5331b"
+    },
+    {
+      "path": "run-b/resolver.json",
+      "sha256": "87a4bd56c37810945b1840e5de3f62346a94eea4dcc27720ceceb4633b4ff69d"
+    },
+    {
+      "path": "run-b/summary.json",
+      "sha256": "3ab9ea5f6fbae2013cab57886851d0f794777785f2f9d9e31b01581a30eeb1ca"
+    },
+    {
+      "path": "run-b/tool-session-01.json",
+      "sha256": "306c3924321c8b96003afb15f2a91d33be08ed5225def4770987b382a8463594"
+    },
+    {
+      "path": "run-b/tool-session-02.json",
+      "sha256": "08a677f6fda8537c911b8626cefaef8dc55fead0c91ca0970c68e1efdaae7095"
+    },
+    {
+      "path": "run-b/usage.json",
+      "sha256": "121f1de49824d32f494fa5c4bf89bf136b5851e9745af9a8d5547021e5a9b7f2"
+    },
+    {
+      "path": "run-manifest.json",
+      "sha256": "79494c420c820f0008395e614e70df315f6303d25a7d75bb0b7703c078e9a25c"
+    },
+    {
+      "path": "runtime.json",
+      "sha256": "d74fe1e7c35428bfdfab3f08f3f57646adab02bfb5db15182e6423d563b0fd63"
+    },
+    {
+      "path": "screenshots/database-change-conflict-guardian-desktop.png",
+      "sha256": "446357df279d43d2292aa3c4e37f7324b45c7946f170dae319a5f5c689992b37"
+    },
+    {
+      "path": "screenshots/database-change-conflict-guardian-full-page.png",
+      "sha256": "c62ca6159290527b3c92e277bf140185ae4b593d5d4dc921acc50cdb396fe4d8"
+    },
+    {
+      "path": "screenshots/database-change-conflict-guardian-mobile.png",
+      "sha256": "d6bf8aa9edcca843257e3babd8fbe16fd47d297a9de92f7154fa432fc48706e5"
+    },
+    {
+      "path": "screenshots/screenshot-manifest.json",
+      "sha256": "a3db892df98412610542c86b1a2391a26f25279e7430fd204090d52be1e7e2d6"
+    }
+  ]
+}

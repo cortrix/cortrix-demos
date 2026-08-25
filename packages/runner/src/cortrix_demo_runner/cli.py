@@ -10,11 +10,14 @@ from .acceptance import record_screenshot, stage_accepted, verify_accepted
 from .catalog import default_scenario_id, describe_scenario, list_scenarios, load_external_call_policy, require_runnable_scenario, validate_catalog
 from .errors import DemoContractError
 from .fresh_clone import verify_fresh_clone
+from .harness_acceptance import record_harness_clean_room_pass, record_harness_screenshot, stage_harness_accepted, verify_harness_accepted
+from .harness_comparison import parse_answer_text, resolve_answer, write_answer_prompt, write_baseline_evidence, write_cortrix_evidence
+from .history_safety import verify_public_history
 from .io import read_json, write_json
 from .live import execute_with_retry
 from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight, verify_runtime, verify_source
 from .resolver import apply_lifecycle_resolver
-from .safety import require_safe
+from .safety import legacy_identifier_summary, require_safe
 from .runtime import ensure_image, require_scenario_image_provenance
 from .scenario import load_assertion_contract, load_scenario, resolve_scenario_id, scenario_root, validate_scenario
 from .walkthrough import abort_walkthrough, execute_run_a_step, execute_run_b_step, finalize_walkthrough, initialize_walkthrough, inspect_walkthrough, record_pricing_snapshot, walkthrough_status
@@ -43,7 +46,11 @@ def command_describe(args: argparse.Namespace) -> None:
 
 def command_public_safety(args: argparse.Namespace) -> None:
     require_safe(args.root.resolve())
-    print(json.dumps({"status": "pass", "external_calls": 0}, indent=2))
+    print(json.dumps({"status": "pass_with_frozen_legacy_exceptions", "legacy_identifiers": legacy_identifier_summary(), "external_calls": 0}, indent=2))
+
+
+def command_public_history_safety(args: argparse.Namespace) -> None:
+    print(json.dumps(verify_public_history(args.root.resolve(), args.base_ref), indent=2))
 
 
 def command_preflight(args: argparse.Namespace) -> None:
@@ -63,6 +70,8 @@ def command_preflight(args: argparse.Namespace) -> None:
         source_repository=provenance["source_repository"],
         source_path=args.cortrix_source.as_posix(),
         secret_env=description["technology_profile"]["llm"]["secret_env"],
+        expected_model=description["technology_profile"]["llm"]["model"],
+        expected_base_url=description["technology_profile"]["llm"]["base_url"],
         budget_usd=float(policy["budget_usd"]),
     )
     print(json.dumps(result, ensure_ascii=True, indent=2))
@@ -174,6 +183,68 @@ def command_fresh_clone_verify(args: argparse.Namespace) -> None:
     print(json.dumps(verify_fresh_clone(args.root.resolve(), args.run_id), ensure_ascii=True, indent=2))
 
 
+def command_harness_baseline(args: argparse.Namespace) -> None:
+    print(json.dumps(write_baseline_evidence(args.root.resolve(), args.scenario, args.output, args.position_variant), ensure_ascii=True, indent=2))
+
+
+def command_harness_prompt(args: argparse.Namespace) -> None:
+    print(json.dumps(write_answer_prompt(args.root.resolve(), args.scenario, args.evidence, args.output), ensure_ascii=True, indent=2))
+
+
+def command_harness_project_cortrix(args: argparse.Namespace) -> None:
+    print(json.dumps(write_cortrix_evidence(args.root.resolve(), args.scenario, args.tool_session, args.output, args.position_variant), ensure_ascii=True, indent=2))
+
+
+def command_harness_resolve(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    evidence = read_json(args.evidence)
+    answer = parse_answer_text(args.answer.read_text(encoding="utf-8"))
+    result = resolve_answer(root, args.scenario, args.mode, evidence, answer)
+    write_json(args.output, result)
+    if not result["pass"]:
+        raise DemoContractError("Harness comparison resolver assertions failed")
+    print(json.dumps({"status": "pass", "scenario": args.scenario, "output": str(args.output), "external_calls": 0}, ensure_ascii=True, indent=2))
+
+
+def command_harness_campaign(args: argparse.Namespace) -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            str(args.root.resolve() / "runtime" / "harness" / "run-campaign.py"),
+            "--root", str(args.root.resolve()),
+            "--harness-root", str(args.harness_root.resolve()),
+            "--plugin-root", str(args.plugin_root.resolve()),
+            "--cortrix-root", str(args.cortrix_root.resolve()),
+            "--pricing-snapshot", str(args.pricing_snapshot.resolve()),
+            "--volume", args.volume,
+            "--campaign-contract", str(args.campaign_contract),
+        ],
+        cwd=args.root.resolve(),
+        check=True,
+    )
+
+
+def command_harness_record_clean_room(args: argparse.Namespace) -> None:
+    result = record_harness_clean_room_pass(args.root.resolve(), args.scenario, args.run_id, args.review_id)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_harness_stage_accepted(args: argparse.Namespace) -> None:
+    result = stage_harness_accepted(args.root.resolve(), args.scenario, args.run_id)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_harness_record_screenshot(args: argparse.Namespace) -> None:
+    route = args.route or f"/packages/viewer/harness.html?scenario={args.scenario}"
+    result = record_harness_screenshot(args.root.resolve(), args.scenario, args.run_id, args.file.resolve(), route, args.evidence_path)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
+def command_harness_verify_accepted(args: argparse.Namespace) -> None:
+    result = verify_harness_accepted(args.root.resolve(), args.scenario, args.run_id)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run and validate evidence-backed Cortrix demos.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -197,6 +268,11 @@ def build_parser() -> argparse.ArgumentParser:
     safety = subparsers.add_parser("public-safety")
     safety.add_argument("--root", type=Path, default=Path.cwd())
     safety.set_defaults(handler=command_public_safety)
+
+    history_safety = subparsers.add_parser("public-history-safety")
+    history_safety.add_argument("--root", type=Path, default=Path.cwd())
+    history_safety.add_argument("--base-ref", required=True)
+    history_safety.set_defaults(handler=command_public_history_safety)
 
     preflight = subparsers.add_parser("preflight")
     preflight.add_argument("--root", type=Path, default=Path.cwd())
@@ -292,6 +368,78 @@ def build_parser() -> argparse.ArgumentParser:
     fresh.add_argument("--root", type=Path, default=Path.cwd())
     fresh.add_argument("--run-id")
     fresh.set_defaults(handler=command_fresh_clone_verify)
+
+    harness = subparsers.add_parser("harness", help="Prepare and validate the DeepSeek Harness comparison scenarios.")
+    harness_subparsers = harness.add_subparsers(dest="harness_command", required=True)
+
+    harness_baseline = harness_subparsers.add_parser("baseline")
+    harness_baseline.add_argument("--root", type=Path, default=Path.cwd())
+    harness_baseline.add_argument("--scenario", required=True)
+    harness_baseline.add_argument("--output", type=Path, required=True)
+    harness_baseline.add_argument("--position-variant", choices=("front", "middle", "end"))
+    harness_baseline.set_defaults(handler=command_harness_baseline)
+
+    harness_prompt = harness_subparsers.add_parser("prompt")
+    harness_prompt.add_argument("--root", type=Path, default=Path.cwd())
+    harness_prompt.add_argument("--scenario", required=True)
+    harness_prompt.add_argument("--evidence", type=Path, required=True)
+    harness_prompt.add_argument("--output", type=Path, required=True)
+    harness_prompt.set_defaults(handler=command_harness_prompt)
+
+    harness_project = harness_subparsers.add_parser("project-cortrix")
+    harness_project.add_argument("--root", type=Path, default=Path.cwd())
+    harness_project.add_argument("--scenario", required=True)
+    harness_project.add_argument("--tool-session", type=Path, required=True)
+    harness_project.add_argument("--output", type=Path, required=True)
+    harness_project.add_argument("--position-variant", choices=("front", "middle", "end"))
+    harness_project.set_defaults(handler=command_harness_project_cortrix)
+
+    harness_resolve = harness_subparsers.add_parser("resolve")
+    harness_resolve.add_argument("--root", type=Path, default=Path.cwd())
+    harness_resolve.add_argument("--scenario", required=True)
+    harness_resolve.add_argument("--mode", choices=("cortrix_bundle_absent", "cortrix_bundle_loaded"), required=True)
+    harness_resolve.add_argument("--evidence", type=Path, required=True)
+    harness_resolve.add_argument("--answer", type=Path, required=True)
+    harness_resolve.add_argument("--output", type=Path, required=True)
+    harness_resolve.set_defaults(handler=command_harness_resolve)
+
+    harness_campaign = harness_subparsers.add_parser("campaign")
+    harness_campaign.add_argument("--root", type=Path, default=Path.cwd())
+    harness_campaign.add_argument("--harness-root", type=Path, default=Path(".runtime/deepseek-harness"))
+    harness_campaign.add_argument("--plugin-root", type=Path, default=Path(".runtime/cortrix-integrations/integrations/deepseek-harness"))
+    harness_campaign.add_argument("--cortrix-root", type=Path, default=Path(".runtime/cortrix-harness-src"))
+    harness_campaign.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
+    harness_campaign.add_argument("--volume", default="cortrix_demos_harness_foundation_data")
+    harness_campaign.add_argument("--campaign-contract", type=Path, default=Path("runtime/harness/campaigns/foundation.json"))
+    harness_campaign.set_defaults(handler=command_harness_campaign)
+
+    harness_review = harness_subparsers.add_parser("record-clean-room-pass")
+    harness_review.add_argument("--root", type=Path, default=Path.cwd())
+    harness_review.add_argument("--scenario", required=True)
+    harness_review.add_argument("--run-id", required=True)
+    harness_review.add_argument("--review-id", required=True)
+    harness_review.set_defaults(handler=command_harness_record_clean_room)
+
+    harness_stage = harness_subparsers.add_parser("stage-accepted")
+    harness_stage.add_argument("--root", type=Path, default=Path.cwd())
+    harness_stage.add_argument("--scenario", required=True)
+    harness_stage.add_argument("--run-id", required=True)
+    harness_stage.set_defaults(handler=command_harness_stage_accepted)
+
+    harness_screenshot = harness_subparsers.add_parser("record-screenshot")
+    harness_screenshot.add_argument("--root", type=Path, default=Path.cwd())
+    harness_screenshot.add_argument("--scenario", required=True)
+    harness_screenshot.add_argument("--run-id", required=True)
+    harness_screenshot.add_argument("--file", type=Path, required=True)
+    harness_screenshot.add_argument("--route")
+    harness_screenshot.add_argument("--evidence-path", default="run-manifest.json")
+    harness_screenshot.set_defaults(handler=command_harness_record_screenshot)
+
+    harness_verify = harness_subparsers.add_parser("verify-accepted")
+    harness_verify.add_argument("--root", type=Path, default=Path.cwd())
+    harness_verify.add_argument("--scenario", required=True)
+    harness_verify.add_argument("--run-id")
+    harness_verify.set_defaults(handler=command_harness_verify_accepted)
     return parser
 
 

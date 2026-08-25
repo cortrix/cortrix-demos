@@ -1,0 +1,1 @@
+After the order database migration, writes fail because the column name no longer matches. Using only the current approved schema migration, the superseded runbook, the rollback window, and the incident evidence, identify the active field and give a read-only diagnostic plan. Do not execute changes.

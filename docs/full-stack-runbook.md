@@ -50,7 +50,28 @@ The runner computes a conservative cumulative-attempt cost bound from the curren
 
 ## 3. Inject the secret and run
 
-Provide `DEEPSEEK_API_KEY` through the process environment without putting its value in a tracked file or command argument. The guided mode exposes both comparison paths in their natural order:
+The runner resolves the required secret in this order:
+
+1. `DEEPSEEK_API_KEY` in the process environment.
+2. An absolute profile path selected by `CORTRIX_LLM_SECRET_FILE`.
+3. `${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm/current.yaml`.
+
+The default profile is a local workstation convention, not a repository file. On POSIX systems, its resolved target must be owned by the current user with no group or other permissions. A profile must contain exactly one top-level `api_key` and `base_url`, and every declared role model must match `deepseek-v4-flash`. The DeepSeek endpoint may omit the trailing `/v1` used by the runtime adapter.
+
+For a reusable local default, keep the filled profile outside every Git checkout and point `current.yaml` to it:
+
+```bash
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm"
+ln -sfn deepseek-v4-flash.yaml "${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm/current.yaml"
+chmod 700 "${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm"
+chmod 600 "${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm/deepseek-v4-flash.yaml"
+```
+
+Do not export the real key from a shell startup file or a parent workspace `.envrc`. The runner reads a profile only after an explicitly authorized, cost-bearing command reaches preflight. It records only `secret_source: environment`, `explicit_profile`, or `default_profile`; it never records the profile path or value.
+
+The canonical `main` branch is always eligible for a live candidate. A declared presentation localization branch may also run a local validation candidate when `localization-base.yaml` binds it to an ancestor on `main` and every changed file stays inside the presentation-only allowlist. This exception does not allow a localized branch to stage or replace accepted evidence; curation remains restricted to `main`.
+
+The guided mode exposes both comparison paths in their natural order:
 
 ```bash
 ./democtl walkthrough init --reviewed-attempt-limit 2
@@ -76,6 +97,8 @@ The runner preserves the legacy attempt ledger and writes 2.x slots to an isolat
 
 The ingestion gate derives its expected chunk count from the durable text blocks produced for the frozen fixtures. It requires F03, F35, F38, and the final enrichment state for every actual block, plus F41 summaries for every fixture document. It does not reuse a fixed chunk count from a different source demo.
 
+The runner reapplies the tracked idempotent PostgreSQL schema after the database becomes ready. This is required because the official PostgreSQL image executes `/docker-entrypoint-initdb.d` only when it initializes a new empty volume; a reused local demo volume must not depend on that one-time behavior.
+
 The scenario contract sends both Run B queries with `granularity=chunk` and requests four final candidates. The response must echo the granularity in `explain.granularity`, retrieve both version-conflict documents, and expose finite BGE rerank scores. F41 summaries remain mandatory ingestion evidence, but this scenario does not include document-level discovery candidates in the BGE cross-encoder ranking.
 
 ## 4. Inspect the candidate
@@ -84,7 +107,7 @@ Candidate evidence is written under ignored `.runs/<run_id>/`. A successful cand
 
 The pricing snapshot is a timestamped transcription from the official provider page, not an automated freshness proof. Partial usage is acceptable only as an explicitly disclosed limitation: the conservative reviewed budget contract must pass, `estimated_total_usd` remains unknown, and no public total cost claim is allowed.
 
-The candidate is not screenshot-eligible. Human review must accept it before curated evidence can be staged for the viewer. No public cost claim is allowed when usage visibility is partial.
+The candidate is not screenshot-eligible. An authorized reviewer may inspect it in a real browser with `make viewer-candidate-qa RUN_ID=<run_id>`, but that separate local route is prominently labeled as Candidate QA and cannot be registered as accepted screenshot evidence. Human review must accept the candidate before curated evidence can be staged for the accepted viewer. No public cost claim is allowed when usage visibility is partial.
 
 ## 5. Cleanup contract
 

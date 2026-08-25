@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "scenario_id": "payment-incident-shift-handoff",
+  "backend_mode": "cortrix_bundle_absent",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": false,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [
+    "Evidence did not include the resolver-selected current document",
+    "Answer did not select the resolver-selected current document"
+  ],
+  "selected_document_ids": [
+    "payment-handoff-0100-superseded",
+    "payment-capacity-plan",
+    "database-maintenance-notice",
+    "checkout-ui-timeout"
+  ],
+  "evidence_refs": [
+    "ws_d74273aef34f9c2038c347c1e52ec2af",
+    "ws_25d810365538bb3c0703484cdea1b84e",
+    "ws_aa85fd2dd7df22518972d09f5a688c5b",
+    "ws_40303514efadab75bc49e361029ddff6"
+  ],
+  "decision": {
+    "confirmed_cause": "payment_gateway_queue_saturation_after_regional_failover",
+    "database_saturation": "ruled_out",
+    "remediation_status": "pending_approval",
+    "action_mode": "read_only_handoff"
+  },
+  "resolver_selected_document_id": "payment-handoff-0320-current",
+  "resolver_action": "current_source_read_only_plan",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

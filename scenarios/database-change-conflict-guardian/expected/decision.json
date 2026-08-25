@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "expected": {
+    "active_field": "buyer_account_id",
+    "action_mode": "read_only_diagnosis",
+    "rollback_permitted": false
+  }
+}

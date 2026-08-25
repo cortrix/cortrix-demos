@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import inspect
 import subprocess
 import unittest
 from unittest.mock import patch
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.runtime import ensure_image, load_image_provenance, require_scenario_image_provenance
+from cortrix_demo_runner.runtime import ensure_image, ensure_postgres_schema, load_image_provenance, require_scenario_image_provenance, start
 
 
 class RuntimeImageTests(unittest.TestCase):
@@ -53,6 +54,20 @@ class RuntimeImageTests(unittest.TestCase):
         self.assertEqual(revision, result["source_revision"])
         build_command = run.call_args_list[1].args[0]
         self.assertEqual(["docker", "build"], build_command[:2])
+
+    @patch("cortrix_demo_runner.runtime.compose")
+    @patch("cortrix_demo_runner.runtime.subprocess.run")
+    def test_reused_postgres_volume_reapplies_the_tracked_schema(self, run: object, compose: object) -> None:
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="ready", stderr="")
+        ensure_postgres_schema()
+        schema_command = compose.call_args.args[0]
+        self.assertIn("ON_ERROR_STOP=1", schema_command)
+        self.assertEqual("/docker-entrypoint-initdb.d/10-demo.sql", schema_command[-1])
+
+    def test_start_applies_schema_before_starting_cortrix(self) -> None:
+        source = inspect.getsource(start)
+        self.assertLess(source.index('compose(["up", "-d", "postgres"]'), source.index("ensure_postgres_schema()"))
+        self.assertLess(source.index("ensure_postgres_schema()"), source.index('compose(["up", "-d", "--force-recreate", "cortrix"]'))
 
 
 if __name__ == "__main__":

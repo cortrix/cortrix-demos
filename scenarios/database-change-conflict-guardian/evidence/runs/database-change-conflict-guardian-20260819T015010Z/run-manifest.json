@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "run_id": "database-change-conflict-guardian-20260819T015010Z",
+  "state": "accepted",
+  "source_identity": {
+    "demo_commit": "9111ab6dbe4e66b40abf8b60db1281b92817d796",
+    "plugin_commit": "f1eab7316b35e2ea632be4f0d7a45738319246a7",
+    "harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
+    "cortrix_commit": "4c0f0f96b652d5662a66d047771826a4d2933739",
+    "cortrix_image_digest": "sha256:f5dbb6ed129acb584e909d81d00e8cf45fbaf1b14419fb59a32784bfda11f490",
+    "fixture_manifest_sha256": "630a84e0fefe8013064c89c7d0f14754f532ab060acd52cde2b20ffa24c0e9d3",
+    "assertion_contract_sha256": "6cf1c4024006e971f16426019bdd2629201c57b92256dc2f3dd5267390a8e04a",
+    "answer_prompt_template_sha256": "dc33d14ccc9e2376534415084ec50b8f13361f06ea81aaf3e9860e707a42f636"
+  },
+  "comparison": {
+    "same_harness": true,
+    "same_model": true,
+    "same_prompt": true,
+    "same_corpus": true,
+    "same_non_cortrix_tools": true,
+    "only_independent_variable": "cortrix_bundle_loaded"
+  },
+  "provider": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "local_generative_llm": false,
+    "fallback_used": false,
+    "secret_source": "default_profile",
+    "secret_value_recorded": false
+  },
+  "usage": {
+    "visibility": "partial",
+    "observable_calls": 5,
+    "observable_input_tokens": 30977,
+    "observable_output_tokens": 1579,
+    "observable_cache_hit_tokens": 0,
+    "observable_cost_usd": 0.01571416,
+    "reviewed_bound_usd": 0.24153888,
+    "budget_usd": 1.0
+  },
+  "pricing_snapshot": {
+    "schema_version": 1,
+    "observed_at": "2026-08-19T01:49:23Z",
+    "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "model_version": "DeepSeek-V4-Flash",
+    "currency": "USD",
+    "unit": "per_million_tokens",
+    "prices_per_million_tokens": {
+      "input_cache_hit": 0.014,
+      "input_cache_miss": 0.44,
+      "output": 1.32
+    },
+    "notes": "Recorded from the official pricing page immediately before an authorized local walkthrough. A price change does not expand the repository budget."
+  },
+  "run_a": {
+    "path": "run-a/summary.json",
+    "sha256": "71ab72421081bd21bf0b5025803ae0325f10e48a3180f71ddd2b50df2003abb2",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_absent",
+    "answer_prompt_sha256": "ca38c8919ca26a8f959c54db1d2f438bd31b77001f6b888801e9119a11d0db3b"
+  },
+  "run_b": {
+    "path": "run-b/summary.json",
+    "sha256": "3ab9ea5f6fbae2013cab57886851d0f794777785f2f9d9e31b01581a30eeb1ca",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_loaded",
+    "answer_prompt_sha256": "3ac990fe1fa0240826e7f8aac200e7ab509fb33d2b7bc19455a73570ce76c595"
+  },
+  "resolver": {
+    "path": "run-b/resolver.json",
+    "sha256": "87a4bd56c37810945b1840e5de3f62346a94eea4dcc27720ceceb4633b4ff69d",
+    "pass": true
+  },
+  "cleanup": {
+    "path": "cleanup.json",
+    "sha256": "81cf29a8b7d6b9ace5cc3a8398b047f51ffe187e755e49556cc85409ab563fb8",
+    "pass": true
+  },
+  "screenshot_eligible": true,
+  "human_review_required": false,
+  "negative_result": false,
+  "post_screenshot_human_review_required": true,
+  "acceptance": {
+    "method": "independent_clean_room",
+    "review_id": "REVIEW-DATABASE-CHANGE-CONFLICT-20260819T015819Z",
+    "verdict": "pass",
+    "accepted_at": "2026-08-19T02:00:40.288527+00:00",
+    "acceptance_tooling_commit": "40c56c4b2f19d9a383a0eac6af15668ed58b6aa2",
+    "private_review_reference_recorded": false
+  },
+  "screenshots": [
+    {
+      "file": "screenshots/database-change-conflict-guardian-desktop.png",
+      "sha256": "446357df279d43d2292aa3c4e37f7324b45c7946f170dae319a5f5c689992b37",
+      "width": 1418,
+      "height": 826,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "run-manifest.json"
+    },
+    {
+      "file": "screenshots/database-change-conflict-guardian-full-page.png",
+      "sha256": "c62ca6159290527b3c92e277bf140185ae4b593d5d4dc921acc50cdb396fe4d8",
+      "width": 1418,
+      "height": 3053,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "run-b/summary.json"
+    },
+    {
+      "file": "screenshots/database-change-conflict-guardian-mobile.png",
+      "sha256": "d6bf8aa9edcca843257e3babd8fbe16fd47d297a9de92f7154fa432fc48706e5",
+      "width": 1062,
+      "height": 2301,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "clean-room-review.json"
+    }
+  ]
+}

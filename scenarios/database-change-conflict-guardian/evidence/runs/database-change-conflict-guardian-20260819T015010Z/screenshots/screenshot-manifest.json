@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "run_id": "database-change-conflict-guardian-20260819T015010Z",
+  "accepted_commit": "9111ab6dbe4e66b40abf8b60db1281b92817d796",
+  "screenshots": [
+    {
+      "file": "screenshots/database-change-conflict-guardian-desktop.png",
+      "sha256": "446357df279d43d2292aa3c4e37f7324b45c7946f170dae319a5f5c689992b37",
+      "width": 1418,
+      "height": 826,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "run-manifest.json"
+    },
+    {
+      "file": "screenshots/database-change-conflict-guardian-full-page.png",
+      "sha256": "c62ca6159290527b3c92e277bf140185ae4b593d5d4dc921acc50cdb396fe4d8",
+      "width": 1418,
+      "height": 3053,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "run-b/summary.json"
+    },
+    {
+      "file": "screenshots/database-change-conflict-guardian-mobile.png",
+      "sha256": "d6bf8aa9edcca843257e3babd8fbe16fd47d297a9de92f7154fa432fc48706e5",
+      "width": 1062,
+      "height": 2301,
+      "route": "/packages/viewer/harness.html?scenario=database-change-conflict-guardian",
+      "evidence_path": "clean-room-review.json"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version":1,"scenario_id":"migration-decision-recovery",
+  "scenario_identity":{"scenario_version":"1.0.0","synthetic_data":true,"construction_note":"Synthetic mechanism demo designed before execution to test recovery of a final migration decision after a superseded intermediate conclusion across three event positions.","retrieval_contract":{"query_granularity":"document","document_summary_role":"evidence_projection_only"},"execution_contract":{"sealed":true,"campaign_id":"deepseek-harness-cortrix-operational-continuity-1.x","campaign_attempt_cap":4,"calibration_external_calls":0}},
+  "fixture_contract":{"document_count":21,"decisive_document_count":6,"distractor_document_count":15,"blind_query_count":2},
+  "position_variant_contract":{"path":"position-variants.json","variant_ids":["front","middle","end"],"document_id":"migration-task-event-stream","decisive_event_id":"evt-final-option-b-rejected","event_count":30,"front_max_index":4,"middle_min_index":12,"middle_max_index":17,"end_min_index":25},
+  "assertion_contract":{"required_keys":["run_a_top_document_id","run_a_top_document_status","run_a_required_current_document_id","run_a_required_current_document_status","run_b_required_document_ids","run_b_final_top_document_id","run_b_final_top_document_status","resolver_selected_document_id","resolver_selected_field","resolver_action","forbidden_actions"]},
+  "document_assertion_pairs":[{"document_key":"run_a_top_document_id","status_key":"run_a_top_document_status"},{"document_key":"run_a_required_current_document_id","status_key":"run_a_required_current_document_status"},{"document_key":"run_b_final_top_document_id","status_key":"run_b_final_top_document_status"}],
+  "document_list_assertions":[{"key":"run_b_required_document_ids","count":5}],
+  "resolver_contract":{"expected_document_assertion":"resolver_selected_document_id","expected_field_assertion":"resolver_selected_field","expected_action_assertion":"resolver_action","expected_action":"decision_recovery_only"},
+  "comparison_contract":{"only_independent_variable":"cortrix_bundle_loaded","required_true_keys":["same_harness","same_model","same_prompt","same_corpus","same_non_cortrix_tools"]},
+  "baseline_contract":{"path":"baseline-ranking.json","provider":"frozen-workspace-evidence","top_k":5,"expected_top_document_assertion":"run_a_top_document_id"},
+  "full_stack_profile":{"budget_usd":5.0,"max_full_stack_attempts":4,"local_generative_llm":false,"required_paths":["deepseek_harness_answer_stage","frozen_workspace_baseline","cortrix_search_evidence","cortrix_get_source","durable_session_events","application_resolver","position_variant_aggregate"]},
+  "evidence_contract":{"run_id_pattern":"^migration-decision-recovery-[0-9]{8}T[0-9]{6}Z(?:-retry)?$","minimum_external_call_count":6,"serial_query_count":2,"acceptance_method":"independent_clean_room","run_a_path":"run-a/summary.json","run_b_path":"run-b/summary.json","resolver_path":"resolver.json"}
+}

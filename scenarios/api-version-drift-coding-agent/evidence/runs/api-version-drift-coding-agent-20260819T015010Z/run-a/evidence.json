@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "provider": "frozen-workspace-evidence",
+  "backend_mode": "cortrix_bundle_absent",
+  "query": "After upgrading the Orders SDK from version 1.x to 2.x, retry behavior no longer matches the old example. Find the current official API and deprecation notice, explain why the example is obsolete, and propose the smallest test plan. Do not edit code.",
+  "evidence": [
+    {
+      "evidence_ref": "ws_bd13173e92db8546d651581a795ab00a",
+      "document_id": "orders-sdk-v1-retry-example-superseded",
+      "status": "superseded",
+      "version": "1.x",
+      "source": "sdk_example",
+      "excerpt": "# Orders SDK 1.x retry example\n\nStatus: superseded.\n\nThe 1.x client accepted `retries=3`. That value meant three retries after the initial request, for up to four total attempts. The example retried a broad set of server errors in the 5xx range.\n\nThis page remains available for historical integrations. It is not valid configuration for Orders SDK 2.x.\n",
+      "source_sha256": "1013cbb99a25212fc5ca8ce70e3444436c0a23e35200aecac3c4f0a5d4bff7e3",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_38c48b21f2c3472154c306ebef618318",
+      "document_id": "payments-sdk-v1-retry-example",
+      "status": "current",
+      "version": "1.x",
+      "source": "sdk_example",
+      "excerpt": "# Payments SDK retry example\n\nPayments SDK 1.x accepts `retries=3` for gateway timeouts. Payments and Orders are separate packages with different release trains. This example does not establish an Orders SDK 2.x API.\n",
+      "source_sha256": "1fdf95d408101107843d52aa12e6bc7d82fc2c697248fb5d23daff3c8f6da2d4",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_d820fb164c4de0184aae2abf8e7f2c5e",
+      "document_id": "orders-cli-retry-flag",
+      "status": "current",
+      "version": "2.3",
+      "source": "cli_reference",
+      "excerpt": "# Orders CLI retry flag\n\nThe Orders command-line client supports `--retry-count` for batch imports. CLI flags are not Python SDK constructor options and do not define `RetryPolicy` semantics.\n",
+      "source_sha256": "07d5e2a3b80caca31583c3ecfd0ac98399ea118575b960089c55aa95d556b50e",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_6d5d3bfdbae640f6a2625c1ec0836145",
+      "document_id": "shipping-sdk-backoff-guide",
+      "status": "current",
+      "version": "4.1",
+      "source": "sdk_guide",
+      "excerpt": "# Shipping SDK backoff guide\n\nShipping SDK uses `attempt_limit` with exponential backoff. Its configuration belongs to a different client library and cannot be substituted for Orders SDK 2.x.\n",
+      "source_sha256": "e6a656f5ca74eb399b51339f753c6406f4498a24d91dd955546cdfcc9c8de546",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    }
+  ],
+  "external_calls": 0,
+  "claim_boundary": "This deterministic baseline represents the preregistered evidence order visible in a frozen workspace; it is not a retrieval benchmark."
+}

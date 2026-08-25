@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "operation": "cleanup",
+  "removed_or_absent": true,
+  "position_variants": [
+    "front",
+    "middle",
+    "end"
+  ],
+  "all_variant_namespaces_removed": true,
+  "external_llm_calls": 0,
+  "compose_project": "cortrix_demos_harness_continuity",
+  "containers_absent": true,
+  "runtime_secret_materialized": false,
+  "model_cache_preserved": true,
+  "model_volume_name_recorded": false
+}

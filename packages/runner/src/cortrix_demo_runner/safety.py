@@ -18,10 +18,16 @@ PRIVATE_PATTERNS = {
 }
 SECRET_ASSIGNMENT = re.compile(r"(?:DEEPSEEK_API_KEY|OPENAI_API_KEY|API_KEY)\s*[:=]\s*[\"']?(?![<$({])[A-Za-z0-9_\-]{12,}")
 PRIVATE_IPV4 = re.compile(r"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})\b")
-# Keep the approved local preview address out of tracked text as one literal so
-# the scanner can inspect its own source without granting itself a blanket pass.
-PREFERRED_LOCAL_PREVIEW_ADDRESS = ".".join(("192", "168", "50", "75"))
-ALLOWED_PRIVATE_IPV4 = {Path("Makefile"): {PREFERRED_LOCAL_PREVIEW_ADDRESS}}
+LEGACY_REVIEW_IDENTIFIER = "".join(("second", "scott"))
+LEGACY_PHASE_IDENTIFIER = "".join(("goal", "1"))
+LEGACY_IDENTIFIER_COUNTS = {
+    Path("scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/run-manifest.json"): {LEGACY_REVIEW_IDENTIFIER: 1},
+    Path("scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260803T152219Z/state-history.json"): {LEGACY_REVIEW_IDENTIFIER: 1},
+    Path("scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260804T085505Z/run-manifest.json"): {LEGACY_REVIEW_IDENTIFIER: 1},
+    Path("scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260804T085505Z/state-history.json"): {LEGACY_REVIEW_IDENTIFIER: 1},
+    Path("scenarios/database-change-conflict-guardian/evidence/runs/database-change-conflict-guardian-20260819T015010Z/cleanup.json"): {LEGACY_PHASE_IDENTIFIER: 1},
+    Path("scenarios/api-version-drift-coding-agent/evidence/runs/api-version-drift-coding-agent-20260819T015010Z/cleanup.json"): {LEGACY_PHASE_IDENTIFIER: 1},
+}
 TEXT_SUFFIXES = {"", ".c", ".cc", ".cpp", ".css", ".h", ".html", ".ini", ".js", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
 
 
@@ -70,11 +76,24 @@ def scan_text(text: str, relative: Path) -> list[str]:
             failures.append(f"Found {label} in {relative}")
     if SECRET_ASSIGNMENT.search(text):
         failures.append(f"Found a secret-like assignment in {relative}")
-    allowed = ALLOWED_PRIVATE_IPV4.get(relative, set())
-    unexpected_private_ipv4 = sorted({match.group(0) for match in PRIVATE_IPV4.finditer(text)} - allowed)
+    unexpected_private_ipv4 = sorted({match.group(0) for match in PRIVATE_IPV4.finditer(text)})
     for address in unexpected_private_ipv4:
         failures.append(f"Found a private IPv4 literal in {relative}: {address}")
+    lowered = text.lower()
+    expected = LEGACY_IDENTIFIER_COUNTS.get(relative, {})
+    for identifier in (LEGACY_REVIEW_IDENTIFIER, LEGACY_PHASE_IDENTIFIER):
+        observed_count = lowered.count(identifier)
+        expected_count = expected.get(identifier, 0)
+        if observed_count != expected_count:
+            failures.append(f"Legacy identifier count mismatch in {relative}: expected {expected_count}, observed {observed_count}")
     return failures
+
+
+def legacy_identifier_summary() -> dict[str, int]:
+    return {
+        "review_identifier_occurrences": sum(counts.get(LEGACY_REVIEW_IDENTIFIER, 0) for counts in LEGACY_IDENTIFIER_COUNTS.values()),
+        "phase_identifier_occurrences": sum(counts.get(LEGACY_PHASE_IDENTIFIER, 0) for counts in LEGACY_IDENTIFIER_COUNTS.values()),
+    }
 
 
 def require_safe(root: Path) -> None:

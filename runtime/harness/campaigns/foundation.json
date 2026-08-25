@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "campaign_id": "deepseek-harness-cortrix-foundation",
+  "compose_project": "cortrix_demos_harness_foundation",
+  "budget_usd": 1.0,
+  "answer_calls": 4,
+  "source_projection_scenario": "database-change-conflict-guardian",
+  "scenarios": [
+    {"id": "database-change-conflict-guardian", "position_variants": []},
+    {"id": "api-version-drift-coding-agent", "position_variants": []}
+  ]
+}

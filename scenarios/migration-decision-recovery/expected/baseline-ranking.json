@@ -1,0 +1,1 @@
+{"schema_version":1,"scenario_id":"migration-decision-recovery","provider":"frozen-workspace-evidence","algorithm":"preregistered_fixture_order","top_k":5,"document_ids":["option-b-recommendation-superseded","migration-task-event-stream","staging-smoke-results","network-bandwidth-test","migration-risk-acceptance"],"expected_top_status":"superseded","external_calls":0}

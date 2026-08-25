@@ -12,6 +12,50 @@
       "accepted_pointer": "order-api-field-migration/evidence/accepted-run.json",
       "status": "accepted",
       "synthetic_data": true
+    },
+    {
+      "id": "database-change-conflict-guardian",
+      "display_name": "Database Change Conflict Guardian",
+      "scenario_contract": "database-change-conflict-guardian/scenario.json",
+      "validation_contract": "database-change-conflict-guardian/expected/validation.json",
+      "technology_profile": "database-change-conflict-guardian/profiles/technology-profile.json",
+      "human_guide": "database-change-conflict-guardian/README.md",
+      "accepted_pointer": "database-change-conflict-guardian/evidence/accepted-run.json",
+      "status": "accepted",
+      "synthetic_data": true
+    },
+    {
+      "id": "api-version-drift-coding-agent",
+      "display_name": "API Version Drift Coding Agent",
+      "scenario_contract": "api-version-drift-coding-agent/scenario.json",
+      "validation_contract": "api-version-drift-coding-agent/expected/validation.json",
+      "technology_profile": "api-version-drift-coding-agent/profiles/technology-profile.json",
+      "human_guide": "api-version-drift-coding-agent/README.md",
+      "accepted_pointer": "api-version-drift-coding-agent/evidence/accepted-run.json",
+      "status": "accepted",
+      "synthetic_data": true
+    },
+    {
+      "id": "payment-incident-shift-handoff",
+      "display_name": "Payment Incident Shift Handoff",
+      "scenario_contract": "payment-incident-shift-handoff/scenario.json",
+      "validation_contract": "payment-incident-shift-handoff/expected/validation.json",
+      "technology_profile": "payment-incident-shift-handoff/profiles/technology-profile.json",
+      "human_guide": "payment-incident-shift-handoff/README.md",
+      "accepted_pointer": "payment-incident-shift-handoff/evidence/accepted-run.json",
+      "status": "accepted",
+      "synthetic_data": true
+    },
+    {
+      "id": "migration-decision-recovery",
+      "display_name": "Migration Decision Recovery",
+      "scenario_contract": "migration-decision-recovery/scenario.json",
+      "validation_contract": "migration-decision-recovery/expected/validation.json",
+      "technology_profile": "migration-decision-recovery/profiles/technology-profile.json",
+      "human_guide": "migration-decision-recovery/README.md",
+      "accepted_pointer": "migration-decision-recovery/evidence/accepted-run.json",
+      "status": "accepted",
+      "synthetic_data": true
     }
   ]
 }

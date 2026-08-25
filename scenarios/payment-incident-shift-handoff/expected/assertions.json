@@ -1,0 +1,8 @@
+{
+  "schema_version":1,"scenario_id":"payment-incident-shift-handoff","frozen":{
+    "run_a_top_document_id":"payment-handoff-0100-superseded","run_a_top_document_status":"superseded","run_a_required_current_document_id":"payment-handoff-0320-current","run_a_required_current_document_status":"current",
+    "run_b_required_document_ids":["payment-handoff-0320-current","gateway-queue-saturation-confirmed","database-saturation-ruled-out","worker-change-pending-approval","payment-readonly-checks-current"],
+    "run_b_final_top_document_id":"payment-handoff-0320-current","run_b_final_top_document_status":"current","resolver_selected_document_id":"payment-handoff-0320-current","resolver_selected_field":"incident_cause","resolver_action":"current_source_read_only_plan",
+    "provider":"deepseek","model":"deepseek-v4-flash","local_generative_llm":false,"degraded":false,"serial_query_count":2,"forbidden_actions":["execute_remediation","restart_service","configuration_change","write_operation"]
+  },"variable":["evidence_provider","retrieved_evidence","model_wording","latency_ms","ranking_scores"]
+}

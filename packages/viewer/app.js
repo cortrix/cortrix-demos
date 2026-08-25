@@ -1,4 +1,6 @@
 const byId = (id) => document.getElementById(id);
+const CANDIDATE_QA_ROUTE = "/packages/viewer/candidate-qa.html";
+const CANDIDATE_QA_CONFIG = "/__cortrix_candidate_qa_config__.json";
 
 function addDefinition(list, term, value) {
   const dt = document.createElement("dt");
@@ -18,23 +20,20 @@ async function loadJson(path) {
 
 function rejectViewer(message) {
   byId("status-panel").classList.add("rejected");
-  byId("status-text").textContent = "No accepted evidence";
+  byId("status-text").textContent = "No valid evidence";
   byId("failure-message").textContent = message;
   byId("failure").hidden = false;
 }
 
-function requireAccepted(pointer, manifest, runA, resolver, scenario, technology) {
-  if (pointer.status !== "accepted" || manifest.state !== "accepted") {
-    throw new Error("The accepted-run pointer and run manifest must both report accepted.");
-  }
-  if (pointer.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
-    throw new Error("Evidence identity mismatch between pointer, manifest, and resolver.");
+function requireSharedEvidence(manifest, runA, resolver, scenario, technology) {
+  if (resolver.run_id !== manifest.run_id) {
+    throw new Error("Evidence identity mismatch between manifest and resolver.");
   }
   if (manifest.scenario_version !== scenario.scenario_version || technology.scenario_id !== scenario.scenario_id) {
-    throw new Error("The accepted run and technology profile do not match the scenario contract.");
+    throw new Error("The run and technology profile do not match the scenario contract.");
   }
   if (resolver.pass !== true || manifest.assertions?.all_passed !== true) {
-    throw new Error("The accepted run does not contain passing resolver and run assertions.");
+    throw new Error("The run does not contain passing resolver and run assertions.");
   }
   const requiredAssertions = [
     "selected_expected_document",
@@ -45,17 +44,41 @@ function requireAccepted(pointer, manifest, runA, resolver, scenario, technology
     "policy_action_matches_contract",
   ];
   if (resolver.schema_version !== 2 || !requiredAssertions.every((name) => resolver.assertions?.[name] === true)) {
-    throw new Error("The accepted resolver does not satisfy the layered-ranking contract.");
+    throw new Error("The resolver does not satisfy the layered-ranking contract.");
   }
   if (runA.pass !== true || runA.top1 !== "order-api-guide-v1.0") {
-    throw new Error("The accepted Run A result does not expose the frozen outdated top result.");
-  }
-  if (manifest.acceptance?.method !== "secondscott_clean_room" || manifest.acceptance?.verdict !== "pass" || manifest.post_screenshot_human_review_required !== true) {
-    throw new Error("The accepted run does not preserve the Clean Room and publication-review gates.");
+    throw new Error("Run A does not expose the frozen outdated top result.");
   }
   if (technology.baseline?.adapter_id !== "postgresql-pgvector" || technology.llm?.adapter_id !== "deepseek-openai-compatible") {
-    throw new Error("The viewer technology profile is not the profile used by accepted evidence.");
+    throw new Error("The viewer technology profile is not the profile used by the evidence.");
   }
+}
+
+function requireAccepted(pointer, manifest, runA, resolver, scenario, technology) {
+  if (pointer.status !== "accepted" || manifest.state !== "accepted") {
+    throw new Error("The accepted-run pointer and run manifest must both report accepted.");
+  }
+  if (pointer.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
+    throw new Error("Evidence identity mismatch between pointer, manifest, and resolver.");
+  }
+  requireSharedEvidence(manifest, runA, resolver, scenario, technology);
+  const acceptedMethod = manifest.acceptance?.method === "independent_clean_room" || pointer.acceptance_contract === "legacy_published_v1";
+  if (!acceptedMethod || manifest.acceptance?.verdict !== "pass" || manifest.post_screenshot_human_review_required !== true) {
+    throw new Error("The accepted run does not preserve the Clean Room and publication-review gates.");
+  }
+}
+
+function requireCandidate(candidate, manifest, runA, resolver, scenario, technology) {
+  if (candidate.run_id !== manifest.run_id || resolver.run_id !== manifest.run_id) {
+    throw new Error("Candidate evidence identity mismatch.");
+  }
+  if (manifest.state !== "candidate" || manifest.screenshot_eligible !== false || manifest.human_review_required !== true) {
+    throw new Error("Candidate QA requires a non-screenshot-eligible candidate that still requires human review.");
+  }
+  if (manifest.acceptance !== undefined || manifest.post_screenshot_human_review_required !== undefined) {
+    throw new Error("Candidate QA refuses evidence that contains acceptance or post-screenshot review metadata.");
+  }
+  requireSharedEvidence(manifest, runA, resolver, scenario, technology);
 }
 
 function renderAgentPath() {
@@ -85,7 +108,11 @@ function initializeTheme() {
 
 async function render() {
   try {
-    const config = await loadJson("./viewer-config.json");
+    const candidateMode = window.location.pathname === CANDIDATE_QA_ROUTE;
+    const config = await loadJson(candidateMode ? CANDIDATE_QA_CONFIG : "./viewer-config.json");
+    if ((candidateMode && config.mode !== "candidate_qa") || (!candidateMode && config.mode === "candidate_qa")) {
+      throw new Error("The requested viewer route does not match its evidence mode.");
+    }
     const [scenario, technology] = await Promise.all([
       loadJson(config.scenario_metadata),
       loadJson(config.technology_profile),
@@ -94,21 +121,40 @@ async function render() {
     byId("scenario-title").textContent = scenario.title;
     byId("scenario-summary").textContent = scenario.summary;
 
-    const pointer = await loadJson(config.accepted_pointer);
-    if (pointer.status !== "accepted") {
-      rejectViewer(pointer.reason ?? "No accepted run is available for the current scenario contract.");
-      return;
+    let manifest;
+    let runA;
+    let resolver;
+    if (candidateMode) {
+      const candidate = config.candidate;
+      if (!candidate) {
+        throw new Error("Candidate QA configuration is missing its evidence pointer.");
+      }
+      [manifest, runA, resolver] = await Promise.all([
+        loadJson(candidate.manifest),
+        loadJson(candidate.run_a),
+        loadJson(candidate.resolver),
+      ]);
+      requireCandidate(candidate, manifest, runA, resolver, scenario, technology);
+      byId("viewer-eyebrow").textContent = "Candidate QA viewer";
+      byId("agent-support").textContent = "This local QA projection renders candidate evidence without accepting or promoting it.";
+      byId("evidence-policy-label").textContent = "Candidate QA · not accepted evidence";
+    } else {
+      const pointer = await loadJson(config.accepted_pointer);
+      if (pointer.status !== "accepted") {
+        rejectViewer(pointer.reason ?? "No accepted run is available for the current scenario contract.");
+        return;
+      }
+      [manifest, runA, resolver] = await Promise.all([
+        loadJson(pointer.manifest),
+        loadJson(pointer.run_a),
+        loadJson(pointer.resolver),
+      ]);
+      requireAccepted(pointer, manifest, runA, resolver, scenario, technology);
     }
-    const [manifest, runA, resolver] = await Promise.all([
-      loadJson(pointer.manifest),
-      loadJson(pointer.run_a),
-      loadJson(pointer.resolver),
-    ]);
-    requireAccepted(pointer, manifest, runA, resolver, scenario, technology);
 
     const runATop = runA.ranking?.[0];
     if (!runATop) {
-      throw new Error("The accepted Run A result does not expose a top-ranked document.");
+      throw new Error("The evidence does not expose a top-ranked Run A document.");
     }
     byId("run-a-title").textContent = runATop.document_id;
     addDefinition(byId("run-a-details"), "Version", runATop.version);
@@ -120,7 +166,7 @@ async function render() {
     const finalTop = resolver.layers?.deepseek_listwise_final?.top_result;
     const decision = resolver.decision;
     if (!bgeLeader || !finalTop) {
-      throw new Error("The accepted resolver does not expose both ranking layers.");
+      throw new Error("The resolver does not expose both ranking layers.");
     }
     byId("bge-title").textContent = bgeLeader.document_id;
     addDefinition(byId("bge-details"), "Version", bgeLeader.version);
@@ -164,10 +210,12 @@ async function render() {
     byId("synthetic-disclosure").textContent = scenario.synthetic_disclosure;
     byId("evidence-grid").hidden = false;
     byId("boundary").hidden = false;
-    byId("status-panel").classList.add("accepted");
-    byId("status-text").textContent = "Clean Run accepted · local evidence";
+    byId("status-panel").classList.add(candidateMode ? "candidate" : "accepted");
+    byId("status-text").textContent = candidateMode
+      ? "Candidate QA · Clean Room review · not accepted evidence"
+      : "Clean Run accepted · local evidence";
   } catch (error) {
-    rejectViewer(error instanceof Error ? error.message : "The accepted evidence contract failed.");
+    rejectViewer(error instanceof Error ? error.message : "The evidence contract failed.");
   }
 }
 

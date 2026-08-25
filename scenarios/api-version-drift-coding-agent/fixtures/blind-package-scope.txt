@@ -1,0 +1,1 @@
+A Payments SDK sample still uses retries=3 for gateway timeouts. Does that prove the same option is valid for Orders SDK 2.x?

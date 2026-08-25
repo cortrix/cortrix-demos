@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "scenario_id": "payment-incident-shift-handoff",
+  "status": "accepted",
+  "run_id": "payment-incident-shift-handoff-20260819T080134Z",
+  "demo_commit": "8c9e714e90bfbdbd26c3cf7dfd6451b4ba3a9520",
+  "manifest": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-manifest.json",
+  "run_a_summary": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-a/summary.json",
+  "run_a_answer": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-a/answer.json",
+  "run_a_resolver": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-a/resolver.json",
+  "run_b_summary": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-b/summary.json",
+  "run_b_answer": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-b/answer.json",
+  "run_b_evidence": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-b/evidence-01.json",
+  "resolver": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/run-b/resolver.json",
+  "cleanup": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/cleanup.json",
+  "screenshot_manifest": "../../scenarios/payment-incident-shift-handoff/evidence/runs/payment-incident-shift-handoff-20260819T080134Z/screenshots/screenshot-manifest.json"
+}

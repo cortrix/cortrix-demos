@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "scenario_version": "1.0.0",
+  "display_name": "Database Change Conflict Guardian",
+  "title": "When an Old Runbook Conflicts with the Active Schema",
+  "summary": "The same Harness and model receive either incomplete frozen workspace evidence or current evidence retrieved through the Cortrix read-only plugin. An application resolver separately enforces schema authority and read-only action policy.",
+  "synthetic_disclosure": "Synthetic mechanism demo preregistered before live execution; not a retrieval benchmark.",
+  "default_locale": "en-US",
+  "available_locales": ["en-US"]
+}

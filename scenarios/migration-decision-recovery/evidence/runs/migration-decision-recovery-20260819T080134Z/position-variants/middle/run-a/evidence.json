@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "provider": "frozen-workspace-evidence",
+  "backend_mode": "cortrix_bundle_absent",
+  "query": "Why was option B rejected during this migration? Return the decision, the supporting evidence, the superseded intermediate conclusion, and the constraints that still apply. Cite every material claim.",
+  "evidence": [
+    {
+      "evidence_ref": "ws_03f397bafb35477a62f59cd4eacc7ed5",
+      "document_id": "option-b-recommendation-superseded",
+      "status": "superseded",
+      "version": "checkpoint-14",
+      "source": "decision_checkpoint",
+      "excerpt": "# Intermediate migration recommendation\n\nStatus: superseded. At checkpoint 14, option B, a direct cross-region copy followed by cutover, was preferred because it appeared simpler and faster. That conclusion assumed replay order would be preserved across regions. Later evidence invalidated the assumption. This document is retained to explain the intermediate conclusion, not as the final decision.\n",
+      "source_sha256": "2edac1c5264376e8d4c12b6392454e25aa7395e83199ac289fc266f61364cbc1",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_d89ddd137be3a127c964944b37d3a8d4",
+      "document_id": "migration-task-event-stream",
+      "status": "current",
+      "version": "middle",
+      "source": "explicit_event_export",
+      "excerpt": "{\"event_id\":\"mig-001\",\"kind\":\"task\",\"subject\":\"migration-review\",\"state\":\"opened\"}\n{\"event_id\":\"mig-002\",\"kind\":\"constraint\",\"subject\":\"write-pause\",\"max\":\"90s\"}\n{\"event_id\":\"mig-003\",\"kind\":\"inventory\",\"subject\":\"source-schema\",\"state\":\"complete\"}\n{\"event_id\":\"mig-004\",\"kind\":\"candidate\",\"candidate\":\"a\",\"plan\":\"offline-copy\",\"state\":\"evaluated\"}\n{\"event_id\":\"mig-005\",\"kind\":\"candidate\",\"candidate\":\"a\",\"state\":\"rejected\",\"reason\":\"write-pause-limit\"}\n{\"event_id\":\"mig-006\",\"kind\":\"candidate\",\"candidate\":\"b\",\"plan\":\"cross-region-copy\",\"state\":\"evaluated\"}\n{\"event_id\":\"mig-007\",\"kind\":\"intermediate\",\"candidate\":\"b\",\"state\":\"preferred\",\"evidence_state\":\"pending\"}\n{\"event_id\":\"mig-008\",\"kind\":\"candidate\",\"candidate\":\"c\",\"plan\":\"dual-write-verified-replay\",\"state\":\"evaluated\"}\n{\"event_id\":\"mig-009\",\"kind\":\"capacity\",\"subject\":\"network-throughput\",\"state\":\"passed\"}\n{\"event_id\":\"mig-010\",\"kind\":\"trial\",\"trial\":\"b-01\",\"state\":\"started\"}\n{\"event_id\":\"mig-011\",\"kind\":\"trial\",\"trial\":\"b-01\",\"check\":\"write-order\",\"state\":\"failed\"}\n{\"event_id\":\"mig-012\",\"kind\":\"trial\",\"trial\":\"b-01\",\"check\":\"checksum\",\"state\":\"diverged\",\"records\":1284}\n{\"event_id\":\"mig-013\",\"kind\":\"trial\",\"trial\":\"b-02\",\"state\":\"started\"}\n{\"event_id\":\"mig-014\",\"kind\":\"trial\",\"trial\":\"b-02\",\"check\":\"write-order\",\"state\":\"failed\"}\n{\"event_id\":\"evt-final-option-b-rejected\",\"kind\":\"decision\",\"transition\":\"b-to-c\",\"reason_codes\":[\"replay-order\",\"checksum-divergence\"],\"selected_plan\":\"dual-write-verified-replay\"}\n{\"event_id\":\"mig-015\",\"kind\":\"trial\",\"trial\":\"b-clean\",\"state\":\"started\"}\n{\"event_id\":\"mig-016\",\"kind\":\"trial\",\"trial\":\"b-clean\",\"check\":\"checksum\",\"state\":\"diverged\",\"records\":1317}\n{\"event_id\":\"mig-017\",\"kind\":\"evidence\",\"candidate\":\"b\",\"subject\":\"replay-assumption\",\"state\":\"invalid\"}\n{\"event_id\":\"mig-018\",\"kind\":\"trial\",\"trial\":\"c-01\",\"state\":\"passed\"}\n{\"event_id\":\"mig-019\",\"kind\":\"trial\",\"trial\":\"c-02\",\"state\":\"passed\"}\n{\"event_id\":\"mig-020\",\"kind\":\"trial\",\"trial\":\"c-03\",\"state\":\"passed\"}\n{\"event_id\":\"mig-021\",\"kind\":\"evidence\",\"candidate\":\"c\",\"checks\":[\"write-order\",\"checksum-parity\"],\"state\":\"verified\"}\n{\"event_id\":\"mig-022\",\"kind\":\"constraint\",\"subject\":\"destructive-cutover\",\"allowed\":false}\n{\"event_id\":\"mig-023\",\"kind\":\"constraint\",\"subject\":\"checksum-parity\",\"state\":\"required\"}\n{\"event_id\":\"mig-024\",\"kind\":\"constraint\",\"subject\":\"rollback-window\",\"value\":\"30m\"}\n{\"event_id\":\"mig-025\",\"kind\":\"review\",\"subject\":\"candidate-c-complexity\",\"state\":\"accepted\"}\n{\"event_id\":\"mig-026\",\"kind\":\"approval\",\"subject\":\"final-decision\",\"state\":\"recorded\"}\n{\"event_id\":\"mig-027\",\"kind\":\"history\",\"subject\":\"candidate-b-intermediate\",\"state\":\"retained\"}\n{\"event_id\":\"mig-028\",\"kind\":\"boundary\",\"subject\":\"migration-execution-authority\",\"allowed\":false}\n{\"event_id\":\"mig-029\",\"kind\":\"task\",\"subject\":\"decision-recovery\",\"state\":\"sealed\"}\n",
+      "source_sha256": "2f58fda68f4a73ca1e43b4205ea59866dfd40e9b787bd792d7f2e7a4cc1ab7f7",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_a543bf180da7861d6baa939af46198eb",
+      "document_id": "staging-smoke-results",
+      "status": "historical",
+      "version": "2026-08-13",
+      "source": "test_result",
+      "excerpt": "# Staging smoke results\n\nBasic staging reads and writes passed for each option before cross-region replay was tested. These smoke results cannot override the later replay failure.\n",
+      "source_sha256": "d013bcb1418ec2692382e00435f85e7cf23752db66671bf98834cb0020c67457",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_4d1bb594c5b9778d4d63487771eec755",
+      "document_id": "network-bandwidth-test",
+      "status": "current",
+      "version": "2026-08-14",
+      "source": "test_result",
+      "excerpt": "# Network bandwidth test\n\nThe cross-region link sustained the required throughput during a synthetic transfer. Bandwidth success did not address replay ordering or checksum divergence.\n",
+      "source_sha256": "32a7d9d1641ae788fff4c31744362256a8c5ebe2c9042960a788dd8e863f171f",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    },
+    {
+      "evidence_ref": "ws_0550c9d27c9fba8630825a5ec51ca5b2",
+      "document_id": "migration-risk-acceptance",
+      "status": "current",
+      "version": "2026-08-16",
+      "source": "risk_record",
+      "excerpt": "# Migration risk acceptance\n\nThe approved risk record accepts the additional operational complexity of option C because it satisfies replay ordering and checksum parity. It does not waive the nondestructive cutover or rollback-window constraints.\n",
+      "source_sha256": "7284e8ac4792b8f2076679244358102b1428d449634e8e697a586ad4ea382d74",
+      "untrusted": true,
+      "provider": "frozen-workspace-evidence"
+    }
+  ],
+  "external_calls": 0,
+  "position_variant": "middle",
+  "claim_boundary": "This deterministic baseline represents the preregistered evidence order visible in a frozen workspace; it is not a retrieval benchmark."
+}

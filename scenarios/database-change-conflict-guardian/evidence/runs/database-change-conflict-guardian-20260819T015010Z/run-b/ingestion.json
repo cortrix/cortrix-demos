@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "operation": "load",
+  "scenario_id": "database-change-conflict-guardian",
+  "namespace": "harness-149f618cc6ea3396d8ab3ba2",
+  "document_count": 12,
+  "documents": [
+    {
+      "document_id": "orders-schema-runbook-v3.1-superseded",
+      "task_id": "01M0BVDCRWMS0EAAB5R2QW6J1R",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-schema-migration-v4.0-current",
+      "task_id": "01M0BVDDRR603709JNB4SYYJ9H",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-rollback-window-v4.0",
+      "task_id": "01M0BVDERSP1DA0AQK06GJ3R9X",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-incident-readonly-evidence",
+      "task_id": "01M0BVDFR1R207397MMT88J6CG",
+      "status": "completed"
+    },
+    {
+      "document_id": "invoices-account-column-guide",
+      "task_id": "01M0BVDGQSQJ38WKJX1H3W7XE9",
+      "status": "completed"
+    },
+    {
+      "document_id": "staging-orders-compatibility-view-draft",
+      "task_id": "01M0BVDHQVGN0BRYRX33TAXPYP",
+      "status": "completed"
+    },
+    {
+      "document_id": "returns-buyer-reference-migration",
+      "task_id": "01M0BVDJQX8FBXMSFAEW1V1V97",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-audit-column-reference",
+      "task_id": "01M0BVDKQW3TQVBGM51BD2QCPQ",
+      "status": "completed"
+    },
+    {
+      "document_id": "customer-profile-account-migration",
+      "task_id": "01M0BVDMQQ33WVRFTQSGV50CGQ",
+      "status": "completed"
+    },
+    {
+      "document_id": "warehouse-orders-region-incident",
+      "task_id": "01M0BVDNQN074R57RVTXSXPQ2Y",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-backfill-performance-note",
+      "task_id": "01M0BVDPQA5XTTWTZS8M2JQ263",
+      "status": "completed"
+    },
+    {
+      "document_id": "checkout-sdk-account-mapping",
+      "task_id": "01M0BVDQQ6AX4HAPB9GZ7WDQ82",
+      "status": "completed"
+    }
+  ],
+  "fixture_manifest_sha256": "630a84e0fefe8013064c89c7d0f14754f532ab060acd52cde2b20ffa24c0e9d3",
+  "external_llm_calls": 0
+}

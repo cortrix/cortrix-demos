@@ -7,6 +7,11 @@
       "profile": "baselines/postgresql-pgvector/profile.json"
     },
     {
+      "id": "frozen-workspace-evidence",
+      "support_status": "implemented",
+      "profile": "baselines/frozen-workspace-evidence/profile.json"
+    },
+    {
       "id": "elasticsearch",
       "support_status": "contract_only",
       "documentation": "../../docs/technology-profiles.md"

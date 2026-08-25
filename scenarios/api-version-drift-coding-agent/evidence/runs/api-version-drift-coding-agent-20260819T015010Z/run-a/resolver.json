@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "backend_mode": "cortrix_bundle_absent",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": false,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [
+    "Evidence did not include the resolver-selected current document",
+    "Answer did not select the resolver-selected current document"
+  ],
+  "selected_document_ids": [
+    "orders-sdk-v1-retry-example-superseded",
+    "payments-sdk-v1-retry-example",
+    "orders-cli-retry-flag",
+    "shipping-sdk-backoff-guide"
+  ],
+  "evidence_refs": [
+    "ws_bd13173e92db8546d651581a795ab00a",
+    "ws_38c48b21f2c3472154c306ebef618318",
+    "ws_d820fb164c4de0184aae2abf8e7f2c5e",
+    "ws_6d5d3bfdbae640f6a2625c1ec0836145"
+  ],
+  "decision": {
+    "action_mode": "explanation_and_tests_only",
+    "current_api": "RetryPolicy",
+    "deprecated_option": "retries",
+    "max_attempts_includes_initial_request": true,
+    "max_total_attempts": 3,
+    "retryable_statuses": [
+      429,
+      503
+    ]
+  },
+  "resolver_selected_document_id": "orders-sdk-v2-retry-api-current",
+  "resolver_action": "current_api_explanation_and_test_plan",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

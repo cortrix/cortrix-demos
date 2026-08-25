@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "provider": "cortrix-readonly-plugin",
+  "backend_mode": "cortrix_bundle_loaded",
+  "query": "After upgrading the Orders SDK from version 1.x to 2.x, retry behavior no longer matches the old example. Find the current official API and deprecation notice, explain why the example is obsolete, and propose the smallest test plan. Do not edit code.",
+  "evidence": [
+    {
+      "evidence_ref": "cxev_AcTt8i8m1nkR1qo1ZCVaI16OgkJDENwC",
+      "document_id": "orders-sdk-v1-retry-deprecation",
+      "status": "current",
+      "version": "2.0",
+      "source": "deprecation_notice",
+      "excerpt": "# Orders SDK retry option deprecation notice\nStatus: current deprecation notice.\nThe `retries` constructor option and its retry-count semantics were removed in Orders SDK 2.0. Applications must provide a `RetryPolicy`. Copying a 1.x `retries=3` example into a 2.x client is obsolete and can either fail validation or create an incorrect expectation about total attempts.",
+      "source_sha256": "a0ceffe37606a13d27a255e1202687e7410ff15fc284b97bc1bf706954f1c667",
+      "fixture_sha256": "5b2b26f157cd2025c0bb8c139496666e2c058c977a9ef1353ac344124d4da84a",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.01666666753590107,
+      "rerank_score": 0.9906933903694153
+    },
+    {
+      "evidence_ref": "cxev_9AbId-UIYtNVa35HlO4MMhNpwAdDo9wY",
+      "document_id": "orders-sdk-v1-retry-example-superseded",
+      "status": "superseded",
+      "version": "1.x",
+      "source": "sdk_example",
+      "excerpt": "# Orders SDK 1.x retry example\nStatus: superseded.\nThe 1.x client accepted `retries=3`. That value meant three retries after the initial request, for up to four total attempts. The example retried a broad set of server errors in the 5xx range.\nThis page remains available for historical integrations. It is not valid configuration for Orders SDK 2.x.",
+      "source_sha256": "8c6ff439e0963dc17d895fe66aacba860883d96b3221f492c6096c80a3862c8f",
+      "fixture_sha256": "1013cbb99a25212fc5ca8ce70e3444436c0a23e35200aecac3c4f0a5d4bff7e3",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.016393441706895828,
+      "rerank_score": 0.9778127670288086
+    },
+    {
+      "evidence_ref": "cxev_1-KiqjHYjaKcJo3zNrVzxJITbpmZma5Y",
+      "document_id": "orders-sdk-v2-retry-api-current",
+      "status": "current",
+      "version": "2.x",
+      "source": "official_api",
+      "excerpt": "# Orders SDK 2.x retry API\nStatus: current official API. Effective: 2026-07-20.\nConfigure retries with `RetryPolicy(max_attempts=3, retryable_statuses={429, 503}, retry_transport_errors=True)`. `max_attempts` includes the initial request, so this policy permits at most three total attempts.\nThe SDK does not retry every 5xx response by default. The explicit status set in this example contains only 429 and 503. Transport errors remain separately controlled by `retry_transport_errors`.",
+      "source_sha256": "190a5adcd2365c700b570388fba7314ad15fd100dad68db88078bbba263aad27",
+      "fixture_sha256": "87d4b3f1fb6e60bc2df8153dba28aeb00a02e21f9f0cda35706e9b06b6ea6db5",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.016129031777381897,
+      "rerank_score": 0.9688675999641418
+    },
+    {
+      "evidence_ref": "cxev_mkyeY7wswbdZ_MVxTwdL2pEzRnraALer",
+      "document_id": "payments-sdk-v1-retry-example",
+      "status": "current",
+      "version": "1.x",
+      "source": "sdk_example",
+      "excerpt": "# Payments SDK retry example\nPayments SDK 1.x accepts `retries=3` for gateway timeouts. Payments and Orders are separate packages with different release trains. This example does not establish an Orders SDK 2.x API.",
+      "source_sha256": "a1d747f9840418b6c1b08dbe9207588537cf7a1a6b154111cbc4c61d49abfb31",
+      "fixture_sha256": "1fdf95d408101107843d52aa12e6bc7d82fc2c697248fb5d23daff3c8f6da2d4",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.01587301678955555,
+      "rerank_score": 0.9135787487030029
+    },
+    {
+      "evidence_ref": "cxev_QYp8GicQpox_lmy9-Rwc5dyyc_RPVWpd",
+      "document_id": "orders-sdk-v2-migration-guide",
+      "status": "current",
+      "version": "2.x",
+      "source": "migration_guide",
+      "excerpt": "# Orders SDK 2.x retry migration guide\nReplace `retries=n` with an explicit `RetryPolicy`. Translate the desired total request count deliberately because 1.x counted retries after the initial request while 2.x `max_attempts` includes it.\nSmallest useful test plan:\n1. Stub a 503 response followed by success and assert no more than three total calls for `max_attempts=3`.\n2. Stub a non-listed 500 response and assert that the policy does not retry it.\n3. Stub a transport error and assert the configured transport-error behavior.",
+      "source_sha256": "910097274c3d63bc7aa2412ae59ec9713c114d1a7a42a333b7a1d30751710ced",
+      "fixture_sha256": "2c5ac7cb89241b575d13af1086762e5224bda80fa56bb7465fee55e0be512525",
+      "source_identity_kind": "fixture_normalized_chunk",
+      "untrusted": true,
+      "score": 0.015625,
+      "rerank_score": 0.9131462574005127
+    },
+    {
+      "evidence_ref": "cxev_AIbppEiW9I7aH0WSD7n27mhmWSxQAqYH",
+      "document_id": "orders-sdk-v2-retry-tests",
+      "status": "current",
+      "version": "2.x",
+      "source": "contract_tests",
+      "excerpt": "# Orders SDK 2.x retry contract tests\nStatus: current verification reference.\nThe maintained contract suite asserts that `max_attempts=3` produces three total calls, not one initial call plus three retries. It also asserts retry for 429 and 503, no retry for an unlisted 500 response, and separate handling for transport errors.",
+      "source_sha256": "094267c8e4005e5d56df287250f9cadcc28e30d78f3c152e6ca42e2bf227e444",
+      "fixture_sha256": "4b930b91f64644122cca3f75cf356c2e5d9f8a0007fd6becfd2664ed35cd573c",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.015384615398943424,
+      "rerank_score": 0.5482037663459778
+    },
+    {
+      "evidence_ref": "cxev_Bo1Uvwq9RkBLi8CP6UAFk-_X0WBXfFTe",
+      "document_id": "orders-sdk-v2-pagination-api",
+      "status": "current",
+      "version": "2.x",
+      "source": "official_api",
+      "excerpt": "# Orders SDK 2.x pagination API\nThis current reference describes cursor pagination and page-size limits. It does not define retry configuration or attempt counting.",
+      "source_sha256": "0abc6a38c87e66a072aa951f8747ade2c1e823417fd8692a85a780ac19190367",
+      "fixture_sha256": "245729833b3632e4448c84719c6154f72187d0a8752cbeded9e076e3bdc36fd6",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.01515151560306549,
+      "rerank_score": 0.4556034505367279
+    },
+    {
+      "evidence_ref": "cxev_oKsO8mtBMM2t9RyDnw4aH7hvjOD8TH8p",
+      "document_id": "python-http-client-retry-snippet",
+      "status": "unverified",
+      "version": "unknown",
+      "source": "community_snippet",
+      "excerpt": "# Generic Python HTTP retry snippet\nA generic HTTP client example retries all 5xx responses four times. It is not maintained by the Orders SDK team and does not describe Orders SDK 2.x.",
+      "source_sha256": "e01f2d1c8851e72c5dee53670aa3660286cd52815c5edc4b3f49a4a87d31e4dc",
+      "fixture_sha256": "3b1e07c20ffa4f8fe47e5069703ffee5ff20b7f6f3ccee2a1cf0e91a58c2464a",
+      "source_identity_kind": "fixture_normalized",
+      "untrusted": true,
+      "score": 0.014925372786819935,
+      "rerank_score": 0.4204653799533844
+    }
+  ],
+  "external_calls": 1,
+  "claim_boundary": "Cortrix supplies retrieved evidence; the application resolver independently owns source authority and allowed actions.",
+  "tool_contract": {
+    "registered_tools": [
+      "cortrix_search_evidence",
+      "cortrix_get_source"
+    ],
+    "search_calls": 1,
+    "source_calls": 8,
+    "durable_event_count": 18
+  }
+}

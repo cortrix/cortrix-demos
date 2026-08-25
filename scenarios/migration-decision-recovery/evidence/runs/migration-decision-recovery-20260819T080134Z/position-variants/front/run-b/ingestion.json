@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "operation": "load",
+  "scenario_id": "migration-decision-recovery",
+  "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+  "document_count": 21,
+  "documents": [
+    {
+      "document_id": "option-b-recommendation-superseded",
+      "task_id": "01M0CGPKK0Y17MD9Q1HFZW75X7",
+      "status": "completed"
+    },
+    {
+      "document_id": "migration-task-event-stream",
+      "task_id": "01M0CGPMAE2M28E8M9YPKQQ5JF",
+      "status": "completed"
+    },
+    {
+      "document_id": "staging-smoke-results",
+      "task_id": "01M0CGPPB3R3E8GK6AY98JMJV2",
+      "status": "completed"
+    },
+    {
+      "document_id": "network-bandwidth-test",
+      "task_id": "01M0CGPQBWE7RZSE524FV2TS57",
+      "status": "completed"
+    },
+    {
+      "document_id": "migration-risk-acceptance",
+      "task_id": "01M0CGPRC9ZDTZP4ET5ZPCDJCW",
+      "status": "completed"
+    },
+    {
+      "document_id": "final-decision-option-c-current",
+      "task_id": "01M0CGPSCSVSVXQF5V9D70NGE6",
+      "status": "completed"
+    },
+    {
+      "document_id": "cross-region-replay-evidence",
+      "task_id": "01M0CGPTD198Q95CCQ3HCJY757",
+      "status": "completed"
+    },
+    {
+      "document_id": "migration-constraints-current",
+      "task_id": "01M0CGPVD86Z5SMHQHAFB1DTM9",
+      "status": "completed"
+    },
+    {
+      "document_id": "option-a-offline-copy",
+      "task_id": "01M0CGPWDFY0SYDQDGE4M0VMEQ",
+      "status": "completed"
+    },
+    {
+      "document_id": "option-d-vendor-export",
+      "task_id": "01M0CGPXDGJRFB6RJBY5XXPG39",
+      "status": "completed"
+    },
+    {
+      "document_id": "cutover-checklist-draft",
+      "task_id": "01M0CGPYDQ9YGHP0J7G8G5JQE7",
+      "status": "completed"
+    },
+    {
+      "document_id": "source-schema-inventory",
+      "task_id": "01M0CGPZDPXWE8WM57Q838B6TF",
+      "status": "completed"
+    },
+    {
+      "document_id": "target-capacity-report",
+      "task_id": "01M0CGQ0DYQXFNSKSB3RBCDV23",
+      "status": "completed"
+    },
+    {
+      "document_id": "rollback-drill-history",
+      "task_id": "01M0CGQ1E670J4QWXEX90VVGD3",
+      "status": "completed"
+    },
+    {
+      "document_id": "security-review",
+      "task_id": "01M0CGQ2EBWZQSV7G2R6EQMNGF",
+      "status": "completed"
+    },
+    {
+      "document_id": "data-retention-policy",
+      "task_id": "01M0CGQ3EF19770DS5JCTA2M46",
+      "status": "completed"
+    },
+    {
+      "document_id": "communications-plan",
+      "task_id": "01M0CGQ4EARSHM4AYRCP2K62TN",
+      "status": "completed"
+    },
+    {
+      "document_id": "observability-dashboard",
+      "task_id": "01M0CGQ5E7JM0EM531XGFPV4AM",
+      "status": "completed"
+    },
+    {
+      "document_id": "fallback-routing-plan",
+      "task_id": "01M0CGQ6E5BG8XY4MC1RYYY5CM",
+      "status": "completed"
+    },
+    {
+      "document_id": "performance-baseline",
+      "task_id": "01M0CGQ7E6D83NHMA23TPTJDJ7",
+      "status": "completed"
+    },
+    {
+      "document_id": "post-migration-validation",
+      "task_id": "01M0CGQ89HTRB95JN95XHSQARS",
+      "status": "completed"
+    }
+  ],
+  "fixture_manifest_sha256": "3c01d908592d89c8eebb756200e38d051dd611d2960af824543a9763ff2a36da",
+  "external_llm_calls": 0,
+  "position_variant": "front"
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
+  "call_count": 1,
+  "input_tokens": 9489,
+  "output_tokens": 439,
+  "cache_hit_tokens": 0,
+  "reasoning_tokens": 0,
+  "observable_usage_records": 1,
+  "secret_source": "default_profile",
+  "secret_value_recorded": false,
+  "fallback_used": false,
+  "local_generative_llm": false,
+  "durable_session_artifact": "deepseek-harness-session-jsonl",
+  "durable_session_sha256": "80cb8d8713577c12953e8a2cb5150599183e0ee6ff1571c72c8be46f86f767a6",
+  "prompt_sha256": "5b831c437762ed1d0642140afcd421afb9f13f2d15f7dda6f8fa24d6f10e4eb9",
+  "answer_sha256": "0f028bbfd87d503de1537533fc9e2efe0280715445c2f45795dc2e4a7b8003f9"
+}

@@ -10,7 +10,7 @@ This repository is licensed under the [Apache License 2.0](LICENSE). See [NOTICE
 
 Open the [evidence viewer](packages/viewer/README.md) or follow the [human step-by-step guide](docs/step-by-step.md) to inspect the accepted local replay. The sealed run passed Clean Room review and screenshot verification. The viewer fails closed when its pointer, manifest, Run A result, resolver, or screenshot identity disagrees.
 
-The first scenario is a synthetic mechanism demo: Run A selects the superseded v1 API field, while Cortrix Full Stack returns and validates the current v2 field. It is not a retrieval benchmark or a general superiority claim.
+The accepted first scenario is a synthetic mechanism demo: Run A selects the superseded v1 API field, while Cortrix Full Stack returns and validates the current v2 field. Four DeepSeek Harness plugin scenarios are also independently accepted: database conflict, API version drift, payment incident handoff, and migration decision recovery. None of these scenarios is a retrieval benchmark or a general superiority claim.
 
 ## Run it locally
 
@@ -27,6 +27,10 @@ Discover and verify the accepted replay without external calls:
 ./democtl list --json
 ./democtl describe --scenario order-api-field-migration --json
 ./democtl validate --scenario order-api-field-migration
+./democtl describe --scenario database-change-conflict-guardian --json
+./democtl validate --scenario database-change-conflict-guardian
+./democtl describe --scenario api-version-drift-coding-agent --json
+./democtl validate --scenario api-version-drift-coding-agent
 ./democtl verify-accepted
 ```
 
@@ -40,6 +44,8 @@ make viewer
 
 The viewer tries the preferred local preview address and prints the address it actually uses. To force loopback or choose another port, run `make viewer VIEWER_BIND=127.0.0.1 VIEWER_PORT=18765`.
 
+An authorized local reviewer may inspect one completed candidate without promoting it by running `make viewer-candidate-qa RUN_ID=<run_id>`. This starts a separate, server-gated route that verifies the candidate still reports `screenshot_eligible=false` and `human_review_required=true`, and labels the page as Candidate QA rather than accepted evidence. Browser captures from that route are review artifacts only; `record-screenshot` refuses them, and the accepted viewer remains unchanged.
+
 Follow the two human-readable paths:
 
 - [Run A: PostgreSQL/pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector.md) explains why the dense-only baseline selects the superseded v1 guide.
@@ -47,7 +53,24 @@ Follow the two human-readable paths:
 - [Run A Manual Runbook: PostgreSQL and pgvector](scenarios/order-api-field-migration/docs/run-a-postgresql-pgvector-step-by-step.md) provides copy-and-paste Docker, HTTP, Python, and SQL commands for operating the baseline directly, without `democtl`.
 - [Run B Manual Runbook: Cortrix Full Stack](scenarios/order-api-field-migration/docs/run-b-cortrix-full-stack-step-by-step.md) provides the matching copy-and-paste Docker, HTTP, and Python commands for configuring and querying Cortrix directly, without `democtl`.
 
-A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Its explicit preparation path clones the pinned Cortrix source and runs `./democtl prepare-image --scenario order-api-field-migration`; the command reuses a matching local image and builds from the pinned source only when the image is absent. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The repository-wide ceiling for new authorized execution is `USD 1.00`.
+The DeepSeek Harness integration adds four scenario slices with the same Agent-first and human-readable ownership model:
+
+- [Database Change Conflict Guardian](scenarios/database-change-conflict-guardian/README.md) compares incomplete frozen workspace evidence with evidence retrieved through the read-only Cortrix bundle before a database action is considered.
+- [API Version Drift Coding Agent](scenarios/api-version-drift-coding-agent/README.md) compares an obsolete SDK retry example with the current API, deprecation notice, migration guide, and maintained tests.
+- [Payment Incident Shift Handoff](scenarios/payment-incident-shift-handoff/README.md) compares a superseded shift snapshot with the current handoff, ruled-out database hypothesis, pending remediation, and read-only checks.
+- [Migration Decision Recovery](scenarios/migration-decision-recovery/README.md) compares an obsolete option B recommendation with the final option C decision across front, middle, and end event positions.
+
+Read the [integration architecture and source preparation](docs/deepseek-harness-integration.md), [use cases](docs/deepseek-harness-use-cases.md), [limitations](docs/deepseek-harness-limitations.md), [model asset boundary](docs/model-assets.md), and [legacy evidence policy](docs/legacy-evidence.md) before attempting a new live campaign.
+
+After a Harness scenario has an independently accepted run, open its evidence projection with `make viewer-harness SCENARIO=<scenario-id>`. The server prints the exact accepted-only route. It refuses a candidate or an identity mismatch before serving the page.
+
+All four Harness scenarios use the exact same Harness, model, question, corpus, non-Cortrix tools, answer contract, and resolver across Run A and Run B. The only independent variable is whether the Cortrix bundle supplies evidence. Plugin retrieval and application authority remain separate, and a no-difference or reverse result must be retained instead of tuned away.
+
+A manual live run is separate. Read the [Full Stack runbook](docs/full-stack-runbook.md) before using `preflight`. Its explicit preparation path clones the pinned Cortrix source and runs `./democtl prepare-image --scenario order-api-field-migration`; the command reuses a matching local image and builds from the pinned source only when the image is absent. Missing secrets, unsupported adapters, source drift, model drift, pricing drift, or budget failure stops before external work. The generic direct Full Stack path keeps a `USD 1.00` ceiling. A reviewed Harness campaign owns its own explicit ceiling; the accepted operational-continuity campaign used `USD 5.00` and remained far below that bound.
+
+The current public-release candidate is replay-ready but not live-reproduction-ready: the Cortrix Integrations repository is not public yet, and the exact model export recipe is not available in the public documentation. Do not treat an existing workstation checkout or model volume as a public installation method.
+
+For authorized workstation runs, the runner can use a protected user-level `current.yaml` LLM profile instead of requiring the operator to export a real API key for every command. Explicit environment injection remains the highest-priority option for CI and containers. Safe discovery, validation, accepted replay, tests, and the viewer never read the profile; only a cost-bearing Full Stack preflight may resolve it. The profile stays outside every Git checkout, and runtime output records only its source class. See [Secret injection and default profiles](docs/full-stack-runbook.md#3-inject-the-secret-and-run) for setup and permission requirements.
 
 ## Inspect the evidence
 
@@ -56,6 +79,9 @@ Start with:
 - [Scenario registry](scenarios/registry.json)
 - [Technology profile](scenarios/order-api-field-migration/profiles/technology-profile.json)
 - [Accepted-run pointer](scenarios/order-api-field-migration/evidence/accepted-run.json)
+- [Operational continuity Clean Room evidence](docs/operational-continuity-clean-room-evidence.md)
+- [DeepSeek Harness integration](docs/deepseek-harness-integration.md)
+- [DeepSeek Harness limitations](docs/deepseek-harness-limitations.md)
 - [Evidence policy](docs/evidence-policy.md)
 - [Run manifest schema](packages/evidence-schema/run-manifest.schema.json)
 - [Repository architecture](docs/architecture.md)
@@ -103,7 +129,7 @@ runtime/config/                    Runtime profiles used by implemented adapters
 runtime/image-provenance.json      Local source build and OCI revision contract
 packages/runner/                   Shared discovery, validation, execution, and cleanup
 packages/evidence-schema/          Machine-readable evidence contracts
-packages/viewer/                   Read-only human projection of accepted evidence
+packages/viewer/                   Read-only accepted viewer and isolated local Candidate QA projection
 docs/                              Repository-wide architecture, policy, and authoring guides
 config/                            Repository-wide safety and external-call policy
 assets/brand/                      Apache-2.0 Cortrix visual identity expressions
@@ -115,6 +141,12 @@ Each layer has one owner:
 - A technology profile selects the database baseline, Cortrix identity, embedding and reranker models, and optional LLM provider for that scenario.
 - An adapter owns reusable integration code and capability checks. It does not own a scenario answer.
 - An accepted run freezes exact source, model, provider, resolver, cleanup, cost-visibility, and screenshot identity.
+
+Harness-based scenarios also freeze the Harness commit, plugin commit, tool schema, shared answer prompt template, and the `cortrix_bundle_loaded` comparison variable. Their candidate and accepted manifests use [the Harness comparison evidence schema](packages/evidence-schema/harness-run-manifest.schema.json); the original scenario continues to use its historical schema without semantic changes.
+
+The Agent entry for this integration is `agent.json -> gates.deepseek_harness`. It names the safe discovery commands, reviewed campaign contracts, the exact two-tool surface, the independent acceptance gate, and the accepted viewer entry. Safe discovery never reads the LLM profile or starts Cortrix.
+
+Four Harness scenarios now cover database conflict, API drift, incident handoff, and long-task decision recovery. The first two use the foundation campaign. Payment incident handoff and migration decision recovery use the operational continuity campaign; the migration scenario runs the same comparison with the decisive event at the front, middle, and end of a 30-event explicit application-owned export. These exports are frozen demo input, not automatic Cortrix memory.
 
 When a new demo is added, create a new `scenarios/<id>/` vertical slice and register it. Reuse an existing implemented adapter when possible. If the scenario needs Elasticsearch, MongoDB, or another LLM, add or implement that adapter separately and select it only in that scenario's technology profile. Do not replace the technology globally, duplicate adapters inside scenarios, or overwrite prior accepted evidence.
 

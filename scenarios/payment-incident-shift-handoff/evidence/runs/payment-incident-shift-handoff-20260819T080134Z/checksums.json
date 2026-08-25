@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "payment-incident-shift-handoff-20260819T080134Z",
+  "files": [
+    {
+      "path": "clean-room-review.json",
+      "sha256": "d781cf2b6f06ae3cfe0ee7f43c3a4116d25f397585eb2c61cba54ca0226fae2b"
+    },
+    {
+      "path": "cleanup.json",
+      "sha256": "279f8f0f1009f4fcb8668a6b0889561802d52a68a75bdd5178c725ad427289a4"
+    },
+    {
+      "path": "run-a/answer-prompt.txt",
+      "sha256": "444ab7dbba168a0e7dd0d7a42aad5ee00a78b48a08c6c8bf140ce8eea7f33353"
+    },
+    {
+      "path": "run-a/answer.json",
+      "sha256": "2855808eeeea87bf00c2b56b6389057cb92e53f06941cff2ea04051539390809"
+    },
+    {
+      "path": "run-a/evidence.json",
+      "sha256": "aa7e972af8e1cfef2e6a5fefaf35a2a7afcb8875bdc6e24c4946a92a10f427ad"
+    },
+    {
+      "path": "run-a/resolver.json",
+      "sha256": "1d253a1be34d308a8958859d61271a97b696b225bb07204166fbe676bf869c8f"
+    },
+    {
+      "path": "run-a/summary.json",
+      "sha256": "fd1eec3383412974bc0c991c40fdb9752f8e78898abf2edad61668211813fca7"
+    },
+    {
+      "path": "run-a/usage.json",
+      "sha256": "1a0627c081abe0e12d64762578a11317e41a7f7784235737f371c12ecfa07211"
+    },
+    {
+      "path": "run-b/answer-prompt.txt",
+      "sha256": "5b831c437762ed1d0642140afcd421afb9f13f2d15f7dda6f8fa24d6f10e4eb9"
+    },
+    {
+      "path": "run-b/answer.json",
+      "sha256": "0f028bbfd87d503de1537533fc9e2efe0280715445c2f45795dc2e4a7b8003f9"
+    },
+    {
+      "path": "run-b/evidence-01.json",
+      "sha256": "101294ab79f46992d9ae0c1f324eba0627f16008e9a5f7dfda7c569d3b21a665"
+    },
+    {
+      "path": "run-b/evidence-02.json",
+      "sha256": "8374be25992d2d5e2cff51724b8c820e9dd4f365af8dea0a7398011878a0e07b"
+    },
+    {
+      "path": "run-b/ingestion.json",
+      "sha256": "0cd2b38f4607d3850dfbd16ac2e231eedd839e2f8074a3ad46b0b58dc0f3a531"
+    },
+    {
+      "path": "run-b/resolver.json",
+      "sha256": "c20cb9d172d81e32e58928f734e9fceb7fd7d6d34906625f232480fd538f339d"
+    },
+    {
+      "path": "run-b/summary.json",
+      "sha256": "77cb3d6c00bf735837cd6e5acde2ac8e0b63049dd806d76ebaf03ebdfa00878a"
+    },
+    {
+      "path": "run-b/tool-session-01.json",
+      "sha256": "58868115456f4869d3fd95048f2a4747131fbab24c7ceecaea8e6d17c362887a"
+    },
+    {
+      "path": "run-b/tool-session-02.json",
+      "sha256": "d43595810bdeb05f332ebbf09caddb2a84b14052841b0103c6da5c694549d7b8"
+    },
+    {
+      "path": "run-b/usage.json",
+      "sha256": "af607ef0a83c20fbefaa335eb71e3729d61f17e3c063eba64dc6d1f139d4a8ef"
+    },
+    {
+      "path": "run-manifest.json",
+      "sha256": "b1a52b17162e895ca9fe4059f847c382ceecd5073c37169e49542535349196f5"
+    },
+    {
+      "path": "runtime.json",
+      "sha256": "6a589f59cfe02ce5759c41796523f2b72871edbad807ac8d9ded47eecd6181c3"
+    },
+    {
+      "path": "screenshots/payment-incident-shift-handoff-desktop.png",
+      "sha256": "31a0e7887afc57d9dee07ae3c04f6dafb66736d3e26fa8a1c7537e22c94e6fd3"
+    },
+    {
+      "path": "screenshots/payment-incident-shift-handoff-full-page.png",
+      "sha256": "34208c0a76f522a0953458e43eef213044cc8adbf0172e9486043b4f302a65e7"
+    },
+    {
+      "path": "screenshots/payment-incident-shift-handoff-mobile.png",
+      "sha256": "20d8a1e1016e8c7a7fbb33e383b307da6a3a357dd424e18942a017ad03a1cc1a"
+    },
+    {
+      "path": "screenshots/screenshot-manifest.json",
+      "sha256": "7903b19280ea7637aaf0fe621d1f0db8d2b7aa4c4beb81182056d123031cd418"
+    }
+  ]
+}

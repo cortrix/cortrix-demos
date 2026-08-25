@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "image": "sha256:f5dbb6ed129acb584e909d81d00e8cf45fbaf1b14419fb59a32784bfda11f490",
+  "source_revision": "4c0f0f96b652d5662a66d047771826a4d2933739",
+  "health": {
+    "components": {
+      "catalog": {
+        "catalog_db_open": true,
+        "status": "ok"
+      },
+      "disk": {
+        "stage": "warn",
+        "status": "ok"
+      },
+      "embedding_execution_provider": {
+        "active_ep": "cpu",
+        "configured_ep": "cpu",
+        "fallback": false,
+        "model_configured": true,
+        "policy_mismatch": false,
+        "preferred_ep": "cpu",
+        "status": "ok"
+      },
+      "reranker_execution_provider": {
+        "active_ep": "cpu",
+        "configured_ep": "cpu",
+        "fallback": false,
+        "model_configured": true,
+        "policy_mismatch": false,
+        "preferred_ep": "cpu",
+        "status": "ok"
+      },
+      "secret_provider": {
+        "provider_type": "env",
+        "status": "ok"
+      },
+      "spc_pipeline": {
+        "queue_depth": 0,
+        "status": "ok",
+        "workers": 2
+      }
+    },
+    "status": "ready",
+    "version": "1.0.0-rc.1"
+  },
+  "compose_cli": "docker-compose",
+  "model_checksums": {
+    "schema_version": 1,
+    "all_match": true,
+    "cache_action": "reused",
+    "downloads": 0,
+    "assets": [
+      {
+        "component": "embedding_model",
+        "model": "BAAI/bge-m3",
+        "sha256": "2237f770aad5c71bbc1fc2d361a57f9a37400574cc9eff32626f0cdb49234730",
+        "match": true
+      },
+      {
+        "component": "embedding_tokenizer",
+        "model": "BAAI/bge-m3",
+        "sha256": "249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4",
+        "match": true
+      },
+      {
+        "component": "reranker_model",
+        "model": "BAAI/bge-reranker-v2-m3",
+        "sha256": "912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d",
+        "match": true
+      },
+      {
+        "component": "reranker_tokenizer",
+        "model": "BAAI/bge-reranker-v2-m3",
+        "sha256": "8bf8afbfd11306bd872018c53bfdf2e160a56f8edbcf49933324404791c148d3",
+        "match": true
+      }
+    ]
+  },
+  "volume_access": {
+    "schema_version": 1,
+    "runtime_user_can_write_data": true
+  },
+  "harness_headless": {
+    "schema_version": 1,
+    "runtime_exports_present": true,
+    "headless_help_loaded": true,
+    "external_calls": 0,
+    "session_artifacts": 0
+  },
+  "source_projection_probe": {
+    "schema_version": 1,
+    "probe": "cortrix_plugin_source_projection",
+    "scenario_id": "payment-incident-shift-handoff",
+    "registered_tools": [
+      "cortrix_search_evidence",
+      "cortrix_get_source"
+    ],
+    "source_count": 8,
+    "source_identity_bound": true,
+    "external_llm_calls": 0,
+    "namespace_removed_or_absent": true
+  },
+  "model_cache_action": "reused",
+  "downloads": 0,
+  "builds": 0
+}

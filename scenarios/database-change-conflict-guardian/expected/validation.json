@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "scenario_identity": {
+    "scenario_version": "1.0.0",
+    "synthetic_data": true,
+    "construction_note": "Synthetic mechanism demo designed before execution to isolate conflict between a superseded database runbook and the current approved migration.",
+    "retrieval_contract": {"query_granularity": "document", "document_summary_role": "evidence_projection_only"},
+    "execution_contract": {"sealed": true, "campaign_id": "deepseek-harness-cortrix-foundation-p1-1.x", "campaign_attempt_cap": 2, "calibration_external_calls": 0}
+  },
+  "fixture_contract": {"document_count": 12, "decisive_document_count": 4, "distractor_document_count": 8, "blind_query_count": 2},
+  "assertion_contract": {"required_keys": ["run_a_top_document_id", "run_a_top_document_status", "run_a_required_current_document_id", "run_a_required_current_document_status", "run_b_required_document_ids", "run_b_final_top_document_id", "run_b_final_top_document_status", "resolver_selected_document_id", "resolver_selected_field", "resolver_action", "forbidden_actions"]},
+  "document_assertion_pairs": [
+    {"document_key": "run_a_top_document_id", "status_key": "run_a_top_document_status"},
+    {"document_key": "run_a_required_current_document_id", "status_key": "run_a_required_current_document_status"},
+    {"document_key": "run_b_final_top_document_id", "status_key": "run_b_final_top_document_status"}
+  ],
+  "document_list_assertions": [{"key": "run_b_required_document_ids", "count": 4}],
+  "resolver_contract": {"expected_document_assertion": "resolver_selected_document_id", "expected_field_assertion": "resolver_selected_field", "expected_action_assertion": "resolver_action", "expected_action": "current_source_read_only_plan"},
+  "comparison_contract": {"only_independent_variable": "cortrix_bundle_loaded", "required_true_keys": ["same_harness", "same_model", "same_prompt", "same_corpus", "same_non_cortrix_tools"]},
+  "baseline_contract": {"path": "baseline-ranking.json", "provider": "frozen-workspace-evidence", "top_k": 4, "expected_top_document_assertion": "run_a_top_document_id"},
+  "full_stack_profile": {"budget_usd": 1.0, "max_full_stack_attempts": 2, "local_generative_llm": false, "required_paths": ["deepseek_harness_answer_stage", "frozen_workspace_baseline", "cortrix_search_evidence", "cortrix_get_source", "durable_session_events", "application_resolver"]},
+  "evidence_contract": {"run_id_pattern": "^database-change-conflict-guardian-[0-9]{8}T[0-9]{6}Z(?:-retry)?$", "minimum_external_call_count": 2, "serial_query_count": 2, "acceptance_method": "independent_clean_room", "run_a_path": "run-a/summary.json", "run_b_path": "run-b/summary.json", "resolver_path": "resolver.json"}
+}

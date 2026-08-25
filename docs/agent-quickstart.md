@@ -50,7 +50,7 @@ Both commands emit JSON. A failure emits a structured error containing `code`, `
 discover -> describe -> validate -> preflight -> provision -> run -> inspect -> verify -> cleanup
 ```
 
-The accepted replay requires no external model call. A live Full Stack run is manual, reads its secret only from the named environment variable, and produces a candidate rather than accepted evidence.
+The accepted replay requires no external model call. A live Full Stack run is manual and produces a candidate rather than accepted evidence. After authorization reaches preflight, the runner resolves the declared secret from the named environment variable, an absolute profile selected by `CORTRIX_LLM_SECRET_FILE`, or the protected user default at `${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm/current.yaml`, in that order. An Agent must not read or print the profile itself. Preflight records only the source class, and discovery, validation, replay, tests, and the viewer never resolve the secret.
 
 ## Contract discovery order
 
@@ -66,6 +66,8 @@ agent.json
 ```
 
 Use the scenario contract for the business question and assertions, the technology profile for scenario-specific database and LLM selection, the adapter registry for implemented capability, and the accepted pointer for immutable evidence identity. Never derive runtime support from prose or a `contract_only` adapter entry.
+
+If `integration_kind` is `deepseek_harness_cortrix_readonly`, continue through `agent.json -> gates.deepseek_harness`. The safe commands there describe and validate all four Harness scenarios without reading a secret. Only an explicitly authorized execution may run `./democtl harness campaign`; it checks the frozen Harness, integration, Cortrix source, image, model cache, pricing, budget, required runtime exports, and a keyless Headless profile load before the shared contract smoke or answer calls. The keyless load uses `--help`, removes provider credentials from its environment, disables telemetry, and must create no session artifact. The runner then starts the fixed Cortrix runtime and performs a zero-LLM source projection probe: it loads frozen evidence into an isolated namespace, calls the real two-tool integration, verifies each returned content hash, binds each normalized source block to exactly one frozen fixture, and removes the probe namespace. A probe failure stops the campaign before the DeepSeek profile is read or a paid call begins. Curated usage records a stable session artifact kind and SHA-256, while the raw session path remains ignored runtime data. A successful campaign still produces candidates. `record-clean-room-pass`, `stage-accepted`, `record-screenshot`, and the accepted viewer are separate identity gates.
 
 Before an authorized live run, follow `gates.live_full_stack.source_preparation` and `gates.live_full_stack.image_preparation` in `agent.json`. Image provenance is machine-readable at `runtime/image-provenance.json`. Preparation makes no model call, reuses a matching local image, and otherwise builds from the pinned source revision.
 

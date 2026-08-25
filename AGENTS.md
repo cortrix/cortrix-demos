@@ -15,7 +15,9 @@ If this is your first interaction with the repository, read `agent.json` and fol
 
 These commands are read-only, make no external model calls, and locate the accepted evidence without private workspace knowledge. Treat accepted replay as the default operating mode.
 
-Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`, or any remote Git action unless the current task explicitly authorizes that boundary. A live Full Stack run is cost-bearing and produces a candidate, never automatically accepted evidence.
+For a scenario whose `integration_kind` is `deepseek_harness_cortrix_readonly`, read `agent.json -> gates.deepseek_harness` after the safe bootstrap. It names the registered scenarios, zero-call validation commands, exact two-tool surface, reviewed campaign contracts, independent Clean Room promotion gate, and accepted viewer entry. Do not infer live authorization from the presence of that entry.
+
+Do not run `preflight`, `run-full-stack`, `harness campaign`, either `stage-accepted` command, either `record-screenshot` command, or any remote Git action unless the current task explicitly authorizes that boundary. A live Full Stack run is cost-bearing and produces a candidate, never automatically accepted evidence.
 
 ## Public Surface
 
@@ -37,7 +39,8 @@ Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`,
 
 ## Secrets and External Calls
 
-- Read only the secret environment variable named by the selected implemented provider profile. The current scenario uses `DEEPSEEK_API_KEY`.
+- Resolve only the secret declared by the selected implemented provider profile. The current scenario uses `DEEPSEEK_API_KEY`; an authorized local run may alternatively use `CORTRIX_LLM_SECRET_FILE` or the protected user-level `current.yaml` profile documented in `docs/full-stack-runbook.md`.
+- Do not resolve a secret profile during discovery, validation, accepted replay, viewer, test, pull request, or other zero-external-call work.
 - Never print or persist the key in tracked files, evidence, logs, screenshots, command examples, or Git history.
 - Do not use a local generative-model fallback.
 - External Full Stack execution is manual and cost-gated. Pull requests must not call external model APIs.
@@ -54,4 +57,5 @@ Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`,
 - Run `make validate` before committing.
 - Verify that `agent.json`, `scenarios/registry.json`, and each scenario's technology profile remain mutually discoverable.
 - Run the public-safety scan against the full tracked tree and staged diff.
+- Run `make public-history-safety BASE_REF=origin/main` on the final carrier branch before requesting a public pull request.
 - Keep `main` as the canonical English branch.

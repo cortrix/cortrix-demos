@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "locale": "en-US",
+  "fallback": "en-US",
+  "messages": {
+    "scenario.title": "API Version Drift Coding Agent",
+    "scenario.subtitle": "When a familiar retry example uses retired semantics",
+    "state.noAcceptedRun": "No accepted run is available yet.",
+    "runA.title": "Run A: frozen workspace evidence",
+    "runB.title": "Run B: Cortrix read-only plugin",
+    "resolver.title": "Application API authority and action validation",
+    "boundary": "Cortrix supplies retrieval evidence. The application resolver independently owns API authority, package scope, and allowed actions."
+  }
+}

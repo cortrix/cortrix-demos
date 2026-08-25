@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "frozen-workspace-evidence",
+  "support_status": "implemented",
+  "role": "run_a",
+  "algorithm": "preregistered_fixture_order",
+  "input_contract": "scenario fixture manifest with unique positive baseline_rank values",
+  "output_contract": "canonical evidence ordered by baseline_rank",
+  "external_calls": false,
+  "mutable_operations": false,
+  "claim_boundary": "This adapter models the evidence already visible in a frozen workspace. It is a deterministic comparison control, not a retrieval benchmark."
+}

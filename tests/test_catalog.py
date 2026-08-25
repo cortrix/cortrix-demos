@@ -39,6 +39,13 @@ class CatalogTests(unittest.TestCase):
         for command in manifest["bootstrap"]["safe_default"]:
             self.assertIn(command, instructions)
         self.assertEqual("./democtl prepare-image --scenario order-api-field-migration", manifest["gates"]["live_full_stack"]["image_preparation"])
+        secret_resolution = manifest["gates"]["live_full_stack"]["secret_resolution"]
+        self.assertEqual(
+            ["declared_environment", "CORTRIX_LLM_SECRET_FILE", "user_default_profile"],
+            secret_resolution["precedence"],
+        )
+        self.assertEqual("authorized_preflight_only", secret_resolution["read_boundary"])
+        self.assertEqual("source_class_only", secret_resolution["recorded_output"])
         self.assertEqual("runtime/image-provenance.json", manifest["catalogs"]["image_provenance"])
 
     def test_agent_can_discover_and_describe_the_accepted_scenario(self) -> None:
@@ -71,6 +78,7 @@ class CatalogTests(unittest.TestCase):
         self.assertIn("next_action", payload["error"]["structured_data"])
 
     def test_temporary_second_scenario_passes_catalog_and_scenario_validation(self) -> None:
+        existing_ids = {item["id"] for item in list_scenarios(ROOT)}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "cortrix-demos"
             shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".runtime", ".runs", "__pycache__", "*.pyc"))
@@ -120,7 +128,7 @@ class CatalogTests(unittest.TestCase):
 
             self.assertEqual([], validate_scenario(root, second_id))
             self.assertEqual([], validate_catalog(root))
-            self.assertEqual({"order-api-field-migration", second_id}, {item["id"] for item in list_scenarios(root)})
+            self.assertEqual(existing_ids | {second_id}, {item["id"] for item in list_scenarios(root)})
 
     def test_external_call_policy_is_fail_closed_at_one_dollar(self) -> None:
         policy = load_external_call_policy(ROOT)

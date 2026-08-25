@@ -41,6 +41,8 @@ The ranking layers are not interchangeable. Run A records dense exact cosine. Ru
 
 Screenshots are captured only from the read-only viewer rendering one accepted run. Every image records its route, run ID, source evidence path, SHA-256 digest, dimensions, and capture time. Generated illustrations and manually rewritten results are not runtime evidence.
 
+A browser capture from the separate Candidate QA route is a local review artifact, not an accepted evidence screenshot. The route is enabled only for one explicitly named ignored candidate, verifies that promotion has not occurred, displays that boundary on the page, and is rejected by `record-screenshot`.
+
 ## Candidate isolation
 
 Candidate and rejected runs remain under ignored `.runs/`. Only sanitized accepted evidence may be copied into a scenario's tracked `evidence/runs/` directory after a Clean Room `PASS`.

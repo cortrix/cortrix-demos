@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "session_id": "migration-decision-recovery-20260819T080134Z-front-query-2",
+  "registered_tools": [
+    "cortrix_search_evidence",
+    "cortrix_get_source"
+  ],
+  "search_result": {
+    "status": "ok",
+    "query": "Why was option B rejected during this migration? Return the decision, the supporting evidence, the superseded intermediate conclusion, and the constraints that still apply. Cite every material claim.",
+    "purpose": "verification",
+    "evidence": [
+      {
+        "evidence_ref": "cxev_7x57kvB1kh6pUw4nujgYbl8l_0Qnvs82",
+        "excerpt": "{\"event_id\":\"mig-001\",\"kind\":\"task\",\"subject\":\"migration-review\",\"state\":\"opened\"}\n{\"event_id\":\"mig-002\",\"kind\":\"constraint\",\"subject\":\"write-pause\",\"max\":\"90s\"}\n{\"event_id\":\"evt-final-option-b-rejected\",\"kind\":\"decision\",\"transition\":\"b-to-c\",\"reason_codes\":[\"replay-order\",\"checksum-divergence\"],\"selected_plan\":\"dual-write-verified-replay\"}\n{\"event_id\":\"mig-003\",\"kind\":\"inventory\",\"subject\":\"source-schema\",\"state\":\"complete\"}\n{\"event_id\":\"mig-004\",\"kind\":\"candidate\",\"candidate\":\"a\",\"plan\":\"offline-copy\",\"state\":\"evaluated\"}",
+        "score": 0.03030998818576336,
+        "rerank_score": 0.786995530128479,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:97ea6b6a0d63c7fab5da736aad0cadbd"
+      },
+      {
+        "evidence_ref": "cxev_VYxGaXrVFoUNlW8SwwdWFcIbymKQOBG3",
+        "excerpt": "# Final migration decision\nStatus: current and approved. Option B was rejected because cross-region replay tests produced out-of-order writes and checksum divergence after a retry boundary. The final decision is option C: dual write with verified replay before cutover. The decision preserves a nondestructive cutover, requires checksum parity, and retains a 30-minute rollback window. This is the current migration authority.",
+        "score": 0.01666666753590107,
+        "rerank_score": 0.9957677125930786,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:3da938e2b7445aee67adf538fc9933b0"
+      },
+      {
+        "evidence_ref": "cxev_llRGvHsjsel3r5mIK_nOcEiTw90zfycH",
+        "excerpt": "# Current migration constraints\nThe constraints that still apply are: no destructive cutover; checksum parity is required before traffic moves; rollback capability must remain available for 30 minutes; production writes cannot be paused for more than 90 seconds; and all replay gaps must be explainable. These constraints remain current after option B was rejected.",
+        "score": 0.016393441706895828,
+        "rerank_score": 0.9891557097434998,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:4cace00b9e23b8e42d444727425133eb"
+      },
+      {
+        "evidence_ref": "cxev_ksYjlXC090Mni6n_0TXpIUN2nEe3BFjY",
+        "excerpt": "# Intermediate migration recommendation\nStatus: superseded. At checkpoint 14, option B, a direct cross-region copy followed by cutover, was preferred because it appeared simpler and faster. That conclusion assumed replay order would be preserved across regions. Later evidence invalidated the assumption. This document is retained to explain the intermediate conclusion, not as the final decision.",
+        "score": 0.016129031777381897,
+        "rerank_score": 0.9254284501075745,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:bdfe61ddabefca32e69038e40dd0788b"
+      },
+      {
+        "evidence_ref": "cxev_xiEy1o_LIx5z1d5jb5761s5Jd6buS3OZ",
+        "excerpt": "# Option A offline copy\nOption A pauses writes and performs a single offline copy. It was rejected early because the permitted production write pause is only 90 seconds. This is not the reason option B was rejected.",
+        "score": 0.01587301678955555,
+        "rerank_score": 0.9131652116775513,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:cd48b2c7cc4686037a7eb76588cb5709"
+      },
+      {
+        "evidence_ref": "cxev__ts1COelvIaKrI8XhNjiGD7ZKfH5MDCZ",
+        "excerpt": "# Cross-region replay evidence\nThree controlled replay trials for option B produced out-of-order writes after the retry boundary. Two trials diverged on 1,284 records and one diverged on 1,317 records. Repeating the trial from a clean snapshot reproduced the failure. Option C dual write with verified replay maintained order and checksum parity in all three trials. This evidence supports rejection of option B.",
+        "score": 0.015625,
+        "rerank_score": 0.7882072925567627,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:1b9ffad254a61bdb634ce8bcce687f3f"
+      },
+      {
+        "evidence_ref": "cxev_6Yu01GCUC16eaqArHb-0Fc14Wx3Dno4g",
+        "excerpt": "# Source schema inventory\nThe inventory lists 42 source tables, 11 materialized views, and 6 scheduled jobs. It provides migration scope but does not explain why option B was rejected.",
+        "score": 0.01515151560306549,
+        "rerank_score": 0.6256770491600037,
+        "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+        "content_hash": "sha256:dcb17ec4997c4ad8aff5175453569983"
+      }
+    ],
+    "meta": {
+      "coverage_ratio": 1,
+      "namespaces_succeeded": [
+        "harness-9802a2ee66ba6987cb73e6e3"
+      ],
+      "namespaces_failed": [],
+      "warnings": [],
+      "truncated": false
+    }
+  },
+  "source_ledger": {
+    "cxev_7x57kvB1kh6pUw4nujgYbl8l_0Qnvs82": "{\"event_id\":\"mig-001\",\"kind\":\"task\",\"subject\":\"migration-review\",\"state\":\"opened\"}\n{\"event_id\":\"mig-002\",\"kind\":\"constraint\",\"subject\":\"write-pause\",\"max\":\"90s\"}\n{\"event_id\":\"evt-final-option-b-rejected\",\"kind\":\"decision\",\"transition\":\"b-to-c\",\"reason_codes\":[\"replay-order\",\"checksum-divergence\"],\"selected_plan\":\"dual-write-verified-replay\"}\n{\"event_id\":\"mig-003\",\"kind\":\"inventory\",\"subject\":\"source-schema\",\"state\":\"complete\"}\n{\"event_id\":\"mig-004\",\"kind\":\"candidate\",\"candidate\":\"a\",\"plan\":\"offline-copy\",\"state\":\"evaluated\"}",
+    "cxev_VYxGaXrVFoUNlW8SwwdWFcIbymKQOBG3": "# Final migration decision\nStatus: current and approved. Option B was rejected because cross-region replay tests produced out-of-order writes and checksum divergence after a retry boundary. The final decision is option C: dual write with verified replay before cutover. The decision preserves a nondestructive cutover, requires checksum parity, and retains a 30-minute rollback window. This is the current migration authority.",
+    "cxev_llRGvHsjsel3r5mIK_nOcEiTw90zfycH": "# Current migration constraints\nThe constraints that still apply are: no destructive cutover; checksum parity is required before traffic moves; rollback capability must remain available for 30 minutes; production writes cannot be paused for more than 90 seconds; and all replay gaps must be explainable. These constraints remain current after option B was rejected.",
+    "cxev_ksYjlXC090Mni6n_0TXpIUN2nEe3BFjY": "# Intermediate migration recommendation\nStatus: superseded. At checkpoint 14, option B, a direct cross-region copy followed by cutover, was preferred because it appeared simpler and faster. That conclusion assumed replay order would be preserved across regions. Later evidence invalidated the assumption. This document is retained to explain the intermediate conclusion, not as the final decision.",
+    "cxev_xiEy1o_LIx5z1d5jb5761s5Jd6buS3OZ": "# Option A offline copy\nOption A pauses writes and performs a single offline copy. It was rejected early because the permitted production write pause is only 90 seconds. This is not the reason option B was rejected.",
+    "cxev__ts1COelvIaKrI8XhNjiGD7ZKfH5MDCZ": "# Cross-region replay evidence\nThree controlled replay trials for option B produced out-of-order writes after the retry boundary. Two trials diverged on 1,284 records and one diverged on 1,317 records. Repeating the trial from a clean snapshot reproduced the failure. Option C dual write with verified replay maintained order and checksum parity in all three trials. This evidence supports rejection of option B.",
+    "cxev_6Yu01GCUC16eaqArHb-0Fc14Wx3Dno4g": "# Source schema inventory\nThe inventory lists 42 source tables, 11 materialized views, and 6 scheduled jobs. It provides migration scope but does not explain why option B was rejected."
+  },
+  "tool_trace": [
+    {
+      "name": "cortrix_search_evidence",
+      "call_id": "cortrix-search-1",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-1",
+      "evidence_ref": "cxev_7x57kvB1kh6pUw4nujgYbl8l_0Qnvs82",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-2",
+      "evidence_ref": "cxev_VYxGaXrVFoUNlW8SwwdWFcIbymKQOBG3",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-3",
+      "evidence_ref": "cxev_llRGvHsjsel3r5mIK_nOcEiTw90zfycH",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-4",
+      "evidence_ref": "cxev_ksYjlXC090Mni6n_0TXpIUN2nEe3BFjY",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-5",
+      "evidence_ref": "cxev_xiEy1o_LIx5z1d5jb5761s5Jd6buS3OZ",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-6",
+      "evidence_ref": "cxev__ts1COelvIaKrI8XhNjiGD7ZKfH5MDCZ",
+      "status": "ok"
+    },
+    {
+      "name": "cortrix_get_source",
+      "call_id": "cortrix-source-7",
+      "evidence_ref": "cxev_6Yu01GCUC16eaqArHb-0Fc14Wx3Dno4g",
+      "status": "ok"
+    }
+  ],
+  "durable_session_events": [
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-search-1",
+        "name": "cortrix_search_evidence"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-search-1"
+            }
+          ]
+        },
+        "meta": {
+          "schema": "cortrix_evidence_ledger/v1",
+          "search_call_id": "cortrix-search-1",
+          "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+          "entries": [
+            {
+              "ordinal": 0,
+              "evidence_ref": "cxev_7x57kvB1kh6pUw4nujgYbl8l_0Qnvs82",
+              "child_id": "01M0CGPMCC5XE16A4SEV0VED28",
+              "parent_id": "",
+              "content_hash": "sha256:97ea6b6a0d63c7fab5da736aad0cadbd",
+              "content": "{\"event_id\":\"mig-001\",\"kind\":\"task\",\"subject\":\"migration-review\",\"state\":\"opened\"}\n{\"event_id\":\"mig-002\",\"kind\":\"constraint\",\"subject\":\"write-pause\",\"max\":\"90s\"}\n{\"event_id\":\"evt-final-option-b-rejected\",\"kind\":\"decision\",\"transition\":\"b-to-c\",\"reason_codes\":[\"replay-order\",\"checksum-divergence\"],\"selected_plan\":\"dual-write-verified-replay\"}\n{\"event_id\":\"mig-003\",\"kind\":\"inventory\",\"subject\":\"source-schema\",\"state\":\"complete\"}\n{\"event_id\":\"mig-004\",\"kind\":\"candidate\",\"candidate\":\"a\",\"plan\":\"offline-copy\",\"state\":\"evaluated\"}",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 1,
+              "evidence_ref": "cxev_VYxGaXrVFoUNlW8SwwdWFcIbymKQOBG3",
+              "child_id": "01M0CGPSF21ZDV6ZDPX850T0SD",
+              "parent_id": "",
+              "content_hash": "sha256:3da938e2b7445aee67adf538fc9933b0",
+              "content": "# Final migration decision\nStatus: current and approved. Option B was rejected because cross-region replay tests produced out-of-order writes and checksum divergence after a retry boundary. The final decision is option C: dual write with verified replay before cutover. The decision preserves a nondestructive cutover, requires checksum parity, and retains a 30-minute rollback window. This is the current migration authority.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 2,
+              "evidence_ref": "cxev_llRGvHsjsel3r5mIK_nOcEiTw90zfycH",
+              "child_id": "01M0CGPVEN0T3ERCXE336GCZ0S",
+              "parent_id": "",
+              "content_hash": "sha256:4cace00b9e23b8e42d444727425133eb",
+              "content": "# Current migration constraints\nThe constraints that still apply are: no destructive cutover; checksum parity is required before traffic moves; rollback capability must remain available for 30 minutes; production writes cannot be paused for more than 90 seconds; and all replay gaps must be explainable. These constraints remain current after option B was rejected.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 3,
+              "evidence_ref": "cxev_ksYjlXC090Mni6n_0TXpIUN2nEe3BFjY",
+              "child_id": "01M0CGPKMNJXT9C5XD472CKNCZ",
+              "parent_id": "",
+              "content_hash": "sha256:bdfe61ddabefca32e69038e40dd0788b",
+              "content": "# Intermediate migration recommendation\nStatus: superseded. At checkpoint 14, option B, a direct cross-region copy followed by cutover, was preferred because it appeared simpler and faster. That conclusion assumed replay order would be preserved across regions. Later evidence invalidated the assumption. This document is retained to explain the intermediate conclusion, not as the final decision.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 4,
+              "evidence_ref": "cxev_xiEy1o_LIx5z1d5jb5761s5Jd6buS3OZ",
+              "child_id": "01M0CGPWEKMZDAZGRWHQH3RC0Y",
+              "parent_id": "",
+              "content_hash": "sha256:cd48b2c7cc4686037a7eb76588cb5709",
+              "content": "# Option A offline copy\nOption A pauses writes and performs a single offline copy. It was rejected early because the permitted production write pause is only 90 seconds. This is not the reason option B was rejected.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 5,
+              "evidence_ref": "cxev__ts1COelvIaKrI8XhNjiGD7ZKfH5MDCZ",
+              "child_id": "01M0CGPTG1BYX3WQ51YSA8MFTM",
+              "parent_id": "",
+              "content_hash": "sha256:1b9ffad254a61bdb634ce8bcce687f3f",
+              "content": "# Cross-region replay evidence\nThree controlled replay trials for option B produced out-of-order writes after the retry boundary. Two trials diverged on 1,284 records and one diverged on 1,317 records. Repeating the trial from a clean snapshot reproduced the failure. Option C dual write with verified replay maintained order and checksum parity in all three trials. This evidence supports rejection of option B.",
+              "source_kind": "content"
+            },
+            {
+              "ordinal": 6,
+              "evidence_ref": "cxev_6Yu01GCUC16eaqArHb-0Fc14Wx3Dno4g",
+              "child_id": "01M0CGPZFA9E52XD9MS00P8AX3",
+              "parent_id": "",
+              "content_hash": "sha256:dcb17ec4997c4ad8aff5175453569983",
+              "content": "# Source schema inventory\nThe inventory lists 42 source tables, 11 materialized views, and 6 scheduled jobs. It provides migration scope but does not explain why option B was rejected.",
+              "source_kind": "content"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-1",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-2",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-3",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-3"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-4",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-5",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-6",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-6"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool/call",
+      "data": {
+        "callId": "cortrix-source-7",
+        "name": "cortrix_get_source"
+      }
+    },
+    {
+      "type": "tool/result",
+      "data": {
+        "message": {
+          "content": [
+            {
+              "type": "tool-result",
+              "toolCallId": "cortrix-source-7"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "plugin_external_http_calls": 1,
+  "external_llm_calls": 0,
+  "position_variant": "front"
+}

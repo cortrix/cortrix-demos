@@ -3,6 +3,7 @@
   "status": "accepted",
   "run_id": "order-api-field-migration-20260804T085505Z",
   "demo_commit": "3f21a44aa8cb21610b8d953ee2ea789d4e1241c8",
+  "acceptance_contract": "legacy_published_v1",
   "manifest": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260804T085505Z/run-manifest.json",
   "run_a": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260804T085505Z/run-a/pgvector-result.json",
   "resolver": "../../scenarios/order-api-field-migration/evidence/runs/order-api-field-migration-20260804T085505Z/run-b/resolver-01.json",

@@ -23,6 +23,7 @@
     "adapters": "runtime/adapters/registry.json",
     "external_call_policy": "config/external-call-policy.json",
     "evidence_schema": "packages/evidence-schema/run-manifest.schema.json",
+    "harness_evidence_schema": "packages/evidence-schema/harness-run-manifest.schema.json",
     "image_provenance": "runtime/image-provenance.json"
   },
   "lifecycle": [
@@ -40,9 +41,44 @@
     "live_full_stack": {
       "manual_authorization_required": true,
       "external_calls": true,
+      "secret_resolution": {
+        "precedence": ["declared_environment", "CORTRIX_LLM_SECRET_FILE", "user_default_profile"],
+        "user_default_profile": "${XDG_CONFIG_HOME:-$HOME/.config}/cortrix/secrets/llm/current.yaml",
+        "read_boundary": "authorized_preflight_only",
+        "recorded_output": "source_class_only"
+      },
       "source_preparation": "git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src",
       "image_preparation": "./democtl prepare-image --scenario order-api-field-migration",
       "command": "./democtl run-full-stack --scenario order-api-field-migration"
+    },
+    "deepseek_harness": {
+      "manual_authorization_required": true,
+      "external_calls": true,
+      "scenarios": ["database-change-conflict-guardian", "api-version-drift-coding-agent", "payment-incident-shift-handoff", "migration-decision-recovery"],
+      "safe_discovery": [
+        "./democtl describe --scenario database-change-conflict-guardian --json",
+        "./democtl validate --scenario database-change-conflict-guardian",
+        "./democtl describe --scenario api-version-drift-coding-agent --json",
+        "./democtl validate --scenario api-version-drift-coding-agent",
+        "./democtl describe --scenario payment-incident-shift-handoff --json",
+        "./democtl validate --scenario payment-incident-shift-handoff",
+        "./democtl describe --scenario migration-decision-recovery --json",
+        "./democtl validate --scenario migration-decision-recovery"
+      ],
+      "campaigns": {
+        "foundation": "runtime/harness/campaigns/foundation.json",
+        "operational_continuity": "runtime/harness/campaigns/operational-continuity.json"
+      },
+      "integration_source": "https://github.com/cortrix/cortrix-integrations",
+      "integration_commit": "a6063274e0d76f3d37207be31d588fcba286df1a",
+      "integration_path": ".runtime/cortrix-integrations/integrations/deepseek-harness",
+      "integration_preparation": "git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations",
+      "live_command": "./democtl harness campaign --campaign-contract runtime/harness/campaigns/<campaign>.json --harness-root .runtime/deepseek-harness --plugin-root .runtime/cortrix-integrations/integrations/deepseek-harness --cortrix-root .runtime/cortrix-harness-src --pricing-snapshot .runs/pricing-snapshot.json",
+      "comparison_variable": "cortrix_bundle_loaded",
+      "model_tools": ["cortrix_search_evidence", "cortrix_get_source"],
+      "model_write_tools": 0,
+      "acceptance": "independent_clean_room_required",
+      "accepted_viewer": "make viewer-harness SCENARIO=<scenario-id>"
     },
     "accepted_promotion": "independent_clean_run_required",
     "remote_publication": "explicit_human_authorization_required"

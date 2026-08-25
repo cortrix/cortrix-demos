@@ -168,6 +168,8 @@ h1 {
 .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
 .status-panel.accepted { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); color: var(--ok); }
 .status-panel.accepted .status-dot { background: var(--ok); box-shadow: 0 0 18px color-mix(in srgb, var(--ok) 55%, transparent); }
+.status-panel.candidate { border-color: color-mix(in srgb, var(--amber) 65%, var(--line)); color: var(--amber); }
+.status-panel.candidate .status-dot { background: var(--amber); box-shadow: 0 0 18px color-mix(in srgb, var(--amber) 55%, transparent); }
 .status-panel.rejected { border-color: color-mix(in srgb, var(--error) 55%, var(--line)); color: var(--error); }
 .status-panel.rejected .status-dot { background: var(--error); }
 
@@ -176,6 +178,31 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   padding-bottom: 16px;
+}
+
+.question-panel {
+  margin-bottom: 24px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--magma) 8%, var(--surface)), var(--surface));
+  box-shadow: var(--shadow);
+}
+
+.question-text {
+  max-width: 1040px;
+  margin: 10px 0 0;
+  font-size: clamp(1.08rem, 2vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.answer-copy {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  line-height: 1.65;
 }
 
 .card,

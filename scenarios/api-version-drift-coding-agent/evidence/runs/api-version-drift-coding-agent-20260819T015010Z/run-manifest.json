@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "run_id": "api-version-drift-coding-agent-20260819T015010Z",
+  "state": "accepted",
+  "source_identity": {
+    "demo_commit": "9111ab6dbe4e66b40abf8b60db1281b92817d796",
+    "plugin_commit": "f1eab7316b35e2ea632be4f0d7a45738319246a7",
+    "harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
+    "cortrix_commit": "4c0f0f96b652d5662a66d047771826a4d2933739",
+    "cortrix_image_digest": "sha256:f5dbb6ed129acb584e909d81d00e8cf45fbaf1b14419fb59a32784bfda11f490",
+    "fixture_manifest_sha256": "48748b7c3ca7b75e7e4bc3878607e5b270ab0e8af164fe847cd44a92f383bc6e",
+    "assertion_contract_sha256": "826117dd093f3d0743a386c0c3b61add6668c186231e3c7454e87862e3a1373a",
+    "answer_prompt_template_sha256": "dc33d14ccc9e2376534415084ec50b8f13361f06ea81aaf3e9860e707a42f636"
+  },
+  "comparison": {
+    "same_harness": true,
+    "same_model": true,
+    "same_prompt": true,
+    "same_corpus": true,
+    "same_non_cortrix_tools": true,
+    "only_independent_variable": "cortrix_bundle_loaded"
+  },
+  "provider": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "local_generative_llm": false,
+    "fallback_used": false,
+    "secret_source": "default_profile",
+    "secret_value_recorded": false
+  },
+  "usage": {
+    "visibility": "partial",
+    "observable_calls": 5,
+    "observable_input_tokens": 30977,
+    "observable_output_tokens": 1579,
+    "observable_cache_hit_tokens": 0,
+    "observable_cost_usd": 0.01571416,
+    "reviewed_bound_usd": 0.24153888,
+    "budget_usd": 1.0
+  },
+  "pricing_snapshot": {
+    "schema_version": 1,
+    "observed_at": "2026-08-19T01:49:23Z",
+    "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "model_version": "DeepSeek-V4-Flash",
+    "currency": "USD",
+    "unit": "per_million_tokens",
+    "prices_per_million_tokens": {
+      "input_cache_hit": 0.014,
+      "input_cache_miss": 0.44,
+      "output": 1.32
+    },
+    "notes": "Recorded from the official pricing page immediately before an authorized local walkthrough. A price change does not expand the repository budget."
+  },
+  "run_a": {
+    "path": "run-a/summary.json",
+    "sha256": "7974c75b65dd782e1de6ba57e6ee02c18e52774d82ae41f3f1522d4d64042c47",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_absent",
+    "answer_prompt_sha256": "03b3aafc69c93ee2af18ddabe842459548b0b66ec3fb396b86a4f18250a6aeb4"
+  },
+  "run_b": {
+    "path": "run-b/summary.json",
+    "sha256": "f57c83c0a61e9b98cbccc683885435de25dc5899444ab7c5dd9aa3d78c9077d8",
+    "pass": true,
+    "backend_mode": "cortrix_bundle_loaded",
+    "answer_prompt_sha256": "ddc2b64e000b3dbe31c81e6a72107291b4dc4d9b54541dc7065c361c8af83df4"
+  },
+  "resolver": {
+    "path": "run-b/resolver.json",
+    "sha256": "b91c3e2e5f7791cb24a79b46cbc357309456e41c07a259eef2c8ba8a1f2b16fa",
+    "pass": true
+  },
+  "cleanup": {
+    "path": "cleanup.json",
+    "sha256": "4f283d08a42294a4a5af6e20837efe821095d2c9c2e59473f07587d3c0a6861c",
+    "pass": true
+  },
+  "screenshot_eligible": true,
+  "human_review_required": false,
+  "negative_result": false,
+  "post_screenshot_human_review_required": true,
+  "acceptance": {
+    "method": "independent_clean_room",
+    "review_id": "REVIEW-API-VERSION-DRIFT-20260819T015819Z",
+    "verdict": "pass",
+    "accepted_at": "2026-08-19T02:01:02.322924+00:00",
+    "acceptance_tooling_commit": "1633146c9013620c78916fb2026381065ca48887",
+    "private_review_reference_recorded": false
+  },
+  "screenshots": [
+    {
+      "file": "screenshots/api-version-drift-coding-agent-desktop.png",
+      "sha256": "9a240152c0d218c1ff3b2377c81bb7ae9bbd03478e8c6197ef413d2da4e6f385",
+      "width": 1418,
+      "height": 826,
+      "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
+      "evidence_path": "run-manifest.json"
+    },
+    {
+      "file": "screenshots/api-version-drift-coding-agent-full-page.png",
+      "sha256": "04e9ea87d1701e9ed30081dd435371608d8abdfcd1aebba0eaafaac1bdf34ec3",
+      "width": 1418,
+      "height": 3170,
+      "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
+      "evidence_path": "run-b/summary.json"
+    },
+    {
+      "file": "screenshots/api-version-drift-coding-agent-mobile.png",
+      "sha256": "d9b869682ad551f750b036604eebd5fb56f36da99fc173b68db697a4d4385512",
+      "width": 1062,
+      "height": 2301,
+      "route": "/packages/viewer/harness.html?scenario=api-version-drift-coding-agent",
+      "evidence_path": "clean-room-review.json"
+    }
+  ]
+}

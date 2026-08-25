@@ -4,6 +4,7 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
 from typing import Any
@@ -15,6 +16,7 @@ from .errors import DemoContractError
 from .io import read_json, sha256_file, write_json
 from .preflight import REVIEWED_ATTEMPT_LIMITS, full_stack_preflight
 from .resolver import apply_lifecycle_resolver
+from .secret_profile import secret_value_for_redaction
 from .runtime import ROOT, cleanup, compose, contract_smoke, ensure_image, ensure_namespace, identity_map, inspect_namespace, metric_delta, metrics, parse_metrics, request, require_scenario_image_provenance, safe_run_suffix, sanitized_runtime, start, upload, verify_fixture_hashes, verify_models
 from .scenario import assertion_contract_path, load_assertion_contract, load_scenario, resolve_scenario_id, scenario_root, validate_scenario
 
@@ -101,18 +103,22 @@ def update_attempt(root: Path, run_id: str, state: str, category: str | None = N
     write_json(path, ledger, mode=0o600)
 
 
-def verify_demo_checkout(root: Path) -> dict[str, str]:
+def verify_demo_checkout(root: Path, *, allow_presentation_localization: bool = True) -> dict[str, str]:
     branch = subprocess.run(["git", "-C", str(root), "branch", "--show-current"], check=True, capture_output=True, text=True).stdout.strip()
     commit = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
     status = subprocess.run(["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"], check=True, capture_output=True, text=True).stdout.strip()
-    if branch != "main":
+    checkout_kind = "canonical"
+    if branch != "main" and allow_presentation_localization and _is_valid_presentation_checkout(root, branch, commit):
+        checkout_kind = "presentation_localization"
+    elif branch != "main":
         raise DemoContractError(
-            "Full Stack candidate must run from the main branch",
+            "Full Stack candidate must run from main or a declared presentation localization branch",
             code="CX_DEMO_CHECKOUT_BRANCH_INVALID",
             structured_data={
                 "required_branch": "main",
                 "actual_branch": branch,
-                "next_action": "Check out main in the demo repository, then rerun this command.",
+                "presentation_localization_supported": allow_presentation_localization,
+                "next_action": "Check out main or a valid declared presentation localization branch, then rerun this command.",
             },
         )
     if status:
@@ -137,7 +143,77 @@ def verify_demo_checkout(root: Path) -> dict[str, str]:
                 "next_action": "Run this command from a full git checkout that resolves HEAD to a 40-character commit.",
             },
         )
-    return {"branch": branch, "commit": commit, "working_tree": "clean"}
+    return {"branch": branch, "commit": commit, "working_tree": "clean", "checkout_kind": checkout_kind}
+
+
+def _is_valid_presentation_checkout(root: Path, branch: str, commit: str) -> bool:
+    manifest = root / "localization-base.yaml"
+    if not manifest.is_file():
+        return False
+    try:
+        text = manifest.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return False
+    required = {
+        "canonical_branch": "main",
+        "locale": branch,
+        "presentation_only": "true",
+    }
+    for key, expected in required.items():
+        matches = re.findall(rf"^{re.escape(key)}[ \t]*:[ \t]*([^#\r\n]+?)[ \t]*$", text, flags=re.MULTILINE)
+        if len(matches) != 1 or matches[0].strip() != expected:
+            return False
+    base_matches = re.findall(r"^canonical_base_commit[ \t]*:[ \t]*([0-9a-f]{40})[ \t]*$", text, flags=re.MULTILINE)
+    if len(base_matches) != 1:
+        return False
+    base_commit = base_matches[0]
+    ancestor = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", base_commit, commit],
+        capture_output=True,
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        return False
+    changed = subprocess.run(
+        ["git", "-C", str(root), "diff", "--name-only", f"{base_commit}..{commit}"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if changed.returncode != 0:
+        return False
+    paths = [Path(value) for value in changed.stdout.splitlines() if value]
+    if not paths or any(not _is_presentation_localization_path(path) for path in paths):
+        raise DemoContractError(
+            "The presentation localization branch changes files outside its allowed surface",
+            code="CX_DEMO_LOCALIZATION_CHECKOUT_INVALID",
+            structured_data={
+                "unexpected_path_count": sum(not _is_presentation_localization_path(path) for path in paths),
+                "next_action": "Restore the localization branch to presentation-only changes before rerunning live validation.",
+            },
+        )
+    return True
+
+
+def _is_presentation_localization_path(path: Path) -> bool:
+    value = path.as_posix()
+    if value in {
+        "README.md",
+        "README.zh-CN.md",
+        "localization-base.yaml",
+        "packages/runner/src/cortrix_demo_runner/safety.py",
+        "tests/test_public_safety.py",
+    }:
+        return True
+    if value.startswith("docs/") and value.endswith(".zh-CN.md"):
+        return True
+    if value.startswith("packages/viewer/"):
+        return True
+    if re.fullmatch(r"scenarios/[^/]+/README\.md", value):
+        return True
+    if re.fullmatch(r"scenarios/[^/]+/docs/.+\.zh-CN\.md", value):
+        return True
+    return re.fullmatch(r"scenarios/[^/]+/web/locales/[A-Za-z0-9-]+\.json", value) is not None
 
 
 def record_state(run_dir: Path, state: str, detail: str | None = None) -> None:
@@ -569,6 +645,8 @@ def execute_once(root: Path, source: Path, pricing_path: Path, run_id: str, revi
         source_revision=scenario["requires"]["cortrix_source_revision"],
         source_repository=provenance["source_repository"],
         secret_env=technology["llm"]["secret_env"],
+        expected_model=technology["llm"]["model"],
+        expected_base_url=technology["llm"]["base_url"],
         reviewed_attempt_limit=reviewed_attempt_limit,
         budget_usd=float(effective_profile["budget_usd"]),
     )
@@ -643,7 +721,11 @@ def failure_category(exc: Exception) -> str:
 
 def sanitized_error(exc: Exception) -> str:
     message = str(exc)
-    key = os.environ.get("DEEPSEEK_API_KEY", "")
+    key = secret_value_for_redaction(
+        "DEEPSEEK_API_KEY",
+        expected_model="deepseek-v4-flash",
+        expected_base_url="https://api.deepseek.com/v1",
+    )
     if key:
         message = message.replace(key, "[REDACTED]")
     return message.replace(str(ROOT), "[repository]")

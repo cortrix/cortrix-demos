@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "operation": "cleanup",
+  "namespace": "harness-9802a2ee66ba6987cb73e6e3",
+  "removed_or_absent": true,
+  "external_llm_calls": 0
+}

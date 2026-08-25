@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "locale": "en-US",
+  "fallback": "en-US",
+  "messages": {
+    "scenario.title": "Database Change Conflict Guardian",
+    "scenario.subtitle": "When an old runbook conflicts with the active schema",
+    "state.noAcceptedRun": "No accepted run is available yet.",
+    "runA.title": "Run A: frozen workspace evidence",
+    "runB.title": "Run B: Cortrix read-only plugin",
+    "resolver.title": "Application authority and action validation",
+    "boundary": "Cortrix supplies retrieval evidence. The application resolver independently owns source authority and allowed actions."
+  }
+}

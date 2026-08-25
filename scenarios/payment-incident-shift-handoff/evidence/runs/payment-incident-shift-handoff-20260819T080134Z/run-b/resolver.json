@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "scenario_id": "payment-incident-shift-handoff",
+  "backend_mode": "cortrix_bundle_loaded",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": true,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [],
+  "selected_document_ids": [
+    "payment-handoff-0320-current",
+    "database-saturation-ruled-out",
+    "gateway-queue-saturation-confirmed",
+    "payment-readonly-checks-current",
+    "worker-change-pending-approval"
+  ],
+  "evidence_refs": [
+    "cxev_YnyxWvF6sxbq1zywTPTYh6wNWdXTQ5As",
+    "cxev_8zsxFbe0EstZMlJb9nUX4qqncQOZHZJo",
+    "cxev_xWLNTPXWgDSCb21FVhXs6ZBtrt-ndqc2",
+    "cxev_E-dr0_X5xU2qBgaTCqJePgqPcEjev3C6",
+    "cxev_SOMJT3COuz47UKXEBnivCNj-P2vGcwRb"
+  ],
+  "decision": {
+    "confirmed_cause": "payment_gateway_queue_saturation_after_regional_failover",
+    "database_saturation": "ruled_out",
+    "remediation_status": "pending_approval",
+    "action_mode": "read_only_handoff"
+  },
+  "resolver_selected_document_id": "payment-handoff-0320-current",
+  "resolver_action": "current_source_read_only_plan",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

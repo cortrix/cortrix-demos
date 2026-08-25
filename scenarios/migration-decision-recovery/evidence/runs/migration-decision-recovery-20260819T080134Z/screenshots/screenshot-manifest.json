@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "run_id": "migration-decision-recovery-20260819T080134Z",
+  "accepted_commit": "8c9e714e90bfbdbd26c3cf7dfd6451b4ba3a9520",
+  "screenshots": [
+    {
+      "file": "screenshots/migration-decision-recovery-desktop.png",
+      "sha256": "bfaa90d690f54f8ff567c619ff634906b0906a2a76a3bfb1405f044519946bdc",
+      "width": 1440,
+      "height": 1000,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "run-b/evidence-01.json"
+    },
+    {
+      "file": "screenshots/migration-decision-recovery-full-page.png",
+      "sha256": "97c5fb33d82196b99b2994aeb03662e4217ee7d7e4f88728a662f8ecf15ba3b2",
+      "width": 1200,
+      "height": 4000,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "position-variants/summary.json"
+    },
+    {
+      "file": "screenshots/migration-decision-recovery-mobile.png",
+      "sha256": "a66977c13189ea785a9129e6afd29b92aef4a0078b405c831e3bec4f34cfa12e",
+      "width": 800,
+      "height": 1100,
+      "route": "/packages/viewer/harness.html?scenario=migration-decision-recovery",
+      "evidence_path": "run-b/resolver.json"
+    }
+  ]
+}

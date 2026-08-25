@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "document_id": "migration-task-event-stream",
+  "decisive_event_id": "evt-final-option-b-rejected",
+  "event_count": 30,
+  "variants": [
+    {"id":"front","path":"events-front.md","sha256":"6044da1089fd9ae6f37fda36d261eb7a742597fbf52b6fd73fd349ae8ff5456b","decisive_event_index":2},
+    {"id":"middle","path":"events-middle.md","sha256":"2f58fda68f4a73ca1e43b4205ea59866dfd40e9b787bd792d7f2e7a4cc1ab7f7","decisive_event_index":14},
+    {"id":"end","path":"events-end.md","sha256":"3cad52ee2faaf57c217a1e00044064a67c197df4d06952f7d00421c4972f44cf","decisive_event_index":27}
+  ]
+}

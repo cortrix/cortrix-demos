@@ -1,0 +1,1 @@
+In Orders SDK 2.x, does max_attempts count only retries or the initial request too, and which statuses are retried by the current default example?

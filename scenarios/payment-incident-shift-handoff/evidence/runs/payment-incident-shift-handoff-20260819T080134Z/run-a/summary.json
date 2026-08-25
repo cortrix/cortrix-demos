@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "payment-incident-shift-handoff-20260819T080134Z",
+  "scenario_id": "payment-incident-shift-handoff",
+  "backend_mode": "cortrix_bundle_absent",
+  "pass": true,
+  "authority_pass": false,
+  "expected_outcome_observed": true,
+  "evidence": "run-a/evidence.json",
+  "answer": "run-a/answer.json",
+  "usage": "run-a/usage.json",
+  "resolver": "run-a/resolver.json"
+}

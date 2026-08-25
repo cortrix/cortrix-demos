@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "id": "payment-incident-shift-handoff",
+  "display_name": "Payment Incident Shift Handoff",
+  "title": "Payment Incident Shift Handoff: Recovering Confirmed Facts Without Repeating Failed Work",
+  "scenario_version": "1.0.0",
+  "integration_kind": "deepseek_harness_cortrix_readonly",
+  "synthetic_data": true,
+  "construction_note": "Synthetic mechanism demo designed before execution to isolate current incident authority from a superseded shift handoff and nearby operational noise.",
+  "execution_contract": {"sealed": true, "campaign_id": "deepseek-harness-cortrix-operational-continuity-1.x", "campaign_attempt_cap": 4, "calibration_external_calls": 0},
+  "requires": {
+    "cortrix_release": "main",
+    "cortrix_release_commit": "4c0f0f96b652d5662a66d047771826a4d2933739",
+    "cortrix_source_revision": "4c0f0f96b652d5662a66d047771826a4d2933739",
+    "deepseek_harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
+    "cortrix_plugin_package": "@cortrix/dsh-cortrix",
+    "cortrix_plugin_version": "0.1.0"
+  },
+  "profiles": ["full-stack", "replay"],
+  "fixtures": {"manifest": "fixtures/manifest.json"},
+  "assertions": "expected/assertions.json",
+  "validation_contract": "expected/validation.json",
+  "retrieval_contract": {"query_granularity": "document", "document_summary_role": "evidence_projection_only"},
+  "comparison_contract": {"same_harness": true, "same_model": true, "same_prompt": true, "same_corpus": true, "same_non_cortrix_tools": true, "only_independent_variable": "cortrix_bundle_loaded"},
+  "locales": {"default": "en-US", "available": ["en-US"]},
+  "evidence_schema": 1
+}

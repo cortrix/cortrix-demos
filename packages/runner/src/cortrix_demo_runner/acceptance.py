@@ -307,7 +307,7 @@ def append_accepted_state(source: Path, destination: Path) -> None:
     transitions = history.get("transitions")
     if not isinstance(transitions, list) or not all(isinstance(item, dict) for item in transitions) or [item.get("state") for item in transitions] != ["created", "running", "candidate"]:
         raise _acceptance_integrity_error("Candidate state history is not created -> running -> candidate")
-    transitions.append({"state": "accepted", "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat(), "detail": "secondscott_clean_room_passed"})
+    transitions.append({"state": "accepted", "recorded_at": dt.datetime.now(dt.timezone.utc).isoformat(), "detail": "independent_clean_room_passed"})
     write_json(destination, history)
 
 
@@ -345,7 +345,9 @@ def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, scenar
             next_action="Use a review ID that matches the documented REVIEW identifier format.",
         )
     manifest = validate_candidate(root, run_id, resolved_id)
-    checkout = verify_demo_checkout(root)
+    # Accepted evidence is canonical English evidence. Presentation branches may
+    # execute local validation candidates, but they cannot curate or replace it.
+    checkout = verify_demo_checkout(root, allow_presentation_localization=False)
     demo_commit = manifest["target_identity"]["demo_commit"]
     ancestor = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", demo_commit, checkout["commit"]], capture_output=True, check=False)
     if ancestor.returncode != 0:
@@ -370,7 +372,7 @@ def stage_accepted(root: Path, run_id: str, clean_room_review_id: str, *, scenar
             "human_review_required": False,
             "post_screenshot_human_review_required": True,
             "acceptance": {
-                "method": "secondscott_clean_room",
+                "method": "independent_clean_room",
                 "verdict": "pass",
                 "accepted_at": accepted_at,
                 "demo_commit": demo_commit,
@@ -585,7 +587,9 @@ def verify_accepted(root: Path, run_id: str, *, scenario_id: str | None = None) 
     acceptance = manifest.get("acceptance")
     tooling_commit = acceptance.get("acceptance_tooling_commit") if isinstance(acceptance, dict) else None
     expected_acceptance_method = validation["evidence_contract"]["acceptance_method"]
-    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or manifest.get("post_screenshot_human_review_required") is not True or not isinstance(acceptance, dict) or acceptance.get("method") != expected_acceptance_method or acceptance.get("verdict") != "pass" or acceptance.get("demo_commit") != demo_commit or not isinstance(tooling_commit, str) or not COMMIT_PATTERN.fullmatch(tooling_commit) or acceptance.get("private_review_reference_recorded") is not False:
+    legacy_published = pointer.get("acceptance_contract") == "legacy_published_v1"
+    acceptance_method_valid = isinstance(acceptance, dict) and (acceptance.get("method") == expected_acceptance_method or legacy_published)
+    if manifest.get("screenshot_eligible") is not True or manifest.get("human_review_required") is not False or manifest.get("post_screenshot_human_review_required") is not True or not acceptance_method_valid or acceptance.get("verdict") != "pass" or acceptance.get("demo_commit") != demo_commit or not isinstance(tooling_commit, str) or not COMMIT_PATTERN.fullmatch(tooling_commit) or acceptance.get("private_review_reference_recorded") is not False:
         raise _acceptance_integrity_error("Accepted manifest does not preserve the Clean Room and post-screenshot Human Review gates")
     if pointer.get("demo_commit") != demo_commit:
         raise _acceptance_integrity_error("Accepted-run pointer commit does not match the run manifest")

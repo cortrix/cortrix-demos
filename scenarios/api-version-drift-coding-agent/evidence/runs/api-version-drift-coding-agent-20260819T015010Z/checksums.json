@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "api-version-drift-coding-agent-20260819T015010Z",
+  "files": [
+    {
+      "path": "clean-room-review.json",
+      "sha256": "a18b865be1de62a4a89f1e66d09014676b5175415cb5f86a15f231ffdcf3bd13"
+    },
+    {
+      "path": "cleanup.json",
+      "sha256": "4f283d08a42294a4a5af6e20837efe821095d2c9c2e59473f07587d3c0a6861c"
+    },
+    {
+      "path": "run-a/answer-prompt.txt",
+      "sha256": "03b3aafc69c93ee2af18ddabe842459548b0b66ec3fb396b86a4f18250a6aeb4"
+    },
+    {
+      "path": "run-a/answer.json",
+      "sha256": "1fe8949e7523232d848f768dc5431b8d44df1ff8e8144bc65f9877ec211ab88d"
+    },
+    {
+      "path": "run-a/evidence.json",
+      "sha256": "116d15fd45939519dd3bfdc9b9aa7c83c3e4cdb4be86ea112fcb41b9fbaf1593"
+    },
+    {
+      "path": "run-a/resolver.json",
+      "sha256": "f3d65856b79af5f66dbe527e424814d5b5bc3b60d255f77c93303ab77a8b06f0"
+    },
+    {
+      "path": "run-a/summary.json",
+      "sha256": "7974c75b65dd782e1de6ba57e6ee02c18e52774d82ae41f3f1522d4d64042c47"
+    },
+    {
+      "path": "run-a/usage.json",
+      "sha256": "f2cb957239889ede31d15bcc82461ef227460d59f51f08ada84b29eeb7720a33"
+    },
+    {
+      "path": "run-b/answer-prompt.txt",
+      "sha256": "ddc2b64e000b3dbe31c81e6a72107291b4dc4d9b54541dc7065c361c8af83df4"
+    },
+    {
+      "path": "run-b/answer.json",
+      "sha256": "8535be7c23b31d0e9f7f04d652248d441e3de68f7e1b4de10683a41d0a12e848"
+    },
+    {
+      "path": "run-b/evidence-01.json",
+      "sha256": "807185457341a2cb2e40c405d92e67b980b89c2a8916b8a67bcb542fbffb7415"
+    },
+    {
+      "path": "run-b/evidence-02.json",
+      "sha256": "1948f035a9e6a286433b7d455bcc15531a909a3b66d968e1f63e744287cf27cd"
+    },
+    {
+      "path": "run-b/ingestion.json",
+      "sha256": "de11999d40e2de63cdc5f6a9229e3e06d1efe31a982e4e598838bbf3e295f412"
+    },
+    {
+      "path": "run-b/resolver.json",
+      "sha256": "b91c3e2e5f7791cb24a79b46cbc357309456e41c07a259eef2c8ba8a1f2b16fa"
+    },
+    {
+      "path": "run-b/summary.json",
+      "sha256": "f57c83c0a61e9b98cbccc683885435de25dc5899444ab7c5dd9aa3d78c9077d8"
+    },
+    {
+      "path": "run-b/tool-session-01.json",
+      "sha256": "295bda609cf7777cc44cab7a1afc385f821d77d39da005428278c69121e1a9a2"
+    },
+    {
+      "path": "run-b/tool-session-02.json",
+      "sha256": "10cd3d0d26e91900beb1ab983264ea9c1d7f36e834ae262b87659fa066d9fb02"
+    },
+    {
+      "path": "run-b/usage.json",
+      "sha256": "408d731c333fb279f759db9bfbd7b7ff1e8c6abe26088e03fd2e457199d8f9c5"
+    },
+    {
+      "path": "run-manifest.json",
+      "sha256": "5b3ffab74b5e3bec52cc0ba4a5dd478e046b31583b4194d97d4f1946c031912a"
+    },
+    {
+      "path": "runtime.json",
+      "sha256": "d74fe1e7c35428bfdfab3f08f3f57646adab02bfb5db15182e6423d563b0fd63"
+    },
+    {
+      "path": "screenshots/api-version-drift-coding-agent-desktop.png",
+      "sha256": "9a240152c0d218c1ff3b2377c81bb7ae9bbd03478e8c6197ef413d2da4e6f385"
+    },
+    {
+      "path": "screenshots/api-version-drift-coding-agent-full-page.png",
+      "sha256": "04e9ea87d1701e9ed30081dd435371608d8abdfcd1aebba0eaafaac1bdf34ec3"
+    },
+    {
+      "path": "screenshots/api-version-drift-coding-agent-mobile.png",
+      "sha256": "d9b869682ad551f750b036604eebd5fb56f36da99fc173b68db697a4d4385512"
+    },
+    {
+      "path": "screenshots/screenshot-manifest.json",
+      "sha256": "df5b65b1353d30ddadd04ad88ad32e3ad8653cd1df33a31514a5607dd6ae9d62"
+    }
+  ]
+}

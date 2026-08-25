@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "scenario_id": "migration-decision-recovery",
+  "backend_mode": "cortrix_bundle_loaded",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": true,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [],
+  "selected_document_ids": [
+    "final-decision-option-c-current",
+    "cross-region-replay-evidence",
+    "option-b-recommendation-superseded",
+    "migration-constraints-current"
+  ],
+  "evidence_refs": [
+    "cxev_XZ_BjB3WabCVlQTD3EIhgN_pg9zvu-ft",
+    "cxev_jC7k-sS6iwphEYEk8DXpCrsCw47eh4lv",
+    "cxev_3L5ZvdGfLGkUnB2X5SArQdIC2ERjnm3g",
+    "cxev_ZtTbeKG34_zl9XS7xBh1doaMLuOniwM2"
+  ],
+  "decision": {
+    "final_decision": "option_c_dual_write_with_verified_replay",
+    "option_b_status": "rejected",
+    "superseded_conclusion": "option_b_preferred_before_cross_region_replay",
+    "still_valid_constraints": [
+      "no_destructive_cutover",
+      "checksum_parity_required",
+      "rollback_window_30_minutes"
+    ],
+    "action_mode": "decision_recovery_only"
+  },
+  "resolver_selected_document_id": "final-decision-option-c-current",
+  "resolver_action": "decision_recovery_only",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

@@ -1,0 +1,1 @@
+{"schema_version":1,"scenario_id":"payment-incident-shift-handoff","expected":{"confirmed_cause":"payment_gateway_queue_saturation_after_regional_failover","database_saturation":"ruled_out","remediation_status":"pending_approval","action_mode":"read_only_handoff"}}

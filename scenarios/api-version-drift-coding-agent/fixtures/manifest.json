@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scenario_id": "api-version-drift-coding-agent",
+  "synthetic_data": true,
+  "construction_note": "Synthetic mechanism demo designed before execution to isolate conflict between an obsolete SDK retry example and the current official API.",
+  "query": {"path": "query.txt", "sha256": "c38bf1b3f0df660c15a092ec1db1be6251e759a2c00fe1d3dd945ea5df726e58"},
+  "blind_queries": [
+    {"id": "attempt-semantics", "path": "blind-attempt-semantics.txt", "sha256": "99621e0b1ea5f3e00fc20461cd966651a0cc665c96b2099a8a8c9b39085e14b3"},
+    {"id": "package-scope", "path": "blind-package-scope.txt", "sha256": "b7c56ae2c4d7420877c746197130802b59853c7b844c5eaa49d0372834ae684f"}
+  ],
+  "documents": [
+    {"path": "orders-sdk-v1-retry-example-superseded.md", "document_id": "orders-sdk-v1-retry-example-superseded", "source": "sdk_example", "version": "1.x", "status": "superseded", "effective_at": "2025-03-01", "superseded_by": "orders-sdk-v2-retry-api-current", "role": "distractor", "baseline_rank": 1, "sha256": "1013cbb99a25212fc5ca8ce70e3444436c0a23e35200aecac3c4f0a5d4bff7e3"},
+    {"path": "orders-sdk-v2-retry-api-current.md", "document_id": "orders-sdk-v2-retry-api-current", "source": "official_api", "version": "2.x", "status": "current", "effective_at": "2026-07-20", "supersedes": "orders-sdk-v1-retry-example-superseded", "role": "decisive", "baseline_rank": 6, "sha256": "87d4b3f1fb6e60bc2df8153dba28aeb00a02e21f9f0cda35706e9b06b6ea6db5"},
+    {"path": "orders-sdk-v1-retry-deprecation.md", "document_id": "orders-sdk-v1-retry-deprecation", "source": "deprecation_notice", "version": "2.0", "status": "current", "effective_at": "2026-07-20", "role": "decisive", "baseline_rank": 8, "sha256": "5b2b26f157cd2025c0bb8c139496666e2c058c977a9ef1353ac344124d4da84a"},
+    {"path": "orders-sdk-v2-migration-guide.md", "document_id": "orders-sdk-v2-migration-guide", "source": "migration_guide", "version": "2.x", "status": "current", "effective_at": "2026-07-20", "role": "decisive", "baseline_rank": 7, "sha256": "2c5ac7cb89241b575d13af1086762e5224bda80fa56bb7465fee55e0be512525"},
+    {"path": "orders-sdk-v2-retry-tests.md", "document_id": "orders-sdk-v2-retry-tests", "source": "contract_tests", "version": "2.x", "status": "current", "effective_at": "2026-07-20", "role": "decisive", "baseline_rank": 9, "sha256": "4b930b91f64644122cca3f75cf356c2e5d9f8a0007fd6becfd2664ed35cd573c"},
+    {"path": "payments-sdk-v1-retry-example.md", "document_id": "payments-sdk-v1-retry-example", "source": "sdk_example", "version": "1.x", "status": "current", "effective_at": "2026-03-01", "role": "distractor", "baseline_rank": 2, "sha256": "1fdf95d408101107843d52aa12e6bc7d82fc2c697248fb5d23daff3c8f6da2d4"},
+    {"path": "orders-cli-retry-flag.md", "document_id": "orders-cli-retry-flag", "source": "cli_reference", "version": "2.3", "status": "current", "effective_at": "2026-07-25", "role": "distractor", "baseline_rank": 3, "sha256": "07d5e2a3b80caca31583c3ecfd0ac98399ea118575b960089c55aa95d556b50e"},
+    {"path": "shipping-sdk-backoff-guide.md", "document_id": "shipping-sdk-backoff-guide", "source": "sdk_guide", "version": "4.1", "status": "current", "effective_at": "2026-06-15", "role": "distractor", "baseline_rank": 4, "sha256": "e6a656f5ca74eb399b51339f753c6406f4498a24d91dd955546cdfcc9c8de546"},
+    {"path": "orders-sdk-v2-pagination-api.md", "document_id": "orders-sdk-v2-pagination-api", "source": "official_api", "version": "2.x", "status": "current", "effective_at": "2026-07-20", "role": "distractor", "baseline_rank": 10, "sha256": "245729833b3632e4448c84719c6154f72187d0a8752cbeded9e076e3bdc36fd6"},
+    {"path": "orders-service-http-policy.md", "document_id": "orders-service-http-policy", "source": "service_policy", "version": "2026-07", "status": "current", "effective_at": "2026-07-01", "role": "distractor", "baseline_rank": 11, "sha256": "e5316c840fb05ea3347008edd03ace074df2feba232b5952ec2c0671f3bf654c"},
+    {"path": "python-http-client-retry-snippet.md", "document_id": "python-http-client-retry-snippet", "source": "community_snippet", "version": "unknown", "status": "unverified", "effective_at": "2025-11-01", "role": "distractor", "baseline_rank": 5, "sha256": "3b1e07c20ffa4f8fe47e5069703ffee5ff20b7f6f3ccee2a1cf0e91a58c2464a"},
+    {"path": "orders-sdk-v2-timeout-guide.md", "document_id": "orders-sdk-v2-timeout-guide", "source": "official_guide", "version": "2.x", "status": "current", "effective_at": "2026-07-20", "role": "distractor", "baseline_rank": 12, "sha256": "e7952f4e7ec74a59033edb944fbe85ba38e69509d79bce47d92a054c259029b3"}
+  ],
+  "resolver": {
+    "owner": "demo_application_policy",
+    "rule": "select the current official Orders SDK API and deprecation notice, reject other packages, and allow explanation plus tests only",
+    "role": "authority_and_action_boundary",
+    "expected_document_id": "orders-sdk-v2-retry-api-current",
+    "expected_field": "max_attempts",
+    "forbidden_actions": ["edit_code", "network_test", "deprecated_api_recommendation"]
+  }
+}

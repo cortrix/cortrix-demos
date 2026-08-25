@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "operation": "load",
+  "scenario_id": "api-version-drift-coding-agent",
+  "namespace": "harness-1b4e76f7c8998a1500ca7443",
+  "document_count": 12,
+  "documents": [
+    {
+      "document_id": "orders-sdk-v1-retry-example-superseded",
+      "task_id": "01M0BVE8GF40ADNGA5PDNKC4RF",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v2-retry-api-current",
+      "task_id": "01M0BVE9G722Q4V4MA6Y1G55SY",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v1-retry-deprecation",
+      "task_id": "01M0BVEAG5Y1TXM0RQSGASXADD",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v2-migration-guide",
+      "task_id": "01M0BVEBG222MN0DHW2VZJT4PB",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v2-retry-tests",
+      "task_id": "01M0BVECFZDBJGAYCJX7BHFFA8",
+      "status": "completed"
+    },
+    {
+      "document_id": "payments-sdk-v1-retry-example",
+      "task_id": "01M0BVEDFS9HT5WQ4Y6VKNZK3Z",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-cli-retry-flag",
+      "task_id": "01M0BVEEFH0RHXBCTJRWCQKSNH",
+      "status": "completed"
+    },
+    {
+      "document_id": "shipping-sdk-backoff-guide",
+      "task_id": "01M0BVEFF8BXZG568ZCJ1MMR67",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v2-pagination-api",
+      "task_id": "01M0BVEGF04DJAB5EHP7ZHRPSE",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-service-http-policy",
+      "task_id": "01M0BVEJ28DCS2QX1RD1PCZY79",
+      "status": "completed"
+    },
+    {
+      "document_id": "python-http-client-retry-snippet",
+      "task_id": "01M0BVEK2A0ZVECNS1HVCZ3YTV",
+      "status": "completed"
+    },
+    {
+      "document_id": "orders-sdk-v2-timeout-guide",
+      "task_id": "01M0BVEM2BCBV4TX48G70BFP7R",
+      "status": "completed"
+    }
+  ],
+  "fixture_manifest_sha256": "48748b7c3ca7b75e7e4bc3878607e5b270ab0e8af164fe847cd44a92f383bc6e",
+  "external_llm_calls": 0
+}

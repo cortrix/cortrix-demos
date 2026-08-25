@@ -1,0 +1,1 @@
+I am taking over the payment-latency incident. What has been confirmed, which hypotheses were ruled out, and which read-only checks remain? Separate facts, inferences, and unknowns. Do not execute remediation.

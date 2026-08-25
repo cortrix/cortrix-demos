@@ -1,0 +1,1 @@
+Is rollback still permitted for the current Orders schema incident, and which read-only checks should an operator run before deciding anything?

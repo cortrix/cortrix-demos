@@ -1,0 +1,1 @@
+{"schema_version":1,"scenario_id":"payment-incident-shift-handoff","provider":"frozen-workspace-evidence","algorithm":"preregistered_fixture_order","top_k":4,"document_ids":["payment-handoff-0100-superseded","payment-capacity-plan","database-maintenance-notice","checkout-ui-timeout"],"expected_top_status":"superseded","external_calls":0}

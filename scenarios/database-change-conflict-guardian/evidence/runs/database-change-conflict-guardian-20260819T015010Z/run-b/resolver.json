@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "scenario_id": "database-change-conflict-guardian",
+  "backend_mode": "cortrix_bundle_loaded",
+  "pass": true,
+  "execution_pass": true,
+  "authority_pass": true,
+  "expected_outcome_observed": true,
+  "failures": [],
+  "authority_failures": [],
+  "selected_document_ids": [
+    "orders-schema-migration-v4.0-current",
+    "orders-incident-readonly-evidence",
+    "orders-schema-runbook-v3.1-superseded",
+    "orders-rollback-window-v4.0"
+  ],
+  "evidence_refs": [
+    "cxev_1_XPIQ2o8LNmNAqHznz-czXY-lIyf_Iw",
+    "cxev_c9Gohrg0IUYxWVp_1nskt47URsCBqw_I",
+    "cxev_GlNT7R8pZ00zO_EV1plD4jU6pOItC8yg",
+    "cxev_vd3XDHV4xnaXaKaxI9HN5RtQe_qJN4dv"
+  ],
+  "decision": {
+    "active_field": "buyer_account_id",
+    "action_mode": "read_only_diagnosis",
+    "rollback_permitted": false
+  },
+  "resolver_selected_document_id": "orders-schema-migration-v4.0-current",
+  "resolver_action": "current_source_read_only_plan",
+  "claim_boundary": "Evidence retrieval and application authority are separate. A passing resolver does not turn this synthetic mechanism demo into a benchmark."
+}

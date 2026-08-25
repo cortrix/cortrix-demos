@@ -211,6 +211,8 @@ def initialize_walkthrough(root: Path, source: Path, pricing_path: Path, reviewe
         source_revision=scenario["requires"]["cortrix_source_revision"],
         source_repository=provenance["source_repository"],
         secret_env=technology["llm"]["secret_env"],
+        expected_model=technology["llm"]["model"],
+        expected_base_url=technology["llm"]["base_url"],
         reviewed_attempt_limit=reviewed_attempt_limit,
         budget_usd=budget_usd,
     )

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "operation": "cleanup",
+  "namespace": "harness-149f618cc6ea3396d8ab3ba2",
+  "removed_or_absent": true,
+  "external_llm_calls": 0,
+  "compose_project": "cortrix_demos_harness_goal1",
+  "containers_absent": true,
+  "runtime_secret_materialized": false,
+  "model_cache_preserved": true,
+  "model_volume_name_recorded": false
+}

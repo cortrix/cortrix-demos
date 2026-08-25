@@ -1,0 +1,1 @@
+An alert mentions a missing shipping_account_id column in warehouse_orders. Does the approved Orders migration define the fix, or is this outside its scope?
