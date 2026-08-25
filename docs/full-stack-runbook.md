@@ -46,7 +46,7 @@ Immediately before a live run, read the official [DeepSeek pricing page](https:/
 
 The values above were observed for `DeepSeek-V4-Flash` on 2026-08-04. Recheck the official page and replace all three values when running later.
 
-The runner computes a conservative cumulative-attempt cost bound from the current prices. The repository policy caps all new authorized execution at USD 1.00. A price change never expands that budget. Historical accepted evidence may retain the earlier reviewed USD 5.00 contract as immutable run identity.
+The direct Full Stack runner computes a conservative cumulative-attempt cost bound from the current prices and caps new authorized direct execution at USD 1.00. Harness campaigns use the budget in their selected campaign contract, with a runner guard of USD 5.00 per campaign. The repository-supplied next-evidence contracts use USD 0.30 for foundation and USD 0.60 for operational continuity. Those values describe the maintainer-reviewed evidence run, not a universal limit on an operator's separate campaign. A price change never expands the selected contract, and historical accepted evidence retains its original budget as immutable run identity.
 
 ## 3. Inject the secret and run
 

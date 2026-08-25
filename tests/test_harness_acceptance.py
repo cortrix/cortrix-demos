@@ -45,7 +45,9 @@ class HarnessAcceptanceTests(unittest.TestCase):
         self.assertIn("post_screenshot_human_review_required", schema["properties"])
         self.assertEqual("independent_clean_room", schema["properties"]["acceptance"]["properties"]["method"]["const"])
         self.assertEqual(2, len(schema["allOf"]))
-        self.assertEqual([0.3, 0.6, 1.0, 5.0], schema["properties"]["usage"]["properties"]["budget_usd"]["enum"])
+        budget_schema = schema["properties"]["usage"]["properties"]["budget_usd"]
+        self.assertEqual("number", budget_schema["type"])
+        self.assertEqual(5, budget_schema["maximum"])
 
     def test_usage_contract_accepts_current_campaign_and_frozen_archive_budgets(self) -> None:
         foundation_current, foundation_calls = _usage_contract(ROOT / "scenarios" / "database-change-conflict-guardian", include_historical=False)

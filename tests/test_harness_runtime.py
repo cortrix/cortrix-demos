@@ -73,16 +73,18 @@ class HarnessRuntimeTests(unittest.TestCase):
             with self.assertRaises(campaign.CampaignFailure):
                 campaign.require_pricing(path)
 
-    def test_campaign_accepts_only_the_two_tracked_reviewed_contracts(self) -> None:
+    def test_campaign_supports_an_operator_contract_within_the_five_dollar_guard(self) -> None:
         campaign = load_script("harness_campaign_contract", "run-campaign.py")
-        for name in ("foundation.json", "operational-continuity.json"):
-            contract = campaign.load_reviewed_campaign_contract(ROOT, ROOT / "runtime" / "harness" / "campaigns" / name)
-            self.assertLessEqual(contract["budget_usd"], 1.0)
         with TemporaryDirectory() as directory:
             external = Path(directory) / "foundation.json"
-            external.write_text((ROOT / "runtime" / "harness" / "campaigns" / "foundation.json").read_text(encoding="utf-8"), encoding="utf-8")
-            with self.assertRaisesRegex(campaign.CampaignFailure, "tracked reviewed contracts"):
-                campaign.load_reviewed_campaign_contract(ROOT, external)
+            value = json.loads((ROOT / "runtime" / "harness" / "campaigns" / "foundation.json").read_text(encoding="utf-8"))
+            value["budget_usd"] = 5.0
+            external.write_text(json.dumps(value), encoding="utf-8")
+            self.assertEqual(5.0, campaign.load_campaign_contract(external)["budget_usd"])
+            value["budget_usd"] = 5.01
+            external.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(campaign.CampaignFailure, "USD 5.00"):
+                campaign.load_campaign_contract(external)
 
     def test_campaign_caps_model_answers_and_disables_cortrix_llm(self) -> None:
         campaign = load_script("harness_campaign_static", "run-campaign.py")
@@ -105,6 +107,9 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertEqual(0.6, continuity["budget_usd"])
         self.assertLessEqual(foundation["budget_usd"] + continuity["budget_usd"], 1.0)
         self.assertEqual(["front", "middle", "end"], continuity["scenarios"][1]["position_variants"])
+        gate = json.loads((ROOT / "agent.json").read_text(encoding="utf-8"))["gates"]["deepseek_harness"]
+        self.assertEqual({"foundation": 0.3, "operational_continuity": 0.6}, gate["official_campaign_budget_usd"])
+        self.assertEqual(5.0, gate["operator_campaign_budget_max_usd"])
 
     def test_campaign_freezes_the_reviewed_demo_and_model_manifest(self) -> None:
         campaign = load_script("harness_campaign_identity", "run-campaign.py")
@@ -163,7 +168,7 @@ class HarnessRuntimeTests(unittest.TestCase):
             self.assertNotIn("/private/tmp/reviewer-secret", receipt.read_text(encoding="utf-8"))
         source = (ROOT / "runtime" / "harness" / "run-campaign.py").read_text(encoding="utf-8")
         self.assertIn("except Exception as exc:", source)
-        self.assertLess(source.index("try:\n        if len(args.expected_demo_commit)"), source.index("campaign_contract = load_reviewed_campaign_contract"))
+        self.assertLess(source.index("try:\n        if len(args.expected_demo_commit)"), source.index("campaign_contract = load_campaign_contract(contract_path)"))
 
     def test_paid_smoke_demo_error_persists_a_rejection_receipt(self) -> None:
         campaign = load_script("harness_campaign_paid_rejection", "run-campaign.py")

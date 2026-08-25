@@ -69,6 +69,8 @@
         "foundation": "runtime/harness/campaigns/foundation.json",
         "operational_continuity": "runtime/harness/campaigns/operational-continuity.json"
       },
+      "official_campaign_budget_usd": {"foundation": 0.3, "operational_continuity": 0.6},
+      "operator_campaign_budget_max_usd": 5.0,
       "harness_source": "https://github.com/deepseek-ai/deepseek-harness",
       "harness_commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca",
       "harness_path": ".runtime/deepseek-harness",

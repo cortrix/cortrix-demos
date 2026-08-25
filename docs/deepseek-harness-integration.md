@@ -71,3 +71,5 @@ Accepted replay and archive verification make no external calls:
 ```
 
 A new live campaign is a separate authorization boundary. It requires public dependency preparation, a dated pricing snapshot, an approved budget, the protected provider credential, and a new independent Clean Room review.
+
+The repository-supplied foundation and operational-continuity contracts set conservative ceilings of USD 0.30 and USD 0.60 for the next official evidence run. These are reviewed defaults, not a universal product restriction. An operator may supply a different campaign contract for separate work, up to the runner's USD 5.00 per-campaign guard, and remains responsible for that budget. A custom contract does not expand a maintainer-approved evidence budget or make its results official; official promotion still follows the repository's current scenario contract and independent review gates.
