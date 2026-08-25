@@ -77,7 +77,7 @@ def _require_relative_file(run_dir: Path, relative: object, label: str) -> Path:
     return path
 
 
-def _validate_manifest_shape(manifest: dict[str, Any], scenario_id: str, run_id: str, *, state: str, budget_usd: float, observable_calls: int) -> None:
+def _validate_manifest_shape(manifest: dict[str, Any], scenario_id: str, run_id: str, *, state: str, budget_usd: set[float], observable_calls: int) -> None:
     required = {
         "schema_version", "scenario_id", "run_id", "state", "source_identity", "comparison", "provider", "usage",
         "pricing_snapshot", "run_a", "run_b", "resolver", "cleanup", "screenshot_eligible", "human_review_required",
@@ -96,7 +96,8 @@ def _validate_manifest_shape(manifest: dict[str, Any], scenario_id: str, run_id:
     if not isinstance(provider, dict) or provider.get("provider") != "deepseek" or provider.get("model") != "deepseek-v4-flash" or provider.get("local_generative_llm") is not False or provider.get("fallback_used") is not False or provider.get("secret_value_recorded") is not False:
         raise _failure("Harness provider identity or safety boundary is invalid")
     usage = manifest.get("usage")
-    if not isinstance(usage, dict) or usage.get("observable_calls") != observable_calls or usage.get("budget_usd") != budget_usd or usage.get("observable_cost_usd", budget_usd + 1) > budget_usd or usage.get("reviewed_bound_usd", budget_usd + 1) > budget_usd:
+    selected_budget = usage.get("budget_usd") if isinstance(usage, dict) else None
+    if not isinstance(usage, dict) or usage.get("observable_calls") != observable_calls or selected_budget not in budget_usd or usage.get("observable_cost_usd", float("inf")) > selected_budget or usage.get("reviewed_bound_usd", float("inf")) > selected_budget:
         raise _failure("Harness usage or cost contract is invalid")
     if state == "candidate" and (manifest.get("screenshot_eligible") is not False or manifest.get("human_review_required") is not True or manifest.get("acceptance") is not None):
         raise _failure("Harness candidate bypasses the acceptance and screenshot gates")
@@ -164,13 +165,16 @@ def _validate_safety(run_dir: Path, repository_root: Path | None = None) -> None
                 raise _failure("Harness evidence failed public safety: " + "; ".join(failures))
 
 
-def _usage_contract(scenario_dir: Path) -> tuple[float, int]:
+def _usage_contract(scenario_dir: Path) -> tuple[set[float], int]:
     profile = read_json(scenario_dir / "profiles" / "full-stack.json")
-    budget = profile.get("budget_usd")
+    historical_budget = profile.get("budget_usd")
     calls = profile.get("expected_campaign_calls")
-    if not isinstance(budget, (int, float)) or not isinstance(calls, int):
+    campaign_name = "foundation.json" if scenario_dir.name in {"database-change-conflict-guardian", "api-version-drift-coding-agent"} else "operational-continuity.json"
+    campaign = read_json(scenario_dir.parents[1] / "runtime" / "harness" / "campaigns" / campaign_name)
+    current_budget = campaign.get("budget_usd")
+    if not isinstance(historical_budget, (int, float)) or not isinstance(current_budget, (int, float)) or not isinstance(calls, int):
         raise _failure("Harness scenario has no accepted usage contract")
-    return float(budget), calls
+    return {float(historical_budget), float(current_budget)}, calls
 
 
 def _validate_position_variants(run_dir: Path, scenario_dir: Path, scenario: dict[str, Any], assertions: dict[str, Any], manifest: dict[str, Any]) -> None:

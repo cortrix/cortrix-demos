@@ -77,7 +77,7 @@
       "integration_commit": "5b43a744c2fa93ddb95715b7783943757eb64b4e",
       "integration_path": ".runtime/cortrix-integrations/integrations/deepseek-harness",
       "integration_preparation": "git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations && git -C .runtime/cortrix-integrations checkout 5b43a744c2fa93ddb95715b7783943757eb64b4e && npm --prefix .runtime/cortrix-integrations ci && npm --prefix .runtime/cortrix-integrations run validate",
-      "live_command": "./democtl harness campaign --campaign-contract runtime/harness/campaigns/<campaign>.json --harness-root .runtime/deepseek-harness --plugin-root .runtime/cortrix-integrations/integrations/deepseek-harness --cortrix-root .runtime/cortrix-harness-src --pricing-snapshot .runs/pricing-snapshot.json",
+      "live_command": "./democtl harness campaign --campaign-contract runtime/harness/campaigns/<campaign>.json --expected-demo-commit <reviewed-demo-commit> --harness-root .runtime/deepseek-harness --plugin-root .runtime/cortrix-integrations/integrations/deepseek-harness --cortrix-root .runtime/cortrix-harness-src --pricing-snapshot .runs/pricing-snapshot.json",
       "comparison_variable": "cortrix_bundle_loaded",
       "model_tools": ["cortrix_search_evidence", "cortrix_get_source"],
       "model_write_tools": 0,

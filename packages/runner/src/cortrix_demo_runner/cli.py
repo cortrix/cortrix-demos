@@ -218,6 +218,7 @@ def command_harness_campaign(args: argparse.Namespace) -> None:
             "--pricing-snapshot", str(args.pricing_snapshot.resolve()),
             "--volume", args.volume,
             "--campaign-contract", str(args.campaign_contract),
+            "--expected-demo-commit", args.expected_demo_commit,
         ],
         cwd=args.root.resolve(),
         check=True,
@@ -411,6 +412,7 @@ def build_parser() -> argparse.ArgumentParser:
     harness_campaign.add_argument("--pricing-snapshot", type=Path, default=Path(".runs/pricing-snapshot.json"))
     harness_campaign.add_argument("--volume", default="cortrix_demos_harness_foundation_data")
     harness_campaign.add_argument("--campaign-contract", type=Path, default=Path("runtime/harness/campaigns/foundation.json"))
+    harness_campaign.add_argument("--expected-demo-commit", required=True, help="Exact reviewed cortrix-demos commit to execute.")
     harness_campaign.set_defaults(handler=command_harness_campaign)
 
     harness_review = harness_subparsers.add_parser("record-clean-room-pass")

@@ -83,10 +83,68 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertIn("--network", campaign_source)
         self.assertIn("containers_absent", campaign_source)
         self.assertIn("runtime_secret_materialized", campaign_source)
+        foundation = campaign.load_campaign_contract(ROOT / "runtime" / "harness" / "campaigns" / "foundation.json")
         continuity = campaign.load_campaign_contract(ROOT / "runtime" / "harness" / "campaigns" / "operational-continuity.json")
         self.assertEqual(8, continuity["answer_calls"])
-        self.assertEqual(1.0, continuity["budget_usd"])
+        self.assertEqual(0.3, foundation["budget_usd"])
+        self.assertEqual(0.6, continuity["budget_usd"])
+        self.assertLessEqual(foundation["budget_usd"] + continuity["budget_usd"], 1.0)
         self.assertEqual(["front", "middle", "end"], continuity["scenarios"][1]["position_variants"])
+
+    def test_campaign_freezes_the_reviewed_demo_and_model_manifest(self) -> None:
+        campaign = load_script("harness_campaign_identity", "run-campaign.py")
+        reviewed = "a" * 40
+        responses = [
+            subprocess.CompletedProcess([], 0, "main\n", ""),
+            subprocess.CompletedProcess([], 0, "", ""),
+            subprocess.CompletedProcess([], 0, reviewed + "\n", ""),
+        ]
+        with patch.object(campaign, "execute", side_effect=responses):
+            self.assertEqual(reviewed, campaign.demo_identity(ROOT, reviewed))
+        responses[-1] = subprocess.CompletedProcess([], 0, "b" * 40 + "\n", "")
+        with patch.object(campaign, "execute", side_effect=responses):
+            with self.assertRaisesRegex(campaign.CampaignFailure, "reviewed commit"):
+                campaign.demo_identity(ROOT, reviewed)
+
+        manifest_path = ROOT / "runtime" / "model-manifest.json"
+        self.assertEqual(campaign.MODEL_MANIFEST_SHA256, campaign.sha256(manifest_path))
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        checksum_output = "\n".join(f"{asset['sha256']}  {asset['container_path']}" for asset in manifest["assets"]) + "\n"
+        with patch.object(campaign, "execute", return_value=subprocess.CompletedProcess([], 0, checksum_output, "")):
+            self.assertTrue(campaign.verify_volume_models(ROOT, "reviewed-model-volume")["all_match"])
+        with TemporaryDirectory() as directory:
+            drifted_root = Path(directory)
+            drifted_manifest = drifted_root / "runtime" / "model-manifest.json"
+            drifted_manifest.parent.mkdir(parents=True)
+            drifted_manifest.write_text(manifest_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+            with self.assertRaisesRegex(campaign.CampaignFailure, "reviewed contract"):
+                campaign.verify_volume_models(drifted_root, "reviewed-model-volume")
+
+    def test_rejected_campaign_receipt_is_sanitized_and_not_promotable(self) -> None:
+        campaign = load_script("harness_campaign_rejection", "run-campaign.py")
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "demo"
+            harness = Path(directory) / "harness"
+            integration = Path(directory) / "integration"
+            cortrix = Path(directory) / "cortrix"
+            receipt = root / ".runs" / "rejected.json"
+            campaign.write_rejection_receipt(
+                root,
+                receipt,
+                timestamp="20260825T000000Z",
+                expected_demo_commit="a" * 40,
+                error=campaign.CampaignFailure(f"command failed below {harness}"),
+                usage={"visibility": "partial", "provider_call_may_have_occurred": True, "observable_calls": 1},
+                namespace_cleanup={"targets_observed": 1, "all_removed_or_absent": True, "outcomes": []},
+                container_cleanup={"attempted": True, "compose_down_pass": True, "containers_absent": True, "error": None},
+                identity_paths=[root, harness, integration, cortrix],
+            )
+            value = json.loads(receipt.read_text(encoding="utf-8"))
+            self.assertEqual("rejected", value["state"])
+            self.assertFalse(value["promotion_allowed"])
+            self.assertFalse(value["screenshot_eligible"])
+            self.assertTrue(value["cleanup"]["pass"])
+            self.assertNotIn(str(Path(directory)), receipt.read_text(encoding="utf-8"))
 
     def test_campaign_resolves_compose_before_the_paid_contract_smoke(self) -> None:
         campaign = load_script("harness_campaign_compose", "run-campaign.py")
@@ -216,6 +274,9 @@ class HarnessRuntimeTests(unittest.TestCase):
         completed = subprocess.run([str(ROOT / "democtl"), "harness", "--help"], cwd=ROOT, check=True, capture_output=True, text=True)
         for command in ("campaign", "record-clean-room-pass", "stage-accepted", "record-screenshot", "verify-accepted"):
             self.assertIn(command, completed.stdout)
+        campaign_help = subprocess.run([str(ROOT / "democtl"), "harness", "campaign", "--help"], cwd=ROOT, check=True, capture_output=True, text=True)
+        self.assertIn("--expected-demo-commit", campaign_help.stdout)
+        self.assertIn("--expected-demo-commit <reviewed-demo-commit>", json.loads((ROOT / "agent.json").read_text(encoding="utf-8"))["gates"]["deepseek_harness"]["live_command"])
 
 
 if __name__ == "__main__":

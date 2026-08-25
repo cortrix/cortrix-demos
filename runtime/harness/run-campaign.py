@@ -22,6 +22,7 @@ SCENARIOS = ("database-change-conflict-guardian", "api-version-drift-coding-agen
 HARNESS_COMMIT = "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca"
 CORTRIX_COMMIT = "4c0f0f96b652d5662a66d047771826a4d2933739"
 PLUGIN_COMMIT = "5b43a744c2fa93ddb95715b7783943757eb64b4e"
+MODEL_MANIFEST_SHA256 = "b5c36a2b95d6c9cf9742eda121ac2cd68904df7acddc2de0cd88965a8b8401ce"
 IMAGE = "cortrix:quickstart"
 COMPOSE_PROJECT = "cortrix_demos_harness_foundation"
 CAMPAIGN_ID = "deepseek-harness-cortrix-foundation"
@@ -104,12 +105,15 @@ def git_identity(path: Path, expected: str, label: str) -> str:
     return head
 
 
-def demo_identity(root: Path) -> str:
+def demo_identity(root: Path, expected_commit: str) -> str:
     branch = execute(["git", "-C", str(root), "branch", "--show-current"], cwd=root).stdout.strip()
     status = execute(["git", "-C", str(root), "status", "--short", "--untracked-files=all"], cwd=root).stdout.strip()
     if branch != "main" or status:
         raise CampaignFailure("demo checkout must be a clean main branch")
-    return execute(["git", "-C", str(root), "rev-parse", "HEAD"], cwd=root).stdout.strip()
+    head = execute(["git", "-C", str(root), "rev-parse", "HEAD"], cwd=root).stdout.strip()
+    if head != expected_commit:
+        raise CampaignFailure("demo checkout does not match the reviewed commit")
+    return head
 
 
 def image_identity(root: Path) -> str:
@@ -121,10 +125,14 @@ def image_identity(root: Path) -> str:
 
 
 def verify_volume_models(root: Path, volume: str) -> dict[str, Any]:
-    manifest = read_json(root / "runtime" / "model-manifest.json")
+    manifest_path = root / "runtime" / "model-manifest.json"
+    if sha256(manifest_path) != MODEL_MANIFEST_SHA256:
+        raise CampaignFailure("model manifest does not match the reviewed contract")
+    manifest = read_json(manifest_path)
     assets = manifest.get("assets")
-    if not isinstance(assets, list) or not assets:
-        raise CampaignFailure("model manifest does not contain assets")
+    expected_components = {"embedding_model", "embedding_tokenizer", "reranker_model", "reranker_tokenizer"}
+    if not isinstance(assets, list) or len(assets) != 4 or {asset.get("component") for asset in assets if isinstance(asset, dict)} != expected_components:
+        raise CampaignFailure("model manifest does not contain the reviewed asset set")
     paths = [str(asset.get("container_path", "")) for asset in assets if isinstance(asset, dict)]
     if len(paths) != len(assets) or any(not path.startswith("/data/models/") for path in paths):
         raise CampaignFailure("model manifest contains an unsupported cache path")
@@ -407,9 +415,9 @@ def run_comparison(
     namespace_seed = f"{run_id}:{position_variant or 'default'}"
     namespace = "harness-" + hashlib.sha256(namespace_seed.encode("utf-8")).hexdigest()[:24]
     ingestion = run_b / "ingestion.json"
-    fixture_operation(root, scenario, namespace, ingestion, position_variant=position_variant)
     cleanup = comparison_root / "cleanup.json"
     try:
+        fixture_operation(root, scenario, namespace, ingestion, position_variant=position_variant)
         canonical = []
         for serial in (1, 2):
             tool_session = run_b / f"tool-session-{serial:02d}.json"
@@ -468,14 +476,41 @@ def run_variant_scenario(root: Path, harness_root: Path, plugin_root: Path, scen
     return run_id, usages
 
 
+def cleanup_campaign_containers(root: Path, compose_command: list[str] | None, environment: dict[str, str], *, attempted: bool) -> dict[str, Any]:
+    """Stop the disposable campaign runtime and preserve an explicit outcome."""
+    if compose_command is None or not attempted:
+        return {"attempted": False, "compose_down_pass": None, "containers_absent": None, "error": None}
+
+    errors: list[str] = []
+    compose_down_pass = False
+    containers_absent = False
+    try:
+        compose(root, compose_command, ["down", "--remove-orphans"], environment)
+        compose_down_pass = True
+    except Exception as exc:
+        errors.append(f"compose down: {exc}")
+    try:
+        remaining = execute(
+            ["docker", "ps", "-aq", "--filter", f"label=com.docker.compose.project={COMPOSE_PROJECT}"],
+            cwd=root,
+        ).stdout.strip()
+        containers_absent = not bool(remaining)
+        if remaining:
+            errors.append("campaign containers remain")
+    except Exception as exc:
+        errors.append(f"container inspection: {exc}")
+    return {
+        "attempted": True,
+        "compose_down_pass": compose_down_pass,
+        "containers_absent": containers_absent,
+        "error": "; ".join(errors) or None,
+    }
+
+
 def finish_cleanup(root: Path, compose_command: list[str], run_ids: list[str], environment: dict[str, str], volume: str) -> None:
-    compose(root, compose_command, ["down", "--remove-orphans"], environment)
-    remaining = execute(
-        ["docker", "ps", "-aq", "--filter", f"label=com.docker.compose.project={COMPOSE_PROJECT}"],
-        cwd=root,
-    ).stdout.strip()
-    if remaining:
-        raise CampaignFailure("Harness campaign containers remain after cleanup")
+    container_cleanup = cleanup_campaign_containers(root, compose_command, environment, attempted=True)
+    if container_cleanup["compose_down_pass"] is not True or container_cleanup["containers_absent"] is not True:
+        raise CampaignFailure("Harness campaign container cleanup failed")
     for run_id in run_ids:
         path = root / ".runs" / run_id / "cleanup.json"
         receipt = read_json(path)
@@ -489,6 +524,160 @@ def finish_cleanup(root: Path, compose_command: list[str], run_ids: list[str], e
             }
         )
         write_json(path, receipt)
+
+
+def namespace_cleanup_targets(root: Path, timestamp: str) -> list[tuple[str, str, Path]]:
+    """Return only namespaces whose run directories show that setup began."""
+    targets: list[tuple[str, str, Path]] = []
+    probe_id = f"source-projection-probe-{timestamp}"
+    probe_root = root / ".runs" / probe_id
+    if probe_root.exists():
+        namespace = "harness-probe-" + hashlib.sha256(probe_id.encode("utf-8")).hexdigest()[:24]
+        targets.append((SOURCE_PROJECTION_SCENARIO, namespace, probe_root / "cleanup.json"))
+    for scenario in SCENARIOS:
+        run_id = f"{scenario}-{timestamp}"
+        run_root = root / ".runs" / run_id
+        contract = SCENARIO_CONTRACTS[scenario]
+        variants = contract.get("position_variants") or [None]
+        for variant in variants:
+            comparison_root = run_root / "position-variants" / variant if variant is not None else run_root
+            if not comparison_root.exists():
+                continue
+            seed = f"{run_id}:{variant or 'default'}"
+            namespace = "harness-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
+            targets.append((scenario, namespace, comparison_root / "cleanup.json"))
+    return targets
+
+
+def finish_rejection_namespaces(root: Path, timestamp: str, *, runtime_ready: bool) -> dict[str, Any]:
+    targets = namespace_cleanup_targets(root, timestamp)
+    outcomes: list[dict[str, Any]] = []
+    for scenario, namespace, receipt_path in targets:
+        outcome: dict[str, Any] = {"scenario_id": scenario, "attempted": False, "removed_or_absent": None, "error": None}
+        if receipt_path.is_file():
+            try:
+                existing = read_json(receipt_path)
+                if existing.get("removed_or_absent") is True:
+                    outcome["removed_or_absent"] = True
+                    outcomes.append(outcome)
+                    continue
+            except (OSError, json.JSONDecodeError, CampaignFailure):
+                pass
+        if not runtime_ready:
+            outcome["error"] = "runtime was not ready for namespace cleanup"
+            outcomes.append(outcome)
+            continue
+        try:
+            fixture_operation(root, scenario, namespace, receipt_path, cleanup=True)
+            receipt = read_json(receipt_path)
+            outcome["attempted"] = True
+            outcome["removed_or_absent"] = receipt.get("removed_or_absent") is True
+            if outcome["removed_or_absent"] is not True:
+                outcome["error"] = "cleanup receipt did not confirm removal or absence"
+        except Exception as exc:
+            outcome["attempted"] = True
+            outcome["error"] = str(exc)
+        outcomes.append(outcome)
+    all_removed = all(item["removed_or_absent"] is True for item in outcomes) if outcomes else True
+    return {"targets_observed": len(outcomes), "all_removed_or_absent": all_removed, "outcomes": outcomes}
+
+
+def observable_usage(root: Path, timestamp: str, smoke_path: Path, *, provider_call_may_have_occurred: bool) -> dict[str, Any]:
+    calls = 0
+    input_tokens = 0
+    output_tokens = 0
+    cache_hit_tokens = 0
+    unreadable_usage_files = 0
+    if smoke_path.is_file():
+        try:
+            smoke = read_json(smoke_path)
+            calls += int(smoke.get("call_count", 1) or 1)
+            usage = smoke.get("usage") if isinstance(smoke.get("usage"), dict) else {}
+            input_tokens += int(usage.get("prompt_tokens", 0) or 0)
+            output_tokens += int(usage.get("completion_tokens", 0) or 0)
+            cache_hit_tokens += int(usage.get("prompt_cache_hit_tokens", 0) or 0)
+        except (OSError, ValueError, json.JSONDecodeError, CampaignFailure):
+            unreadable_usage_files += 1
+    runs_root = root / ".runs"
+    if runs_root.exists():
+        for run_root in sorted(runs_root.glob(f"*-{timestamp}")):
+            if not run_root.is_dir():
+                continue
+            for path in sorted(run_root.rglob("usage.json")):
+                if "harness-home" in path.parts:
+                    continue
+                try:
+                    value = read_json(path)
+                    calls += int(value.get("call_count", 0) or 0)
+                    input_tokens += int(value.get("input_tokens", 0) or 0)
+                    output_tokens += int(value.get("output_tokens", 0) or 0)
+                    cache_hit_tokens += int(value.get("cache_hit_tokens", 0) or 0)
+                except (OSError, ValueError, json.JSONDecodeError, CampaignFailure):
+                    unreadable_usage_files += 1
+    visibility = "partial" if calls else ("unknown" if provider_call_may_have_occurred else "not_applicable")
+    return {
+        "visibility": visibility,
+        "provider_call_may_have_occurred": provider_call_may_have_occurred,
+        "observable_calls": calls,
+        "observable_input_tokens": input_tokens,
+        "observable_output_tokens": output_tokens,
+        "observable_cache_hit_tokens": cache_hit_tokens,
+        "unreadable_usage_files": unreadable_usage_files,
+    }
+
+
+def sanitize_error(message: str, paths: list[Path]) -> str:
+    sanitized = message
+    labels = ("<demo-root>", "<harness-root>", "<integration-root>", "<cortrix-root>", "<user-home>")
+    for path, label in zip([*paths, Path.home()], labels, strict=True):
+        sanitized = sanitized.replace(str(path), label)
+    return sanitized
+
+
+def sanitize_structure(value: Any, paths: list[Path]) -> Any:
+    if isinstance(value, str):
+        return sanitize_error(value, paths)
+    if isinstance(value, list):
+        return [sanitize_structure(item, paths) for item in value]
+    if isinstance(value, dict):
+        return {key: sanitize_structure(item, paths) for key, item in value.items()}
+    return value
+
+
+def write_rejection_receipt(
+    root: Path,
+    path: Path,
+    *,
+    timestamp: str,
+    expected_demo_commit: str,
+    error: Exception,
+    usage: dict[str, Any],
+    namespace_cleanup: dict[str, Any],
+    container_cleanup: dict[str, Any],
+    identity_paths: list[Path],
+) -> None:
+    cleanup_pass = namespace_cleanup["all_removed_or_absent"] is True and container_cleanup["containers_absent"] in {True, None}
+    safe_namespace_cleanup = sanitize_structure(namespace_cleanup, identity_paths)
+    safe_container_cleanup = sanitize_structure(container_cleanup, identity_paths)
+    write_json(path, {
+        "schema_version": 1,
+        "campaign_id": CAMPAIGN_ID,
+        "state": "rejected",
+        "timestamp": timestamp,
+        "expected_demo_commit": expected_demo_commit,
+        "error": {
+            "code": "CX_DEMO_HARNESS_CAMPAIGN_FAILED",
+            "category": "permanent",
+            "retryable": False,
+            "message": sanitize_error(str(error), identity_paths),
+        },
+        "provider": {"provider": "deepseek", "model": "deepseek-v4-flash", "local_generative_llm": False},
+        "usage": usage,
+        "cleanup": {"namespaces": safe_namespace_cleanup, "containers": safe_container_cleanup, "pass": cleanup_pass},
+        "promotion_allowed": False,
+        "screenshot_eligible": False,
+        "human_review_required": True,
+    })
 
 
 def usage_projection(pricing: dict[str, Any], usage_paths: list[Path], smoke: dict[str, Any], reviewed_bound: float) -> dict[str, Any]:
@@ -566,6 +755,7 @@ def main() -> int:
     parser.add_argument("--pricing-snapshot", type=Path, required=True)
     parser.add_argument("--volume", default="cortrix_demos_harness_foundation_data")
     parser.add_argument("--campaign-contract", type=Path, default=Path("runtime/harness/campaigns/foundation.json"))
+    parser.add_argument("--expected-demo-commit", required=True)
     args = parser.parse_args()
     root = args.root.resolve()
     campaign_contract = load_campaign_contract((root / args.campaign_contract).resolve() if not args.campaign_contract.is_absolute() else args.campaign_contract.resolve())
@@ -581,29 +771,35 @@ def main() -> int:
     cortrix_root = args.cortrix_root.resolve()
     environment = os.environ.copy()
     environment["CORTRIX_HARNESS_VOLUME"] = args.volume
-    started = False
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    campaign_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}.json"
+    rejection_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}-rejected.json"
+    smoke_path = root / ".runs" / f"contract-smoke-{timestamp}.json"
+    compose_attempted = False
+    runtime_ready = False
+    provider_call_may_have_occurred = False
     compose_command: list[str] | None = None
     compose_label: str | None = None
     try:
         pricing, reviewed_bound = require_pricing(args.pricing_snapshot.resolve())
         identities = {
-            "demo_commit": demo_identity(root),
+            "demo_commit": demo_identity(root, args.expected_demo_commit),
             "plugin_commit": git_identity(plugin_root, PLUGIN_COMMIT, "plugin"),
             "harness_commit": git_identity(harness_root, HARNESS_COMMIT, "Harness"),
             "cortrix_commit": git_identity(cortrix_root, CORTRIX_COMMIT, "Cortrix"),
             "cortrix_image_digest": image_identity(root),
         }
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        campaign_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}.json"
         model_checksums = verify_volume_models(root, args.volume)
         volume_access = verify_volume_runtime_access(root, args.volume)
         compose_command, compose_label = require_compose(root)
         headless_runtime = verify_harness_headless_runtime(root, harness_root)
+        compose_attempted = True
         compose(root, compose_command, ["up", "-d"], environment)
-        started = True
         health = wait_ready(root)
+        runtime_ready = True
         source_projection = run_source_projection_probe(root, plugin_root, timestamp)
-        smoke_result = contract_smoke(root, root / ".runs" / f"contract-smoke-{timestamp}.json")
+        provider_call_may_have_occurred = True
+        smoke_result = contract_smoke(root, smoke_path)
         usage_paths: list[Path] = []
         run_ids = []
         for scenario in SCENARIOS:
@@ -617,21 +813,35 @@ def main() -> int:
             write_json(root / ".runs" / run_id / "runtime.json", {"schema_version": 1, "image": identities["cortrix_image_digest"], "source_revision": CORTRIX_COMMIT, "health": health, "compose_cli": compose_label, "model_checksums": model_checksums, "volume_access": volume_access, "harness_headless": headless_runtime, "source_projection_probe": source_projection, "model_cache_action": "reused", "downloads": 0, "builds": 0})
         usage = usage_projection(pricing, usage_paths, smoke_result, reviewed_bound)
         finish_cleanup(root, compose_command, run_ids, environment, args.volume)
-        started = False
+        compose_attempted = False
+        runtime_ready = False
         for run_id in run_ids:
             build_manifest(root, run_id, identities, pricing, usage)
         write_json(campaign_path, {"schema_version": 1, "campaign_id": CAMPAIGN_ID, "state": "candidate", "run_ids": run_ids, "source_projection_probe": source_projection, "shared_contract_smoke_calls": 1, "answer_calls": ANSWER_CALLS, "compose_cli": compose_label, "harness_headless": headless_runtime, "usage": usage, "downloads": 0, "builds": 0, "human_review_required": True})
         print(json.dumps({"status": "candidate", "run_ids": run_ids, "observable_calls": usage["observable_calls"], "observable_cost_usd": usage["observable_cost_usd"], "reviewed_bound_usd": usage["reviewed_bound_usd"], "budget_usd": BUDGET_USD}, ensure_ascii=True))
         return 0
     except (CampaignFailure, OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
-        print(json.dumps({"error": {"code": "CX_DEMO_HARNESS_CAMPAIGN_FAILED", "category": "permanent", "retryable": False, "message": str(exc)}}, ensure_ascii=True), file=sys.stderr)
+        namespace_cleanup = finish_rejection_namespaces(root, timestamp, runtime_ready=runtime_ready)
+        container_cleanup = cleanup_campaign_containers(root, compose_command, environment, attempted=compose_attempted)
+        compose_attempted = False
+        usage = observable_usage(root, timestamp, smoke_path, provider_call_may_have_occurred=provider_call_may_have_occurred)
+        write_rejection_receipt(
+            root,
+            rejection_path,
+            timestamp=timestamp,
+            expected_demo_commit=args.expected_demo_commit,
+            error=exc,
+            usage=usage,
+            namespace_cleanup=namespace_cleanup,
+            container_cleanup=container_cleanup,
+            identity_paths=[root, harness_root, plugin_root, cortrix_root],
+        )
+        safe_message = sanitize_error(str(exc), [root, harness_root, plugin_root, cortrix_root])
+        print(json.dumps({"error": {"code": "CX_DEMO_HARNESS_CAMPAIGN_FAILED", "category": "permanent", "retryable": False, "message": safe_message, "rejection_receipt": rejection_path.name}}, ensure_ascii=True), file=sys.stderr)
         return 1
     finally:
-        if started and compose_command is not None:
-            try:
-                compose(root, compose_command, ["down", "--remove-orphans"], environment)
-            except Exception:
-                pass
+        if compose_attempted:
+            cleanup_campaign_containers(root, compose_command, environment, attempted=True)
 
 
 if __name__ == "__main__":

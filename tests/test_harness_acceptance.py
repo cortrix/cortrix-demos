@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from cortrix_demo_runner.errors import DemoContractError
-from cortrix_demo_runner.harness_acceptance import _is_commit_ancestor, _validate_safety, refresh_harness_checksums
+from cortrix_demo_runner.harness_acceptance import _is_commit_ancestor, _usage_contract, _validate_safety, refresh_harness_checksums
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,6 +45,15 @@ class HarnessAcceptanceTests(unittest.TestCase):
         self.assertIn("post_screenshot_human_review_required", schema["properties"])
         self.assertEqual("independent_clean_room", schema["properties"]["acceptance"]["properties"]["method"]["const"])
         self.assertEqual(2, len(schema["allOf"]))
+        self.assertEqual([0.3, 0.6, 1.0, 5.0], schema["properties"]["usage"]["properties"]["budget_usd"]["enum"])
+
+    def test_usage_contract_accepts_current_campaign_and_frozen_archive_budgets(self) -> None:
+        foundation, foundation_calls = _usage_contract(ROOT / "scenarios" / "database-change-conflict-guardian")
+        continuity, continuity_calls = _usage_contract(ROOT / "scenarios" / "payment-incident-shift-handoff")
+        self.assertEqual({0.3, 1.0}, foundation)
+        self.assertEqual(5, foundation_calls)
+        self.assertEqual({0.6, 5.0}, continuity)
+        self.assertEqual(9, continuity_calls)
 
     def test_clean_room_tooling_may_descend_from_the_candidate_commit(self) -> None:
         with TemporaryDirectory() as directory:
