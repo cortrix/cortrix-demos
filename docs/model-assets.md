@@ -2,19 +2,54 @@
 
 Live execution requires four local model assets in the Cortrix data volume. Accepted replay does not require them.
 
-| Component | Declared model | Required SHA-256 |
-| --- | --- | --- |
-| Embedding model | `BAAI/bge-m3` | `2237f770aad5c71bbc1fc2d361a57f9a37400574cc9eff32626f0cdb49234730` |
-| Embedding tokenizer | `BAAI/bge-m3` | `249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4` |
-| Reranker model | `BAAI/bge-reranker-v2-m3` | `912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d` |
-| Reranker tokenizer | `BAAI/bge-reranker-v2-m3` | `8bf8afbfd11306bd872018c53bfdf2e160a56f8edbcf49933324404791c148d3` |
+| Component | Pinned conversion source | Source path | Size | Required SHA-256 | Attributed upstream |
+| --- | --- | --- | ---: | --- | --- |
+| Embedding model | `onnx-community/bge-m3-ONNX@25b9af8e87a38eb120cfe87125383677b9cd309e` | `onnx/model_quantized.onnx` | 568,479,395 | `2237f770aad5c71bbc1fc2d361a57f9a37400574cc9eff32626f0cdb49234730` | `BAAI/bge-m3@5617a9f61b028005a4858fdac845db406aefb181`, MIT |
+| Embedding tokenizer | `onnx-community/bge-m3-ONNX@25b9af8e87a38eb120cfe87125383677b9cd309e` | `tokenizer.json` | 17,082,799 | `249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4` | `BAAI/bge-m3@5617a9f61b028005a4858fdac845db406aefb181`, MIT |
+| Reranker model | `onnx-community/bge-reranker-v2-m3-ONNX@6f5ff65298512715a1e669753bc754d2bc8f367b` | `onnx/model_quantized.onnx` | 570,727,094 | `912fc1215c2dbff6499700534bd8d31253af01573861abbfc43afd1fab6cce5d` | `BAAI/bge-reranker-v2-m3@953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`, Apache-2.0 |
+| Reranker tokenizer | `onnx-community/bge-reranker-v2-m3-ONNX@6f5ff65298512715a1e669753bc754d2bc8f367b` | `tokenizer.json` | 17,082,900 | `8bf8afbfd11306bd872018c53bfdf2e160a56f8edbcf49933324404791c148d3` | `BAAI/bge-reranker-v2-m3@953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`, Apache-2.0 |
 
-The current accepted package records these checksums but does not contain a public, checksum-reproducible export recipe for the exact Cortrix-compatible ONNX files. Files currently published on upstream model branches must not be downloaded and renamed unless their bytes match the required checksums.
+The identity above comes from the public Cortrix source at commit `4c0f0f96b652d5662a66d047771826a4d2933739`: [`deploy/model-manifest.tsv`](https://github.com/cortrix/cortrix/blob/4c0f0f96b652d5662a66d047771826a4d2933739/deploy/model-manifest.tsv) and its fail-closed [`deploy/download-models.sh`](https://github.com/cortrix/cortrix/blob/4c0f0f96b652d5662a66d047771826a4d2933739/deploy/download-models.sh). On 2026-08-25, the public GitHub API resolved that exact Cortrix commit, and the public Hugging Face APIs reported both conversion repositories as ungated and returned the same four byte counts and LFS SHA-256 values. This closes the earlier source-provenance gap without re-exporting or redistributing model weights.
 
-This is a live-reproduction blocker, not a reason to weaken the checksum gate. Before a new public live campaign, the project must publish one of the following:
+## Prepare the exact model cache
 
-1. a source revision and deterministic export recipe that produces the exact files;
-2. a separately licensed release artifact with source, license, SHA-256, and provenance; or
-3. a newly reviewed model identity followed by a new candidate and Clean Room.
+Run these commands from the Demos repository root. They build the pinned Cortrix image from public source, use the downloader and manifest embedded in that image, and populate the campaign's external Docker volume. The download is approximately 1.2 GB and makes no external language model call.
 
-The BGE-M3 model card currently declares MIT, while the BGE reranker model card currently declares Apache-2.0. Review the exact upstream revisions and licenses again before distributing any model artifact. This repository does not redistribute model weights.
+```bash
+CORTRIX_REV=4c0f0f96b652d5662a66d047771826a4d2933739
+CORTRIX_SOURCE=.runtime/cortrix-harness-src
+CORTRIX_HARNESS_VOLUME=cortrix_demos_harness_foundation_data
+
+git clone https://github.com/cortrix/cortrix.git "$CORTRIX_SOURCE"
+git -C "$CORTRIX_SOURCE" checkout "$CORTRIX_REV"
+test "$(git -C "$CORTRIX_SOURCE" rev-parse HEAD)" = "$CORTRIX_REV"
+
+docker build \
+  --build-arg "CORTRIX_SOURCE_REVISION=$CORTRIX_REV" \
+  --file "$CORTRIX_SOURCE/deploy/Dockerfile" \
+  --tag cortrix:quickstart \
+  "$CORTRIX_SOURCE"
+
+test "$(docker image inspect cortrix:quickstart --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}')" = "$CORTRIX_REV"
+docker volume create "$CORTRIX_HARNESS_VOLUME"
+docker run --rm \
+  --volume "$CORTRIX_HARNESS_VOLUME:/data" \
+  --entrypoint /app/scripts/download-models.sh \
+  cortrix:quickstart \
+  /data/models
+```
+
+Verify the installed bytes without network access:
+
+```bash
+docker run --rm --network none \
+  --volume "$CORTRIX_HARNESS_VOLUME:/data:ro" \
+  --entrypoint sha256sum \
+  cortrix:quickstart \
+  /data/models/bge-m3/model.onnx \
+  /data/models/bge-m3/tokenizer.json \
+  /data/models/bge-reranker-v2-m3/model.onnx \
+  /data/models/bge-reranker-v2-m3/tokenizer.json
+```
+
+The output must match the four SHA-256 values in the table, in the same order. Any revision, size, checksum, license, or image-label mismatch stops the live campaign. This repository does not redistribute model weights.

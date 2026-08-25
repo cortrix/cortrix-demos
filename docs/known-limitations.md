@@ -13,5 +13,5 @@
 - The DeepSeek Harness integration is Preview and fixed to one reviewed source and package family.
 - The four Harness scenarios validate two explicit read-only tools. They do not validate automatic memory capture, writes, remediation, arbitrary source browsing, or Code Mode nested tool persistence.
 - Existing Harness accepted evidence binds the original local integration commit. A future public integration commit requires new live evidence for complete source attribution.
-- The exact public export or distribution path for the required Cortrix-compatible BGE model files is not yet documented. Accepted replay works, but a new public live run remains blocked on model provenance.
+- The required Cortrix-compatible BGE files now have public conversion-source revisions, byte counts, checksums, upstream attribution, licenses, and fail-closed preparation commands. The repository does not redistribute model weights. A new live run is still required to bind those assets and the final public integration commit into new accepted evidence.
 - Historical accepted evidence may retain reviewer-specific or campaign-specific identifiers that were already public. New runs use generic public-neutral identities; the project does not rewrite historical observations.

@@ -22,6 +22,22 @@ def load_script(name: str, filename: str):
 
 
 class HarnessRuntimeTests(unittest.TestCase):
+    def test_model_assets_have_public_pinned_sources_and_checksums(self) -> None:
+        manifest = json.loads((ROOT / "runtime" / "model-manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual("4c0f0f96b652d5662a66d047771826a4d2933739", manifest["cortrix_source_commit"])
+        self.assertFalse(manifest["redistributes_model_weights"])
+        self.assertEqual(4, len(manifest["assets"]))
+        for asset in manifest["assets"]:
+            with self.subTest(component=asset["component"]):
+                for key in ("source_repository", "source_revision", "source_path", "size_bytes", "sha256", "upstream_repository", "upstream_revision", "license"):
+                    self.assertTrue(asset[key])
+                self.assertEqual(40, len(asset["source_revision"]))
+                self.assertEqual(64, len(asset["sha256"]))
+        model_doc = (ROOT / "docs" / "model-assets.md").read_text(encoding="utf-8")
+        self.assertIn("deploy/download-models.sh", model_doc)
+        self.assertIn("--network none", model_doc)
+        self.assertNotIn("does not contain a public, checksum-reproducible export recipe", model_doc)
+
     def test_fixture_loader_accepts_all_frozen_corpora(self) -> None:
         loader = load_script("harness_fixture_loader", "load-fixtures.py")
         counts = {"database-change-conflict-guardian": 12, "api-version-drift-coding-agent": 12, "payment-incident-shift-handoff": 16, "migration-decision-recovery": 21}
