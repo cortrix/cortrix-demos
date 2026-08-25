@@ -162,7 +162,7 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertLess(source.index("source_projection = run_source_projection_probe"), source.index("smoke_result = contract_smoke"))
         self.assertIn('tool_result.get("external_llm_calls") != 0', source)
         self.assertIn('fixture_operation(root, scenario, namespace, cleanup_path, cleanup=True)', source)
-        self.assertEqual("0b31efc5663cd5d458a681f423abc434048bd559", campaign.PLUGIN_COMMIT)
+        self.assertEqual("ebb2b62cf620ce6fda9a7199fafb545bcb9a9f99", campaign.PLUGIN_COMMIT)
 
     def test_curated_usage_uses_a_path_free_session_artifact_label(self) -> None:
         answer = load_script("harness_answer_usage", "run-answer.py")
