@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 import subprocess
+import sys
+
+from cortrix_demo_runner.errors import DemoContractError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,6 +164,40 @@ class HarnessRuntimeTests(unittest.TestCase):
         source = (ROOT / "runtime" / "harness" / "run-campaign.py").read_text(encoding="utf-8")
         self.assertIn("except Exception as exc:", source)
         self.assertLess(source.index("try:\n        if len(args.expected_demo_commit)"), source.index("campaign_contract = load_reviewed_campaign_contract"))
+
+    def test_paid_smoke_demo_error_persists_a_rejection_receipt(self) -> None:
+        campaign = load_script("harness_campaign_paid_rejection", "run-campaign.py")
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract = root / "runtime" / "harness" / "campaigns" / "foundation.json"
+            contract.parent.mkdir(parents=True)
+            contract.write_text((ROOT / "runtime" / "harness" / "campaigns" / "foundation.json").read_text(encoding="utf-8"), encoding="utf-8")
+            pricing = root / "reviewed-pricing.json"
+            pricing.write_text(json.dumps({
+                "official_url": "https://api-docs.deepseek.com/quick_start/pricing",
+                "observed_at": "2026-08-25T00:00:00Z",
+                "model": "deepseek-v4-flash",
+                "currency": "USD",
+                "prices_per_million_tokens": {"input_cache_hit": 0.014, "input_cache_miss": 0.44, "output": 1.32},
+            }), encoding="utf-8")
+            expected = "a" * 40
+            arguments = [
+                "run-campaign.py", "--root", str(root), "--harness-root", str(root / "harness"),
+                "--plugin-root", str(root / "integration"), "--cortrix-root", str(root / "cortrix"),
+                "--pricing-snapshot", str(pricing), "--campaign-contract", str(contract),
+                "--expected-demo-commit", expected,
+            ]
+            container_result = {"attempted": True, "compose_down_pass": True, "containers_absent": True, "error": None}
+            with patch.object(sys, "argv", arguments), patch.object(campaign, "demo_identity", return_value=expected), patch.object(campaign, "git_identity", side_effect=lambda _path, commit, _label: commit), patch.object(campaign, "image_identity", return_value="sha256:image"), patch.object(campaign, "verify_volume_models", return_value={"all_match": True}), patch.object(campaign, "verify_volume_runtime_access", return_value={"runtime_user_can_write_data": True}), patch.object(campaign, "require_compose", return_value=(["docker", "compose"], "docker compose")), patch.object(campaign, "verify_harness_headless_runtime", return_value={"headless_help_loaded": True}), patch.object(campaign, "compose"), patch.object(campaign, "wait_ready", return_value={"status": "ready"}), patch.object(campaign, "run_source_projection_probe", return_value={"source_identity_bound": True}), patch.object(campaign, "contract_smoke", side_effect=DemoContractError("paid smoke failed")), patch.object(campaign, "cleanup_campaign_containers", return_value=container_result), patch.object(sys, "stderr", io.StringIO()):
+                self.assertEqual(1, campaign.main())
+            receipts = list((root / ".runs").glob("*-rejected.json"))
+            self.assertEqual(1, len(receipts))
+            rejection = json.loads(receipts[0].read_text(encoding="utf-8"))
+            self.assertEqual("rejected", rejection["state"])
+            self.assertTrue(rejection["usage"]["provider_call_may_have_occurred"])
+            self.assertEqual("unknown", rejection["usage"]["visibility"])
+            self.assertFalse(rejection["promotion_allowed"])
+            self.assertFalse(rejection["screenshot_eligible"])
 
     def test_campaign_resolves_compose_before_the_paid_contract_smoke(self) -> None:
         campaign = load_script("harness_campaign_compose", "run-campaign.py")
