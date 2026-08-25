@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,10 @@ HEADLESS_RUNTIME_EXPORTS = (
     "packages/typert/registry/lib/index.js",
     "packages/api/gateway/lib/index.js",
 )
+REVIEWED_CAMPAIGN_SHA256 = {
+    "foundation.json": "77aff31053654770383e1a2ec1d216ea04f17561892e91ee2f2cc43a8f430197",
+    "operational-continuity.json": "80ee95c24f1adefe15de13216028823073a59e33dbc50c0a02aa77604db0f69f",
+}
 
 
 class CampaignFailure(RuntimeError):
@@ -54,8 +59,8 @@ def load_campaign_contract(path: Path) -> dict[str, Any]:
         raise CampaignFailure("campaign contract identity is missing")
     if not isinstance(contract.get("answer_calls"), int) or contract["answer_calls"] < 2:
         raise CampaignFailure("campaign answer call contract is invalid")
-    if not isinstance(contract.get("budget_usd"), (int, float)) or not 0 < contract["budget_usd"] <= 5:
-        raise CampaignFailure("campaign budget must be within USD 5.00")
+    if not isinstance(contract.get("budget_usd"), (int, float)) or not 0 < contract["budget_usd"] <= 1:
+        raise CampaignFailure("campaign budget must be within USD 1.00")
     if contract.get("source_projection_scenario") not in ids:
         raise CampaignFailure("campaign source projection scenario is invalid")
     expected_answers = 0
@@ -69,6 +74,16 @@ def load_campaign_contract(path: Path) -> dict[str, Any]:
     if expected_answers != contract["answer_calls"]:
         raise CampaignFailure("campaign answer call count does not match its scenario graph")
     return contract
+
+
+def load_reviewed_campaign_contract(root: Path, path: Path) -> dict[str, Any]:
+    reviewed_root = (root / "runtime" / "harness" / "campaigns").resolve()
+    resolved = path.resolve()
+    if resolved.parent != reviewed_root or resolved.name not in REVIEWED_CAMPAIGN_SHA256:
+        raise CampaignFailure("campaign contract must be one of the tracked reviewed contracts")
+    if sha256(resolved) != REVIEWED_CAMPAIGN_SHA256[resolved.name]:
+        raise CampaignFailure("campaign contract does not match its reviewed checksum")
+    return load_campaign_contract(resolved)
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -628,10 +643,9 @@ def observable_usage(root: Path, timestamp: str, smoke_path: Path, *, provider_c
 
 def sanitize_error(message: str, paths: list[Path]) -> str:
     sanitized = message
-    labels = ("<demo-root>", "<harness-root>", "<integration-root>", "<cortrix-root>", "<user-home>")
-    for path, label in zip([*paths, Path.home()], labels, strict=True):
-        sanitized = sanitized.replace(str(path), label)
-    return sanitized
+    for path in sorted({str(item) for item in [*paths, Path.home()] if str(item)}, key=len, reverse=True):
+        sanitized = sanitized.replace(path, "<local-path>")
+    return re.sub(r"(?<![A-Za-z0-9])/(?:[^\s\"']+)", "<local-path>", sanitized)
 
 
 def sanitize_structure(value: Any, paths: list[Path]) -> Any:
@@ -664,7 +678,7 @@ def write_rejection_receipt(
         "campaign_id": CAMPAIGN_ID,
         "state": "rejected",
         "timestamp": timestamp,
-        "expected_demo_commit": expected_demo_commit,
+        "expected_demo_commit": expected_demo_commit if len(expected_demo_commit) == 40 and all(character in "0123456789abcdef" for character in expected_demo_commit) else "invalid",
         "error": {
             "code": "CX_DEMO_HARNESS_CAMPAIGN_FAILED",
             "category": "permanent",
@@ -758,20 +772,15 @@ def main() -> int:
     parser.add_argument("--expected-demo-commit", required=True)
     args = parser.parse_args()
     root = args.root.resolve()
-    campaign_contract = load_campaign_contract((root / args.campaign_contract).resolve() if not args.campaign_contract.is_absolute() else args.campaign_contract.resolve())
-    SCENARIOS = tuple(item["id"] for item in campaign_contract["scenarios"])
-    SCENARIO_CONTRACTS = {item["id"]: item for item in campaign_contract["scenarios"]}
-    COMPOSE_PROJECT = campaign_contract["compose_project"]
-    CAMPAIGN_ID = campaign_contract["campaign_id"]
-    SOURCE_PROJECTION_SCENARIO = campaign_contract["source_projection_scenario"]
-    ANSWER_CALLS = campaign_contract["answer_calls"]
-    BUDGET_USD = float(campaign_contract["budget_usd"])
     harness_root = args.harness_root.resolve()
     plugin_root = args.plugin_root.resolve()
     cortrix_root = args.cortrix_root.resolve()
+    pricing_path = args.pricing_snapshot.resolve()
+    contract_path = (root / args.campaign_contract).resolve() if not args.campaign_contract.is_absolute() else args.campaign_contract.resolve()
     environment = os.environ.copy()
     environment["CORTRIX_HARNESS_VOLUME"] = args.volume
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    CAMPAIGN_ID = "deepseek-harness-cortrix-preflight"
     campaign_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}.json"
     rejection_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}-rejected.json"
     smoke_path = root / ".runs" / f"contract-smoke-{timestamp}.json"
@@ -781,7 +790,19 @@ def main() -> int:
     compose_command: list[str] | None = None
     compose_label: str | None = None
     try:
-        pricing, reviewed_bound = require_pricing(args.pricing_snapshot.resolve())
+        if len(args.expected_demo_commit) != 40 or any(character not in "0123456789abcdef" for character in args.expected_demo_commit):
+            raise CampaignFailure("expected Demos commit must be a full lowercase Git object ID")
+        campaign_contract = load_reviewed_campaign_contract(root, contract_path)
+        SCENARIOS = tuple(item["id"] for item in campaign_contract["scenarios"])
+        SCENARIO_CONTRACTS = {item["id"]: item for item in campaign_contract["scenarios"]}
+        COMPOSE_PROJECT = campaign_contract["compose_project"]
+        CAMPAIGN_ID = campaign_contract["campaign_id"]
+        SOURCE_PROJECTION_SCENARIO = campaign_contract["source_projection_scenario"]
+        ANSWER_CALLS = campaign_contract["answer_calls"]
+        BUDGET_USD = float(campaign_contract["budget_usd"])
+        campaign_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}.json"
+        rejection_path = root / ".runs" / f"{CAMPAIGN_ID}-{timestamp}-rejected.json"
+        pricing, reviewed_bound = require_pricing(pricing_path)
         identities = {
             "demo_commit": demo_identity(root, args.expected_demo_commit),
             "plugin_commit": git_identity(plugin_root, PLUGIN_COMMIT, "plugin"),
@@ -820,7 +841,7 @@ def main() -> int:
         write_json(campaign_path, {"schema_version": 1, "campaign_id": CAMPAIGN_ID, "state": "candidate", "run_ids": run_ids, "source_projection_probe": source_projection, "shared_contract_smoke_calls": 1, "answer_calls": ANSWER_CALLS, "compose_cli": compose_label, "harness_headless": headless_runtime, "usage": usage, "downloads": 0, "builds": 0, "human_review_required": True})
         print(json.dumps({"status": "candidate", "run_ids": run_ids, "observable_calls": usage["observable_calls"], "observable_cost_usd": usage["observable_cost_usd"], "reviewed_bound_usd": usage["reviewed_bound_usd"], "budget_usd": BUDGET_USD}, ensure_ascii=True))
         return 0
-    except (CampaignFailure, OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+    except Exception as exc:
         namespace_cleanup = finish_rejection_namespaces(root, timestamp, runtime_ready=runtime_ready)
         container_cleanup = cleanup_campaign_containers(root, compose_command, environment, attempted=compose_attempted)
         compose_attempted = False
@@ -834,9 +855,9 @@ def main() -> int:
             usage=usage,
             namespace_cleanup=namespace_cleanup,
             container_cleanup=container_cleanup,
-            identity_paths=[root, harness_root, plugin_root, cortrix_root],
+            identity_paths=[root, harness_root, plugin_root, cortrix_root, pricing_path, contract_path],
         )
-        safe_message = sanitize_error(str(exc), [root, harness_root, plugin_root, cortrix_root])
+        safe_message = sanitize_error(str(exc), [root, harness_root, plugin_root, cortrix_root, pricing_path, contract_path])
         print(json.dumps({"error": {"code": "CX_DEMO_HARNESS_CAMPAIGN_FAILED", "category": "permanent", "retryable": False, "message": safe_message, "rejection_receipt": rejection_path.name}}, ensure_ascii=True), file=sys.stderr)
         return 1
     finally:

@@ -69,6 +69,17 @@ class HarnessRuntimeTests(unittest.TestCase):
             with self.assertRaises(campaign.CampaignFailure):
                 campaign.require_pricing(path)
 
+    def test_campaign_accepts_only_the_two_tracked_reviewed_contracts(self) -> None:
+        campaign = load_script("harness_campaign_contract", "run-campaign.py")
+        for name in ("foundation.json", "operational-continuity.json"):
+            contract = campaign.load_reviewed_campaign_contract(ROOT, ROOT / "runtime" / "harness" / "campaigns" / name)
+            self.assertLessEqual(contract["budget_usd"], 1.0)
+        with TemporaryDirectory() as directory:
+            external = Path(directory) / "foundation.json"
+            external.write_text((ROOT / "runtime" / "harness" / "campaigns" / "foundation.json").read_text(encoding="utf-8"), encoding="utf-8")
+            with self.assertRaisesRegex(campaign.CampaignFailure, "tracked reviewed contracts"):
+                campaign.load_reviewed_campaign_contract(ROOT, external)
+
     def test_campaign_caps_model_answers_and_disables_cortrix_llm(self) -> None:
         campaign = load_script("harness_campaign_static", "run-campaign.py")
         compose = (ROOT / "runtime" / "harness" / "docker-compose.yml").read_text(encoding="utf-8")
@@ -133,7 +144,7 @@ class HarnessRuntimeTests(unittest.TestCase):
                 receipt,
                 timestamp="20260825T000000Z",
                 expected_demo_commit="a" * 40,
-                error=campaign.CampaignFailure(f"command failed below {harness}"),
+                error=campaign.CampaignFailure(f"command failed below {harness} and /private/tmp/reviewer-secret/pricing.json"),
                 usage={"visibility": "partial", "provider_call_may_have_occurred": True, "observable_calls": 1},
                 namespace_cleanup={"targets_observed": 1, "all_removed_or_absent": True, "outcomes": []},
                 container_cleanup={"attempted": True, "compose_down_pass": True, "containers_absent": True, "error": None},
@@ -145,6 +156,10 @@ class HarnessRuntimeTests(unittest.TestCase):
             self.assertFalse(value["screenshot_eligible"])
             self.assertTrue(value["cleanup"]["pass"])
             self.assertNotIn(str(Path(directory)), receipt.read_text(encoding="utf-8"))
+            self.assertNotIn("/private/tmp/reviewer-secret", receipt.read_text(encoding="utf-8"))
+        source = (ROOT / "runtime" / "harness" / "run-campaign.py").read_text(encoding="utf-8")
+        self.assertIn("except Exception as exc:", source)
+        self.assertLess(source.index("try:\n        if len(args.expected_demo_commit)"), source.index("campaign_contract = load_reviewed_campaign_contract"))
 
     def test_campaign_resolves_compose_before_the_paid_contract_smoke(self) -> None:
         campaign = load_script("harness_campaign_compose", "run-campaign.py")

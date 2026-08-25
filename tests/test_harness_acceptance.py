@@ -48,11 +48,15 @@ class HarnessAcceptanceTests(unittest.TestCase):
         self.assertEqual([0.3, 0.6, 1.0, 5.0], schema["properties"]["usage"]["properties"]["budget_usd"]["enum"])
 
     def test_usage_contract_accepts_current_campaign_and_frozen_archive_budgets(self) -> None:
-        foundation, foundation_calls = _usage_contract(ROOT / "scenarios" / "database-change-conflict-guardian")
-        continuity, continuity_calls = _usage_contract(ROOT / "scenarios" / "payment-incident-shift-handoff")
-        self.assertEqual({0.3, 1.0}, foundation)
+        foundation_current, foundation_calls = _usage_contract(ROOT / "scenarios" / "database-change-conflict-guardian", include_historical=False)
+        continuity_current, continuity_calls = _usage_contract(ROOT / "scenarios" / "payment-incident-shift-handoff", include_historical=False)
+        foundation_historical, _ = _usage_contract(ROOT / "scenarios" / "database-change-conflict-guardian", include_historical=True)
+        continuity_historical, _ = _usage_contract(ROOT / "scenarios" / "payment-incident-shift-handoff", include_historical=True)
+        self.assertEqual({0.3}, foundation_current)
+        self.assertEqual({0.6}, continuity_current)
+        self.assertEqual({0.3, 1.0}, foundation_historical)
+        self.assertEqual({0.6, 5.0}, continuity_historical)
         self.assertEqual(5, foundation_calls)
-        self.assertEqual({0.6, 5.0}, continuity)
         self.assertEqual(9, continuity_calls)
 
     def test_clean_room_tooling_may_descend_from_the_candidate_commit(self) -> None:

@@ -165,7 +165,7 @@ def _validate_safety(run_dir: Path, repository_root: Path | None = None) -> None
                 raise _failure("Harness evidence failed public safety: " + "; ".join(failures))
 
 
-def _usage_contract(scenario_dir: Path) -> tuple[set[float], int]:
+def _usage_contract(scenario_dir: Path, *, include_historical: bool) -> tuple[set[float], int]:
     profile = read_json(scenario_dir / "profiles" / "full-stack.json")
     historical_budget = profile.get("budget_usd")
     calls = profile.get("expected_campaign_calls")
@@ -174,7 +174,10 @@ def _usage_contract(scenario_dir: Path) -> tuple[set[float], int]:
     current_budget = campaign.get("budget_usd")
     if not isinstance(historical_budget, (int, float)) or not isinstance(current_budget, (int, float)) or not isinstance(calls, int):
         raise _failure("Harness scenario has no accepted usage contract")
-    return {float(historical_budget), float(current_budget)}, calls
+    budgets = {float(current_budget)}
+    if include_historical:
+        budgets.add(float(historical_budget))
+    return budgets, calls
 
 
 def _validate_position_variants(run_dir: Path, scenario_dir: Path, scenario: dict[str, Any], assertions: dict[str, Any], manifest: dict[str, Any]) -> None:
@@ -229,7 +232,7 @@ def validate_harness_candidate(root: Path, scenario_id: str, run_id: str, *, req
     for relative in REQUIRED_RUN_FILES | {"checksums.json"}:
         _require_relative_file(run_dir, relative, relative)
     manifest = read_json(run_dir / "run-manifest.json")
-    budget_usd, observable_calls = _usage_contract(scenario_dir)
+    budget_usd, observable_calls = _usage_contract(scenario_dir, include_historical=False)
     _validate_manifest_shape(manifest, scenario_id, run_id, state="candidate", budget_usd=budget_usd, observable_calls=observable_calls)
     source = manifest["source_identity"]
     expected = scenario["requires"]
@@ -394,7 +397,7 @@ def record_harness_screenshot(root: Path, scenario_id: str, run_id: str, source_
         raise _failure("Harness screenshot filename is not public safe")
     destination = scenario_dir / "evidence" / "runs" / run_id
     manifest = read_json(destination / "run-manifest.json")
-    budget_usd, observable_calls = _usage_contract(scenario_dir)
+    budget_usd, observable_calls = _usage_contract(scenario_dir, include_historical=True)
     _validate_manifest_shape(manifest, scenario_id, run_id, state="accepted", budget_usd=budget_usd, observable_calls=observable_calls)
     evidence = _require_relative_file(destination, evidence_path, "screenshot evidence path")
     width, height = png_dimensions(source_file)
@@ -438,7 +441,7 @@ def verify_harness_accepted(root: Path, scenario_id: str, run_id: str | None = N
         raise _failure("Harness accepted pointer does not identify the requested run")
     destination = scenario_dir / "evidence" / "runs" / selected
     manifest = read_json(destination / "run-manifest.json")
-    budget_usd, observable_calls = _usage_contract(scenario_dir)
+    budget_usd, observable_calls = _usage_contract(scenario_dir, include_historical=True)
     _validate_manifest_shape(manifest, scenario_id, selected, state="accepted", budget_usd=budget_usd, observable_calls=observable_calls)
     assertions = load_assertion_contract(root, scenario_id)["frozen"]
     scenario = load_scenario(root, scenario_id)
