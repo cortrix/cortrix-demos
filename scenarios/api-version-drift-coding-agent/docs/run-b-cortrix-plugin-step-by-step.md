@@ -4,11 +4,16 @@ Run B uses the same question, corpus, pinned DeepSeek Harness, answer contract, 
 
 The commands below are designed to be copied from the repository root. Cortrix ingestion and plugin queries make no external LLM calls. Stage 8 makes exactly one authorized `deepseek/deepseek-v4-flash` answer call. The model cache and image must already exist with the frozen identities; this Runbook does not download models or build an image.
 
-Prepare the reviewed integration before Stage 0:
+Prepare the pinned Harness source and reviewed integration before Stage 0:
 
 ```bash
+git clone https://github.com/deepseek-ai/deepseek-harness.git .runtime/deepseek-harness
+git -C .runtime/deepseek-harness checkout 99f6f02fecdb7dff40c3fbc9470f5907c29f74ca
+npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness install --frozen-lockfile
+npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness run build:lib:host
+test -f .runtime/deepseek-harness/apps/cli/lib/bin.js
 git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations
-git -C .runtime/cortrix-integrations checkout a6063274e0d76f3d37207be31d588fcba286df1a
+git -C .runtime/cortrix-integrations checkout 606250ea43d3bab4ba4440fc26f8e86cb6dcc3db
 npm --prefix .runtime/cortrix-integrations ci
 npm --prefix .runtime/cortrix-integrations run validate
 ```
@@ -32,7 +37,7 @@ mkdir -p "$RUN_ROOT"
 test "$(git branch --show-current)" = main
 test -z "$(git status --short --untracked-files=all)"
 test "$(git -C "$HARNESS_ROOT" rev-parse HEAD)" = 99f6f02fecdb7dff40c3fbc9470f5907c29f74ca
-test "$(git -C "$INTEGRATIONS_ROOT" rev-parse HEAD)" = a6063274e0d76f3d37207be31d588fcba286df1a
+test "$(git -C "$INTEGRATIONS_ROOT" rev-parse HEAD)" = 606250ea43d3bab4ba4440fc26f8e86cb6dcc3db
 test "$(git -C "$CORTRIX_ROOT" rev-parse HEAD)" = 4c0f0f96b652d5662a66d047771826a4d2933739
 test -z "$(git -C "$HARNESS_ROOT" status --short --untracked-files=all)"
 test -z "$(git -C "$INTEGRATIONS_ROOT" status --short --untracked-files=all)"

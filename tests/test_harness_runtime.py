@@ -146,7 +146,7 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertLess(source.index("source_projection = run_source_projection_probe"), source.index("smoke_result = contract_smoke"))
         self.assertIn('tool_result.get("external_llm_calls") != 0', source)
         self.assertIn('fixture_operation(root, scenario, namespace, cleanup_path, cleanup=True)', source)
-        self.assertEqual("a6063274e0d76f3d37207be31d588fcba286df1a", campaign.PLUGIN_COMMIT)
+        self.assertEqual("606250ea43d3bab4ba4440fc26f8e86cb6dcc3db", campaign.PLUGIN_COMMIT)
 
     def test_curated_usage_uses_a_path_free_session_artifact_label(self) -> None:
         answer = load_script("harness_answer_usage", "run-answer.py")
@@ -178,6 +178,8 @@ class HarnessRuntimeTests(unittest.TestCase):
                 self.assertIn("--output \"$RUN_ROOT/ingestion.json\"", run_b)
                 self.assertIn("--query-file", run_b)
                 self.assertIn("harness project-cortrix", run_b)
+                self.assertIn("git clone https://github.com/deepseek-ai/deepseek-harness.git", run_b)
+                self.assertIn("npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness run build:lib:host", run_b)
                 self.assertIn("for SERIAL in 1 2", run_b)
                 self.assertIn("runtime/harness/run-answer.py", run_b)
                 self.assertNotIn("--receipt", run_b)

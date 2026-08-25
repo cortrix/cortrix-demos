@@ -17,9 +17,22 @@ The integration source belongs to [Cortrix Integrations](https://github.com/cort
 | Cortrix query API | commit `4c0f0f96b652d5662a66d047771826a4d2933739` |
 | Answer model | `deepseek/deepseek-v4-flash` |
 
-The local release candidate currently pins Cortrix Integrations commit `a6063274e0d76f3d37207be31d588fcba286df1a`. The final public documentation must replace this value if the integration candidate changes during Clean Room review.
+The local release candidate currently pins Cortrix Integrations commit `606250ea43d3bab4ba4440fc26f8e86cb6dcc3db`. A source change invalidates this candidate and requires another review.
 
 This is a fixed compatibility result, not a claim about later Harness, Cordis, Cortrix, or model versions.
+
+## Prepare the pinned Harness source
+
+The live campaign requires the exact Harness checkout and its Host build. These commands use the package manager version declared by Harness and do not require a language model key:
+
+```bash
+git clone https://github.com/deepseek-ai/deepseek-harness.git .runtime/deepseek-harness
+git -C .runtime/deepseek-harness checkout 99f6f02fecdb7dff40c3fbc9470f5907c29f74ca
+npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness install --frozen-lockfile
+npx --yes pnpm@11.7.0 --dir .runtime/deepseek-harness run build:lib:host
+test -f .runtime/deepseek-harness/apps/cli/lib/bin.js
+test -z "$(git -C .runtime/deepseek-harness status --short --untracked-files=all)"
+```
 
 ## Prepare the integration
 
@@ -27,7 +40,7 @@ The Cortrix Integrations repository is not public yet. The commands below become
 
 ```bash
 git clone https://github.com/cortrix/cortrix-integrations.git .runtime/cortrix-integrations
-git -C .runtime/cortrix-integrations checkout a6063274e0d76f3d37207be31d588fcba286df1a
+git -C .runtime/cortrix-integrations checkout 606250ea43d3bab4ba4440fc26f8e86cb6dcc3db
 npm --prefix .runtime/cortrix-integrations ci
 npm --prefix .runtime/cortrix-integrations run validate
 ```
