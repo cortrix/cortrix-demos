@@ -85,7 +85,7 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertIn("runtime_secret_materialized", campaign_source)
         continuity = campaign.load_campaign_contract(ROOT / "runtime" / "harness" / "campaigns" / "operational-continuity.json")
         self.assertEqual(8, continuity["answer_calls"])
-        self.assertEqual(5.0, continuity["budget_usd"])
+        self.assertEqual(1.0, continuity["budget_usd"])
         self.assertEqual(["front", "middle", "end"], continuity["scenarios"][1]["position_variants"])
 
     def test_campaign_resolves_compose_before_the_paid_contract_smoke(self) -> None:
