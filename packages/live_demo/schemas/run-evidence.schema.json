@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cortrix/cortrix-demos/blob/main/packages/live_demo/schemas/run-evidence.schema.json",
+  "title": "Cortrix Live Demo Run Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "manifest", "artifacts"],
+  "properties": {
+    "schema": {"const": "cortrix_live_demo_run_evidence/v1"},
+    "manifest": {
+      "type": "object",
+      "required": ["id", "mode", "locale", "state", "runtime_identity", "code_manifest", "paths", "events"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^run_[0-9a-f]{16}$"},
+        "mode": {"enum": ["deterministic", "harness"]},
+        "locale": {"const": "en-US"},
+        "state": {"enum": ["queued", "running", "completed", "paused_budget", "needs_reconciliation", "interrupted", "cancelling", "cancelled", "failed", "cleaning", "cleaned", "cleanup_failed"]},
+        "runtime_identity": {"type": "object"},
+        "code_manifest": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        "paths": {"type": "object"},
+        "events": {"type": "array"}
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "content"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[0-9]{4}-[A-Za-z0-9_-]+\\.json$"},
+          "content": {"type": "object"}
+        }
+      }
+    }
+  }
+}

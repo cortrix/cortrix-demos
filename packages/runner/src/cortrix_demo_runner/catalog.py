@@ -11,6 +11,9 @@ REGISTRY_PATH = Path("scenarios/registry.json")
 ADAPTER_REGISTRY_PATH = Path("runtime/adapters/registry.json")
 EXTERNAL_POLICY_PATH = Path("config/external-call-policy.json")
 AGENT_MANIFEST_PATH = Path("agent.json")
+SEALED_FULL_STACK_INTEGRATION = "sealed_full_stack_v1"
+LIVE_THREE_PATH_INTEGRATION = "live_three_path_v1"
+SUPPORTED_SCENARIO_INTEGRATIONS = {SEALED_FULL_STACK_INTEGRATION, LIVE_THREE_PATH_INTEGRATION}
 
 
 def _require_relative_file(root: Path, value: object, label: str) -> Path:
@@ -55,7 +58,21 @@ def list_scenarios(root: Path) -> list[dict[str, Any]]:
     ids = [item.get("id") for item in scenarios if isinstance(item, dict)]
     if len(ids) != len(scenarios) or any(not isinstance(value, str) or not value for value in ids) or len(set(ids)) != len(ids):
         raise DemoContractError("Scenario registry contains invalid or duplicate IDs")
+    for item in scenarios:
+        scenario_integration_kind(item)
     return scenarios
+
+
+def scenario_integration_kind(entry: dict[str, Any]) -> str:
+    kind = entry.get("integration_kind", SEALED_FULL_STACK_INTEGRATION)
+    if kind not in SUPPORTED_SCENARIO_INTEGRATIONS:
+        raise DemoContractError(
+            "Scenario registry contains an unknown integration kind",
+            code="CX_DEMO_SCENARIO_INTEGRATION_UNKNOWN",
+            category="permanent",
+            structured_data={"scenario_id": entry.get("id"), "integration_kind": kind},
+        )
+    return kind
 
 
 def scenario_entry(root: Path, scenario_id: str) -> dict[str, Any]:
@@ -145,21 +162,94 @@ def load_agent_manifest(root: Path) -> dict[str, Any]:
         raise DemoContractError("Agent manifest catalogs are invalid")
     for key in ("scenarios", "adapters", "external_call_policy", "evidence_schema", "image_provenance"):
         _require_relative_file(root, catalogs.get(key), f"Agent manifest catalog {key}")
+    _require_relative_file(root, catalogs.get("live_demo"), "Agent manifest live demo catalog")
     live_gate = gates.get("live_full_stack") if isinstance(gates, dict) else None
     if not isinstance(live_gate, dict) or live_gate.get("manual_authorization_required") is not True or live_gate.get("external_calls") is not True:
         raise DemoContractError("Agent manifest live-run gate is invalid")
+    live_three_path = gates.get("live_three_path") if isinstance(gates, dict) else None
+    expected_live_three_path = {
+        "scenario": "order-api-live-three-path",
+        "manual_authorization_required": True,
+        "external_calls": True,
+        "runtime_config_required": True,
+        "entrypoint": "packages/live_demo/live-democtl",
+        "implementation_manifest": "packages/live_demo/manifest.json",
+    }
+    if live_three_path != expected_live_three_path:
+        raise DemoContractError("Agent manifest live three-path gate is invalid")
+    _require_relative_file(root, live_three_path["entrypoint"], "Agent manifest live three-path entrypoint")
+    _require_relative_file(root, live_three_path["implementation_manifest"], "Agent manifest live three-path implementation")
     return manifest
+
+
+def _describe_live_three_path_scenario(
+    root: Path,
+    entry: dict[str, Any],
+    scenario: dict[str, Any],
+    validation_path: Path,
+) -> dict[str, Any]:
+    scenario_id = entry["id"]
+    contract_path = _require_relative_file(
+        validation_path.parent.parent,
+        scenario.get("live_contract"),
+        "Live three-path contract",
+    )
+    contract = read_json(contract_path)
+    if contract.get("scenario_id") != scenario_id or contract.get("contract_version") != "live_three_path/v1":
+        raise DemoContractError("Live three-path contract identity is invalid")
+    return {
+        "schema_version": 1,
+        "integration_kind": LIVE_THREE_PATH_INTEGRATION,
+        "scenario": {
+            "id": scenario_id,
+            "display_name": scenario.get("display_name"),
+            "version": scenario.get("scenario_version"),
+            "status": entry.get("status"),
+            "synthetic_data": scenario.get("synthetic_data"),
+        },
+        "live_contract": {
+            "version": contract.get("contract_version"),
+            "path": contract_path.relative_to(root.resolve()).as_posix(),
+            "runtime_support": contract.get("runtime_support"),
+            "display_stages": contract.get("display_stages"),
+            "paths": [item.get("id") for item in contract.get("paths", []) if isinstance(item, dict)],
+            "harness_paths": [item.get("id") for item in contract.get("harness_paths", []) if isinstance(item, dict)],
+        },
+        "accepted_evidence": {
+            "status": "not_available",
+            "run_id": None,
+            "pointer": None,
+        },
+        "validation_contract": validation_path.relative_to(root.resolve()).as_posix(),
+        "external_calls": {
+            "performed_by_describe": 0,
+            "live_execution_authorized": False,
+        },
+        "lifecycle": ["discover", "describe", "validate", "implement", "run", "inspect", "review", "cleanup"],
+        "review_gates": {
+            "independent_clean_run": "required_before_acceptance",
+            "human_review_required_for": ["acceptance", "remote_publication"],
+            "human_guide": entry.get("human_guide"),
+        },
+    }
 
 
 def describe_scenario(root: Path, scenario_id: str) -> dict[str, Any]:
     entry = scenario_entry(root, scenario_id)
     scenario_path = _require_relative_file(root / "scenarios", entry.get("scenario_contract"), "Scenario contract")
     validation_path = _require_relative_file(root / "scenarios", entry.get("validation_contract"), "Scenario validation contract")
-    technology_path = _require_relative_file(root / "scenarios", entry.get("technology_profile"), "Technology profile")
     scenario = read_json(scenario_path)
     validation = read_json(validation_path)
+    if scenario.get("id") != scenario_id or validation.get("scenario_id") != scenario_id:
+        raise DemoContractError("Scenario catalog identity does not match its contracts")
+    integration_kind = scenario_integration_kind(entry)
+    if scenario.get("integration_kind", SEALED_FULL_STACK_INTEGRATION) != integration_kind:
+        raise DemoContractError("Scenario integration kind does not match its registry entry")
+    if integration_kind == LIVE_THREE_PATH_INTEGRATION:
+        return _describe_live_three_path_scenario(root, entry, scenario, validation_path)
+    technology_path = _require_relative_file(root / "scenarios", entry.get("technology_profile"), "Technology profile")
     technology = read_json(technology_path)
-    if scenario.get("id") != scenario_id or validation.get("scenario_id") != scenario_id or technology.get("scenario_id") != scenario_id:
+    if technology.get("scenario_id") != scenario_id:
         raise DemoContractError("Scenario catalog identity does not match its contracts")
     baseline_id = technology.get("baseline", {}).get("adapter_id")
     llm_id = technology.get("llm", {}).get("adapter_id")
@@ -205,6 +295,14 @@ def describe_scenario(root: Path, scenario_id: str) -> dict[str, Any]:
 
 
 def require_runnable_scenario(root: Path, scenario_id: str, compatibility_profile: str) -> dict[str, Any]:
+    entry = scenario_entry(root, scenario_id)
+    if scenario_integration_kind(entry) != SEALED_FULL_STACK_INTEGRATION:
+        raise DemoContractError(
+            "The existing Full Stack runtime only supports sealed scenarios",
+            code="CX_DEMO_SCENARIO_RUNTIME_UNSUPPORTED",
+            category="permanent",
+            structured_data={"scenario_id": scenario_id, "integration_kind": scenario_integration_kind(entry)},
+        )
     description = describe_scenario(root, scenario_id)
     technology = description["technology_profile"]
     profiles = technology.get("compatibility_profiles")

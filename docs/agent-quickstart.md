@@ -23,7 +23,9 @@ This path is read-only and reports `external_calls: 0`. Do not infer authorizati
 ./democtl list --json
 ```
 
-The response lists scenario IDs, status, technology-profile path, accepted-evidence pointer, and human guide.
+The response lists scenario IDs, status, integration kind, available integration-specific pointers, and human guide.
+
+Registry entries also declare an `integration_kind`. Older entries without that field use `sealed_full_stack_v1`. A `live_three_path_v1` entry can be discovered and described while it remains an implementation candidate; it does not need a technology profile or accepted-evidence pointer.
 
 ## Describe
 
@@ -37,10 +39,16 @@ The response resolves the business contract, baseline adapter, Cortrix identity,
 
 ```bash
 ./democtl validate --scenario order-api-field-migration
+./democtl validate --scenario order-api-live-three-path
+./democtl validate
 ./democtl public-safety
 ```
 
-Both commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`. Retryable failures also include `retry_after_ms`; `structured_data.next_action` appears only when a safe corrective action exists. Evidence integrity, deterministic assertion, and invalid internal state errors deliberately omit `next_action`, which means the Agent must stop and surface the failure. See the [Agent error contract](agent-error-contract.md) for the decision matrix.
+The command with no `--scenario` deeply validates every registered scenario. Validation of the live three-path candidate checks its contract, implementation manifest, package, and frozen data. It makes no external calls and does not claim a live result or acceptance. The existing `run-full-stack` command continues to support only sealed scenarios.
+
+The live candidate's runtime contract and Native Harness behavior are documented in [`packages/live_demo/README.md`](../packages/live_demo/README.md) and [`docs/native-harness-execution.md`](native-harness-execution.md). These files describe an implementation candidate, not accepted run evidence.
+
+These validation commands emit JSON. A failure emits a structured error containing `code`, `category`, `retryable`, `message`, and `structured_data`. Retryable failures also include `retry_after_ms`; `structured_data.next_action` appears only when a safe corrective action exists. Evidence integrity, deterministic assertion, and invalid internal state errors deliberately omit `next_action`, which means the Agent must stop and surface the failure. See the [Agent error contract](agent-error-contract.md) for the decision matrix.
 
 `verify-accepted` returns `proof_scope: archive_integrity` and `live_reexecution: false`. It verifies the tracked evidence package and does not claim that retrieval was rerun today.
 
@@ -59,11 +67,10 @@ agent.json
   -> scenarios/registry.json
   -> scenarios/<id>/scenario.json
   -> scenarios/<id>/expected/validation.json
-  -> scenarios/<id>/profiles/technology-profile.json
-  -> runtime/adapters/registry.json
-  -> scenarios/<id>/evidence/accepted-run.json
-  -> accepted run manifest
+  -> integration-kind-specific contract
 ```
+
+For `sealed_full_stack_v1`, continue through the technology profile, adapter registry, accepted pointer, and accepted run manifest. For `live_three_path_v1`, continue through the live contract and frozen fixture manifest; no accepted pointer is valid while the scenario is a contract-only candidate.
 
 Use the scenario contract for the business question and assertions, the technology profile for scenario-specific database and LLM selection, the adapter registry for implemented capability, and the accepted pointer for immutable evidence identity. Never derive runtime support from prose or a `contract_only` adapter entry.
 

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Cortrix | Run Evidence</title>
+  <link rel="icon" href="assets/cortrix-logo-full.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="api.js" defer></script>
+  <script src="evidence.js" defer></script>
+</head>
+<body>
+  <main class="evidence-shell">
+    <header class="page-header"><img class="brand" src="assets/cortrix-logo-full.svg" alt="Cortrix"><span class="header-divider"></span><span class="header-title">Run evidence · Source records</span><div class="header-actions"><button class="button quiet" id="refresh-evidence" data-testid="refresh-evidence">Refresh evidence</button><a class="button quiet" id="back-link" href="/demo" data-testid="back-to-comparison">Back to comparison</a></div></header>
+    <section class="evidence-heading"><div><h1>Verifiable records for this run</h1><p id="evidence-status" role="status" aria-live="polite" data-testid="evidence-status">Loading evidence.</p></div><span class="record-label">Read only · Does not start a run</span></section>
+    <section class="evidence-browser" aria-label="Evidence browser"><nav id="artifact-list" class="evidence-list" aria-label="Evidence files" data-testid="artifact-list"></nav><section class="evidence-content"><h2 id="artifact-title">Manifest</h2><pre id="artifact-content" tabindex="0" data-testid="artifact-content">Loading.</pre></section></section>
+  </main>
+</body>
+</html>

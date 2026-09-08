@@ -22,7 +22,7 @@ PRIVATE_IPV4 = re.compile(r"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172
 # the scanner can inspect its own source without granting itself a blanket pass.
 PREFERRED_LOCAL_PREVIEW_ADDRESS = ".".join(("192", "168", "50", "75"))
 ALLOWED_PRIVATE_IPV4 = {Path("Makefile"): {PREFERRED_LOCAL_PREVIEW_ADDRESS}}
-TEXT_SUFFIXES = {"", ".c", ".cc", ".cpp", ".css", ".h", ".html", ".ini", ".js", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
+TEXT_SUFFIXES = {"", ".c", ".cc", ".cpp", ".css", ".h", ".html", ".ini", ".js", ".json", ".md", ".mjs", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
 
 
 def repository_files(root: Path) -> list[Path]:

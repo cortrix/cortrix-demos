@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "contract_version": "live_three_path/v1",
+  "scenario_id": "order-api-live-three-path",
+  "candidate_state": "implementation_candidate",
+  "runtime_support": "packages/live_demo/manifest.json",
+  "source_pins": {
+    "cortrix": {
+      "release": "v1.0.0-rc.2",
+      "commit": "d298d6b7e64c67551f567e7cddd514bae1adb57b"
+    },
+    "deepseek_harness": {
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca"
+    }
+  },
+  "input_selection": {
+    "fixture_manifest": "fixtures/manifest.json",
+    "input_manifest_sha256": "67f179dfecd7a410c38ca8c726ad8d59197193badc710f15154f6dd23d405cd2",
+    "selection_state": "frozen_before_execution"
+  },
+  "display_stages": [
+    "input",
+    "write",
+    "search",
+    "result",
+    "code"
+  ],
+  "business_operations": [
+    "ingest",
+    "query"
+  ],
+  "paths": [
+    {
+      "id": "a0",
+      "role": "Basic vector retrieval without application lifecycle rules",
+      "backend": "PostgreSQL with pgvector",
+      "measurements": {
+        "stage_totals": [
+          {"stage": "input", "duration_ms": null, "state": "pending"},
+          {"stage": "write", "duration_ms": null, "state": "pending"},
+          {"stage": "search", "duration_ms": null, "state": "pending"},
+          {"stage": "result", "duration_ms": null, "state": "pending"},
+          {"stage": "code", "duration_ms": null, "state": "pending"}
+        ],
+        "business_steps": [
+          {"operation": "ingest", "owner": "demo_runner", "duration_ms": null, "state": "pending"},
+          {"operation": "query", "owner": "demo_runner", "duration_ms": null, "state": "pending"}
+        ]
+      },
+      "result_contract": {
+        "selected_field": "account_id",
+        "source_document": "order-api-guide-v1.0",
+        "evidence": "The basic vector path reports its top retrieved fixture without applying current-document policy."
+      }
+    },
+    {
+      "id": "a1",
+      "role": "PostgreSQL retrieval with application lifecycle rules and bounded LLM assistance",
+      "backend": "PostgreSQL with pgvector plus application policy",
+      "measurements": {
+        "stage_totals": [
+          {"stage": "input", "duration_ms": null, "state": "pending"},
+          {"stage": "write", "duration_ms": null, "state": "pending"},
+          {"stage": "search", "duration_ms": null, "state": "pending"},
+          {"stage": "result", "duration_ms": null, "state": "pending"},
+          {"stage": "code", "duration_ms": null, "state": "pending"}
+        ],
+        "business_steps": [
+          {"operation": "ingest", "owner": "application", "duration_ms": null, "state": "pending"},
+          {"operation": "query", "owner": "application", "duration_ms": null, "state": "pending"}
+        ]
+      },
+      "result_contract": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0",
+        "evidence": "The application must bind its answer to the current migration bulletin after applying its own lifecycle rule."
+      }
+    },
+    {
+      "id": "b",
+      "role": "Cortrix processing and retrieval with an independent application resolver",
+      "backend": "Cortrix RC2",
+      "measurements": {
+        "stage_totals": [
+          {"stage": "input", "duration_ms": null, "state": "pending"},
+          {"stage": "write", "duration_ms": null, "state": "pending"},
+          {"stage": "search", "duration_ms": null, "state": "pending"},
+          {"stage": "result", "duration_ms": null, "state": "pending"},
+          {"stage": "code", "duration_ms": null, "state": "pending"}
+        ],
+        "business_steps": [
+          {"operation": "ingest", "owner": "cortrix", "duration_ms": null, "state": "pending"},
+          {"operation": "query", "owner": "cortrix", "duration_ms": null, "state": "pending"}
+        ]
+      },
+      "result_contract": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0",
+        "evidence": "Cortrix retrieval evidence and the application resolver must independently support the current migration bulletin."
+      }
+    }
+  ],
+  "harness_paths": [
+    {
+      "id": "pg",
+      "scenario_path": "a1",
+      "role": "Harness tool path over the application-managed PostgreSQL backend",
+      "backend": "PostgreSQL with pgvector plus application policy",
+      "result_contract": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0",
+        "evidence": "Harness must receive the same policy-bound result as path a1."
+      }
+    },
+    {
+      "id": "b",
+      "scenario_path": "b",
+      "role": "Harness tool path over Cortrix",
+      "backend": "Cortrix RC2",
+      "result_contract": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0",
+        "evidence": "Harness must receive source-bound Cortrix output that remains subject to the application resolver."
+      }
+    }
+  ],
+  "code_responsibility": [
+    {
+      "owner": "demo_runner",
+      "methodology": "Freeze one input manifest, isolate every path, collect independent operation timing, and emit attributable receipts."
+    },
+    {
+      "owner": "application",
+      "methodology": "Own lifecycle validation, bounded LLM assistance in path a1, final field selection, cancellation, and resume decisions."
+    },
+    {
+      "owner": "cortrix",
+      "methodology": "Own path b document processing, retrieval, ranked source identity, and observable retrieval evidence."
+    }
+  ],
+  "provider_usage": {
+    "provider_requests": null,
+    "cost_estimate_usd": null,
+    "basis": "A candidate run must report provider requests and a cost estimate from runtime receipts; this contract makes no pre-run cost claim."
+  },
+  "lifecycle": {
+    "cancel": {
+      "required": true,
+      "receipt": "required",
+      "requirement": "Cancellation must stop new work and record the last durable state for every started path."
+    },
+    "resume": {
+      "required": true,
+      "receipt": "required",
+      "requirement": "Resume must continue only from verified durable state and must not count earlier timing as new work."
+    },
+    "cleanup": {
+      "required": true,
+      "receipt": "required",
+      "requirement": "Cleanup must remove scenario-owned runtime resources after success, failure, or cancellation."
+    }
+  }
+}

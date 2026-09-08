@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 
-from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy, validate_catalog
+from cortrix_demo_runner.catalog import describe_scenario, list_scenarios, load_adapter_profile, load_agent_manifest, load_external_call_policy, scenario_integration_kind, validate_catalog
 from cortrix_demo_runner.errors import DemoContractError
 from cortrix_demo_runner.io import write_json
 from cortrix_demo_runner.scenario import validate_scenario
@@ -30,6 +30,8 @@ class CatalogTests(unittest.TestCase):
                 "./democtl list --json",
                 "./democtl describe --scenario order-api-field-migration --json",
                 "./democtl validate --scenario order-api-field-migration",
+                "./democtl describe --scenario order-api-live-three-path --json",
+                "./democtl validate --scenario order-api-live-three-path",
                 "./democtl verify-accepted",
             ],
             manifest["bootstrap"]["safe_default"],
@@ -53,6 +55,7 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual("cleanup", description["lifecycle"][-1])
         self.assertEqual("required", description["review_gates"]["independent_clean_run"])
         self.assertEqual(["remote_publication"], description["review_gates"]["human_review_required_for"])
+        self.assertEqual("sealed_full_stack_v1", scenario_integration_kind(scenarios[0]))
 
     def test_contract_only_adapter_fails_before_runtime_work(self) -> None:
         with self.assertRaisesRegex(DemoContractError, "not implemented") as captured:
@@ -120,7 +123,7 @@ class CatalogTests(unittest.TestCase):
 
             self.assertEqual([], validate_scenario(root, second_id))
             self.assertEqual([], validate_catalog(root))
-            self.assertEqual({"order-api-field-migration", second_id}, {item["id"] for item in list_scenarios(root)})
+            self.assertEqual({"order-api-field-migration", "order-api-live-three-path", second_id}, {item["id"] for item in list_scenarios(root)})
 
     def test_external_call_policy_is_fail_closed_at_one_dollar(self) -> None:
         policy = load_external_call_policy(ROOT)

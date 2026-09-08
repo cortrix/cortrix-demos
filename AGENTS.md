@@ -10,6 +10,8 @@ If this is your first interaction with the repository, read `agent.json` and fol
 ./democtl list --json
 ./democtl describe --scenario order-api-field-migration --json
 ./democtl validate --scenario order-api-field-migration
+./democtl describe --scenario order-api-live-three-path --json
+./democtl validate --scenario order-api-live-three-path
 ./democtl verify-accepted
 ```
 
@@ -52,6 +54,6 @@ Do not run `preflight`, `run-full-stack`, `stage-accepted`, `record-screenshot`,
 ## Verification
 
 - Run `make validate` before committing.
-- Verify that `agent.json`, `scenarios/registry.json`, and each scenario's technology profile remain mutually discoverable.
+- Verify that `agent.json`, `scenarios/registry.json`, and each scenario's registered contracts remain mutually discoverable.
 - Run the public-safety scan against the full tracked tree and staged diff.
 - Keep `main` as the canonical English branch.

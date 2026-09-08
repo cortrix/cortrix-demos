@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Cortrix | Live Three-Path Comparison</title>
+  <link rel="icon" href="assets/cortrix-logo-full.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="api.js" defer></script>
+  <script src="assets/timing.js" defer></script>
+  <script src="assets/presentation.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <img class="brand" src="assets/cortrix-logo-full.svg" alt="Cortrix">
+      <span class="header-divider"></span><span class="header-title">Same inputs · Live execution · Engineering ownership</span>
+      <div class="header-actions">
+        <label class="history-label" for="history">Run history</label>
+        <select id="history" data-testid="run-history" aria-label="Select a previous run"><option value="">No runs yet</option></select>
+        <button class="button quiet" id="refresh" data-testid="refresh">Refresh</button>
+        <a class="button quiet" id="evidence-link" href="evidence.html" data-testid="evidence-link">Evidence ↗</a>
+      </div>
+    </header>
+    <section class="composer" aria-labelledby="page-title">
+      <div class="composer-heading"><h1 id="page-title">How much application code does it take to find the current answer?</h1><span class="budget" id="budget" data-testid="budget">Loading budget</span></div>
+      <div class="question-row">
+        <label class="sr-only" for="question">Business question</label>
+        <textarea id="question" rows="2" data-testid="question" placeholder="Enter the business question"></textarea>
+        <div class="field"><label for="language">Input language</label><select id="language" data-testid="language"><option value="en-US">English sources</option></select></div>
+        <div class="field"><label for="mode">Run mode</label><select id="mode" data-testid="mode"><option value="deterministic">Deterministic · three paths</option><option value="harness">DeepSeek Harness · two paths</option></select></div>
+        <div class="run-controls">
+          <div class="start-row"><button class="button primary" id="start" data-testid="start-run" disabled>Start live run</button><span class="consent-wrapper"><button id="consent-info" class="info-button" type="button" aria-label="External processing and cost notice" aria-describedby="consent-tooltip" aria-expanded="false" data-testid="consent-info">!</button><span class="tooltip" id="consent-tooltip" role="tooltip">By selecting Start live run or New live run, you confirm that the selected documents and question may be sent to DeepSeek or another configured model and may incur usage charges. Viewing, switching pages, or refreshing does not start a run. Requests already sent may still finish and incur charges after you stop.</span></span></div>
+          <div class="secondary-actions"><button class="text-button" id="cancel" data-testid="cancel-run" disabled>Stop</button><button class="text-button" id="resume" data-testid="resume-run" disabled>Resume</button><button class="text-button" id="cleanup" data-testid="cleanup-run" disabled>Clean up current run</button></div>
+        </div>
+      </div>
+      <div class="input-summary"><button id="manage-files" class="text-button" data-testid="manage-files">Select / preview documents</button><span id="selected-files" data-testid="selected-files">Loading source documents</span><label class="upload-label" for="upload">+ Add files<input id="upload" type="file" multiple data-testid="upload-files"></label><span class="draft-label" id="draft-note">Pending input</span></div>
+    </section>
+    <nav class="stage-tabs" role="tablist" aria-label="Comparison stages">
+      <button id="tab-input" role="tab" aria-selected="true" aria-controls="lanes" data-stage="input" data-testid="stage-input">01 Input</button>
+      <button id="tab-write" role="tab" aria-selected="false" aria-controls="lanes" data-stage="write" tabindex="-1" data-testid="stage-write">02 Ingest & process</button>
+      <button id="tab-search" role="tab" aria-selected="false" aria-controls="lanes" data-stage="search" tabindex="-1" data-testid="stage-search">03 Retrieve</button>
+      <button id="tab-result" role="tab" aria-selected="false" aria-controls="lanes" data-stage="result" tabindex="-1" data-testid="stage-result">04 Business result</button>
+      <button id="tab-code" role="tab" aria-selected="false" aria-controls="lanes" data-stage="code" tabindex="-1" data-testid="stage-code">05 Code & ownership</button>
+      <span class="run-state" id="run-state" data-testid="run-state">Not run</span>
+      <button class="text-button review-button" id="review" data-testid="review-run" disabled>Replay run stages</button>
+    </nav>
+    <section id="lanes" class="lanes" role="tabpanel" aria-labelledby="tab-input" data-testid="lanes"></section>
+    <footer class="page-footer"><span id="notice" role="status" aria-live="polite" data-testid="notice">Review and select the inputs. Live status will appear here after the run starts.</span><span id="observed" data-testid="observed">No observations yet</span></footer>
+  </main>
+  <dialog id="files-dialog" class="files-dialog" aria-labelledby="files-title">
+    <div class="dialog-heading"><div><h2 id="files-title">Source documents for this run</h2><p>Selections update the pending input. Saved runs keep their original inputs.</p></div><button type="button" class="icon-button" data-close="files-dialog" aria-label="Close document panel">×</button></div>
+    <div class="file-toolbar"><span id="file-count"></span><button id="select-visible" class="text-button">Select all for this language</button><button id="select-none" class="text-button">Clear selection</button></div>
+    <div class="file-browser"><div id="file-list" class="file-list" data-testid="file-list"></div><section class="file-preview" aria-label="Document preview"><h3 id="preview-name">Select a document to preview</h3><p id="preview-meta" class="metadata"></p><pre id="preview-content" tabindex="0" data-testid="file-preview">The document text will appear here.</pre></section></div>
+    <div class="dialog-actions"><button class="button primary" data-close="files-dialog" data-testid="files-done">Done</button></div>
+  </dialog>
+  <dialog id="confirm-dialog" class="small-dialog" aria-labelledby="confirm-title"><div class="dialog-heading"><h2 id="confirm-title"></h2><button type="button" class="icon-button" data-close="confirm-dialog" aria-label="Cancel">×</button></div><div id="confirm-body"></div><div class="dialog-actions"><button class="button quiet" data-close="confirm-dialog">Back</button><button class="button primary" id="confirm-action" data-testid="confirm-action">Confirm</button></div></dialog>
+  <dialog id="code-dialog" class="code-dialog" aria-labelledby="code-title"><div class="dialog-heading"><div><h2 id="code-title">Full implementation</h2><p id="code-meta"></p></div><button type="button" class="icon-button" data-close="code-dialog" aria-label="Close source">×</button></div><pre id="code-content" tabindex="0" data-testid="code-content"></pre></dialog>
+</body>
+</html>
