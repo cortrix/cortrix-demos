@@ -264,7 +264,7 @@ def query_payload(query: str, granularity: str) -> dict[str, Any]:
         "crag": False,
         "granularity": granularity,
         "explain": True,
-        "search_config": {"enable_vector": True, "enable_bm25": True, "enable_sql": False},
+        "search_config": {"enable_vector": True, "enable_bm25": True},
         "rag_fusion": True,
         "rag_fusion_config": {"enabled": True, "variant_count": 3, "timeout_ms": 120000, "locale": "en", "candidate_multiplier": 5, "max_candidates": 20, "final_rerank": True, "activation_policy": "always"},
         "llm_rerank": True,
