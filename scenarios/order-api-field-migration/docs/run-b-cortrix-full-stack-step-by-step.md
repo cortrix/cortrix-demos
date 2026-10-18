@@ -396,7 +396,7 @@ print(json.dumps({
     "crag": False,
     "granularity": "chunk",
     "explain": True,
-    "search_config": {"enable_vector": True, "enable_bm25": True, "enable_sql": False},
+    "search_config": {"enable_vector": True, "enable_bm25": True},
     "rag_fusion": True,
     "rag_fusion_config": {
         "enabled": True,
