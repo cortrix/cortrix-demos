@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-api-live-three-path",
+  "contract_version": "live_three_path/v1",
+  "source_pins": {
+    "cortrix": {
+      "release": "v1.0.0-rc.2",
+      "commit": "d298d6b7e64c67551f567e7cddd514bae1adb57b"
+    },
+    "deepseek_harness": {
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca"
+    }
+  },
+  "input_contract": {
+    "manifest_sha256": "67f179dfecd7a410c38ca8c726ad8d59197193badc710f15154f6dd23d405cd2",
+    "provenance_kind": "repository_public_fixture_copy",
+    "source_scenario": "order-api-field-migration"
+  },
+  "display_stages": [
+    "input",
+    "write",
+    "search",
+    "result",
+    "code"
+  ],
+  "business_operations": [
+    "ingest",
+    "query"
+  ],
+  "path_contract": {
+    "ids": [
+      "a0",
+      "a1",
+      "b"
+    ],
+    "results": {
+      "a0": {
+        "selected_field": "account_id",
+        "source_document": "order-api-guide-v1.0"
+      },
+      "a1": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0"
+      },
+      "b": {
+        "selected_field": "buyer_account_id",
+        "source_document": "order-api-release-v2.0"
+      }
+    }
+  },
+  "harness_contract": {
+    "ids": [
+      "pg",
+      "b"
+    ],
+    "scenario_paths": {
+      "pg": "a1",
+      "b": "b"
+    }
+  },
+  "responsibility_owners": [
+    "demo_runner",
+    "application",
+    "cortrix"
+  ],
+  "fixture_contract": {
+    "document_count": 4,
+    "document_ids": [
+      "order-api-guide-v1.0",
+      "order-api-release-v2.0",
+      "order-api-list-pagination-v2.0",
+      "order-api-cancellation-v2.0"
+    ]
+  },
+  "candidate_contract": {
+    "state": "implementation_candidate",
+    "package_manifest": "packages/live_demo/manifest.json",
+    "accepted_evidence_allowed": false,
+    "runtime_results_allowed": false
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "order-api-live-three-path",
+  "display_name": "Order API Live Three-Path Comparison",
+  "title": "Order API Field Migration: Three Independently Measured Live Paths",
+  "scenario_version": "1.0.0",
+  "integration_kind": "live_three_path_v1",
+  "synthetic_data": true,
+  "construction_note": "Synthetic Order API documents copied from the repository's public sealed scenario to compare three planned live paths without asserting an execution result.",
+  "live_contract": "contracts/live-three-path.json",
+  "fixtures": {
+    "manifest": "fixtures/manifest.json"
+  },
+  "validation_contract": "expected/validation.json",
+  "locales": {
+    "default": "en-US",
+    "available": [
+      "en-US"
+    ]
+  }
+}

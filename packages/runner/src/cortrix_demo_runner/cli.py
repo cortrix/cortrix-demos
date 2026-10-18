@@ -22,13 +22,18 @@ from .walkthrough import abort_walkthrough, execute_run_a_step, execute_run_b_st
 
 def command_validate(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    scenario_id = resolve_scenario_id(root, args.scenario)
-    failures = validate_scenario(root, scenario_id)
-    failures.extend(validate_catalog(root))
+    scenario_ids = [resolve_scenario_id(root, args.scenario)] if args.scenario else [entry["id"] for entry in list_scenarios(root)]
+    failures = validate_catalog(root)
+    for scenario_id in scenario_ids:
+        failures.extend(f"{scenario_id}: {failure}" for failure in validate_scenario(root, scenario_id))
     require_safe(root)
     if failures:
         raise DemoContractError("Scenario validation failed:\n- " + "\n- ".join(failures))
-    print(json.dumps({"status": "pass", "scenario": scenario_id, "external_calls": 0}, indent=2))
+    if args.scenario:
+        payload = {"status": "pass", "scenario": scenario_ids[0], "external_calls": 0}
+    else:
+        payload = {"status": "pass", "scenarios": scenario_ids, "external_calls": 0}
+    print(json.dumps(payload, indent=2))
 
 
 def command_list(args: argparse.Namespace) -> None:
@@ -71,6 +76,7 @@ def command_preflight(args: argparse.Namespace) -> None:
 def command_prepare_image(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     scenario_id = resolve_scenario_id(root, args.scenario)
+    require_runnable_scenario(root, scenario_id, "full-stack")
     scenario = load_scenario(root, scenario_id)
     provenance = require_scenario_image_provenance(scenario["requires"])
     source = args.cortrix_source.resolve()

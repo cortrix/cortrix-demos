@@ -10,5 +10,6 @@ htmlcov/
 screenshots-draft/
 *.log
 *.env
+packages/live_demo/runtime-config.local.json
 dist/
 build/

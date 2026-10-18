@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "package_id": "cortrix-live-demo",
+  "package_version": "0.1.0",
+  "state": "implementation_candidate",
+  "scenario_id": "order-api-live-three-path",
+  "contract_version": "live_three_path/v1",
+  "python_package": "src/cortrix_live_demo",
+  "cli_entrypoint": "cortrix_live_demo.cli:main",
+  "cli_command": "live-democtl",
+  "runtime_config_example": "runtime-config.example.json",
+  "harness_adapter": "harness/launch.mjs",
+  "fixtures_manifest": "runtime-support/fixtures/manifest.json",
+  "evidence_schema": "schemas/run-evidence.schema.json",
+  "source_pins": {
+    "cortrix": {
+      "release": "v1.0.0-rc.2",
+      "commit": "d298d6b7e64c67551f567e7cddd514bae1adb57b"
+    },
+    "deepseek_harness": {
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "commit": "99f6f02fecdb7dff40c3fbc9470f5907c29f74ca"
+    }
+  },
+  "deterministic_paths": ["a0", "a1", "b"],
+  "harness_paths": ["pg", "b"],
+  "display_stages": ["input", "write", "search", "result", "code"],
+  "business_operations": ["ingest", "query"],
+  "external_calls_default": false,
+  "runtime_results_allowed": false,
+  "accepted_evidence_allowed": false
+}

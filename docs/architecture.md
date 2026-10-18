@@ -3,7 +3,8 @@
 Cortrix Demos separates the business story from the technology used to demonstrate it.
 
 ```text
-scenario -> technology profile -> reusable adapter -> immutable accepted run
+sealed scenario -> technology profile -> reusable adapter -> immutable accepted run
+live scenario -> live contract -> dedicated runtime -> candidate -> reviewed evidence
 ```
 
 ## Directory map
@@ -37,6 +38,8 @@ scenarios/<id>/
   evidence/runs/<run_id>/
 ```
 
+The registry selects an integration contract with `integration_kind`. A missing value means `sealed_full_stack_v1` for backward compatibility. `live_three_path_v1` is the contract-only path for a candidate that compares `a0`, `a1`, and `b`; its runtime implementation and evidence are separate later layers.
+
 ## Ownership rules
 
 - A scenario owns one business question, fixtures, expected assertions, presentation text, and accepted evidence.
@@ -47,13 +50,15 @@ scenarios/<id>/
 - An accepted run freezes exact versions, model identities, source revision, cost visibility, resolver output, cleanup, and screenshot bindings.
 - Changing a database or model creates a new profile and run. It does not overwrite accepted evidence.
 
-The first scenario retains `full-stack` and `replay` compatibility profiles because its accepted evidence predates the adapter catalog. New scenarios should use the technology-profile contract directly.
+The first scenario retains `full-stack` and `replay` compatibility profiles because its accepted evidence predates the adapter catalog. New sealed scenarios should use the technology-profile contract directly.
+
+The `order-api-live-three-path` candidate has a dedicated implementation under `packages/live_demo`, a live contract, frozen public fixtures, and validation rules, but no accepted-evidence pointer. Its runtime remains a candidate until a fresh run passes independent review. The existing Full Stack runner accepts only `sealed_full_stack_v1` scenarios.
 
 ## Extension order
 
 1. Read `agent.json`, this architecture guide, the technology-profile guide, and the authoring guide.
-2. Add or reuse an implemented adapter.
-3. Add the scenario vertical slice and technology profile.
+2. Select the integration kind and add or reuse its implemented runtime.
+3. Add the scenario vertical slice and its integration-specific contract.
 4. Register the scenario in `scenarios/registry.json`.
 5. Add fixtures, assertions, tests, Run A and Run B human documentation, and viewer projection.
 6. Run local validation before any external call.

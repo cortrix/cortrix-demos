@@ -1,0 +1,50 @@
+server:
+  host: 0.0.0.0
+  port: 8420
+  thread_count: 2
+
+auth:
+  enabled: false
+
+log:
+  level: info
+  format: json
+  output: stdout
+
+namespace:
+  data_dir: /data
+  max_active: 10
+  idle_timeout_s: 0
+
+embedding:
+  model_path: /data/models/bge-m3/model.onnx
+  tokenizer_path: /data/models/bge-m3/tokenizer.json
+  dimension: 1024
+  max_seq_length: 512
+  execution_provider: cpu
+
+reranker:
+  model_dir: /data/models/bge-reranker-v2-m3
+  execution_provider: cpu
+
+query_complexity:
+  model_dir: ""
+
+retrieval:
+  candidate_multiplier: 5
+  max_candidates: 20
+
+spc:
+  worker_count: 1
+  parser_max_concurrent: 1
+  chunk_size: 512
+  chunk_overlap: 32
+  embedding_batch_size: 1
+  onnx_intra_threads: 4
+  onnx_inter_threads: 1
+  python_bin: python3
+  parser_timeout_s: 120
+
+gc:
+  enabled: false
+  dry_run: true

@@ -1,0 +1,10 @@
+{
+  "name": "@cortrix/live-demo-harness",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "check": "node launch.mjs --check",
+    "test": "node ../tests/harness-tests.mjs",
+    "test:contract": "node ../tests/harness-contract-tests.mjs"
+  }
+}

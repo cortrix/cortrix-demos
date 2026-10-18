@@ -13,6 +13,8 @@
       "./democtl list --json",
       "./democtl describe --scenario order-api-field-migration --json",
       "./democtl validate --scenario order-api-field-migration",
+      "./democtl describe --scenario order-api-live-three-path --json",
+      "./democtl validate --scenario order-api-live-three-path",
       "./democtl verify-accepted"
     ],
     "human_entry": "README.md",
@@ -23,7 +25,8 @@
     "adapters": "runtime/adapters/registry.json",
     "external_call_policy": "config/external-call-policy.json",
     "evidence_schema": "packages/evidence-schema/run-manifest.schema.json",
-    "image_provenance": "runtime/image-provenance.json"
+    "image_provenance": "runtime/image-provenance.json",
+    "live_demo": "packages/live_demo/manifest.json"
   },
   "lifecycle": [
     "discover",
@@ -43,6 +46,14 @@
       "source_preparation": "git clone https://github.com/cortrix/cortrix.git .runtime/cortrix-src",
       "image_preparation": "./democtl prepare-image --scenario order-api-field-migration",
       "command": "./democtl run-full-stack --scenario order-api-field-migration"
+    },
+    "live_three_path": {
+      "scenario": "order-api-live-three-path",
+      "manual_authorization_required": true,
+      "external_calls": true,
+      "runtime_config_required": true,
+      "entrypoint": "packages/live_demo/live-democtl",
+      "implementation_manifest": "packages/live_demo/manifest.json"
     },
     "accepted_promotion": "independent_clean_run_required",
     "remote_publication": "explicit_human_authorization_required"

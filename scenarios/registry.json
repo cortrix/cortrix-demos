@@ -12,6 +12,16 @@
       "accepted_pointer": "order-api-field-migration/evidence/accepted-run.json",
       "status": "accepted",
       "synthetic_data": true
+    },
+    {
+      "id": "order-api-live-three-path",
+      "display_name": "Order API Live Three-Path Comparison",
+      "integration_kind": "live_three_path_v1",
+      "scenario_contract": "order-api-live-three-path/scenario.json",
+      "validation_contract": "order-api-live-three-path/expected/validation.json",
+      "human_guide": "order-api-live-three-path/README.md",
+      "status": "candidate",
+      "synthetic_data": true
     }
   ]
 }

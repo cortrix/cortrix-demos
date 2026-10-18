@@ -17,6 +17,11 @@ class ScenarioTests(unittest.TestCase):
     def test_scenario_identity_and_fixture_checksums(self) -> None:
         self.assertEqual([], validate_scenario(ROOT))
 
+    def test_missing_integration_kind_keeps_the_sealed_default(self) -> None:
+        scenario = load_scenario(ROOT)
+        self.assertNotIn("integration_kind", scenario)
+        self.assertEqual([], validate_scenario(ROOT, "order-api-field-migration"))
+
     def test_source_identity_is_separate_from_release_identity(self) -> None:
         scenario = load_scenario(ROOT)
         requires = scenario["requires"]

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Cortrix | Application Code Comparison</title>
+  <link rel="icon" href="assets/cortrix-logo-full.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="landing-page">
+  <main class="landing-shell">
+    <header class="landing-header">
+      <img class="landing-brand" src="assets/cortrix-logo-full.svg" alt="Cortrix">
+      <p>LIVE CODE COMPARISON</p>
+    </header>
+    <section class="landing-hero">
+      <div class="landing-copy">
+        <p class="eyebrow">CORTRIX SPOTLIGHT</p>
+        <h1>Give semantic processing to Cortrix.<br>Keep application code focused.</h1>
+        <p class="landing-lede">One source set and one business question. Compare how much processing each of three implementations leaves to the application.</p>
+        <a class="landing-cta" href="/demo" data-testid="enter-demo">Open the live demo <span aria-hidden="true">→</span></a>
+      </div>
+      <article class="capability-card" aria-label="Cortrix path capabilities">
+        <div class="capability-copy">
+          <p class="path-badge">B</p>
+          <div><p class="capability-brand">Cortrix</p><h2>One interface for reusable<br>processing and retrieval.</h2><p>The application keeps the business rules.</p></div>
+        </div>
+        <div class="layer-visual"><img class="layer-art" src="assets/capability-layers.png" alt="Three connected processing layers"><img class="layer-logo" src="assets/cortrix-logo-mark.svg" alt=""></div>
+        <ol class="capability-list"><li>Retrieval</li><li>Processing</li><li>One interface</li></ol>
+      </article>
+    </section>
+    <section class="code-chart" aria-labelledby="chart-title">
+      <div class="chart-heading"><div><h2 id="chart-title">Application code that differs by path</h2><p>Current example only; shared framework code is reported separately.</p></div><p class="chart-unit">Application code that differs by path (lines)</p></div>
+      <div class="chart-grid" role="img" aria-label="A0: 211 lines; A1: 433 lines; B: 76 lines">
+        <span class="chart-label">A0</span><div class="bar-track"><span class="bar bar-a0" style="--value:42.2%"></span></div><strong>211</strong>
+        <span class="chart-label">A1</span><div class="bar-track"><span class="bar bar-a1" style="--value:86.6%"></span></div><strong>433</strong>
+        <span class="chart-label">B</span><div class="bar-track"><span class="bar bar-b" style="--value:15.2%"></span></div><strong>76</strong>
+      </div>
+      <div class="chart-scale" aria-hidden="true"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span></div>
+    </section>
+    <footer class="landing-footer"><div><strong>See the live run behind the code.</strong><p>Three paths · Step timing · Evidence and source</p></div><p>Based on a synthetic Order API example. Completed runs retain their results, timing, and model-call records for review.</p></footer>
+  </main>
+</body>
+</html>
